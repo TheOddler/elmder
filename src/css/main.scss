@@ -4,13 +4,19 @@
     transition: all 1s ease;
 
     &.overview {
-      top: 0;
+      bottom: 0;
       left: 0;
     }
 
     &.saved {
-      top: 0;
+      bottom: 0;
       left: 500px;
     }
   }
+}
+
+.swipe_tryout {
+  width: 200px;
+  height: 200px;
+  background: grey;
 }

@@ -6,6 +6,7 @@ import Html.Attributes exposing (class, src)
 import Html.Events exposing (onClick)
 import Html.Keyed
 import List.Extra as List
+import Swipe as Swipe exposing (Gesture(..), attributes)
 
 
 type alias User =
@@ -18,11 +19,13 @@ type alias User =
 type alias Model =
     { overviewUsers : List User
     , savedUsers : List User
+    , testGesture : Gesture
     }
 
 
 type Msg
     = SaveForLater User
+    | UpdateTestGesture Gesture
 
 
 type alias Flags =
@@ -68,6 +71,7 @@ init : Flags -> ( Model, Cmd Msg )
 init () =
     ( { overviewUsers = genUsers 0
       , savedUsers = []
+      , testGesture = Swipe.init
       }
     , Cmd.none
     )
@@ -86,6 +90,11 @@ update message model =
             , Cmd.none
             )
 
+        UpdateTestGesture gesture ->
+            ( { model | testGesture = gesture }
+            , Cmd.none
+            )
+
 
 view : Model -> Html Msg
 view model =
@@ -94,6 +103,22 @@ view model =
         [ keyedDiv [ class "overview" ] <|
             List.map (viewUser Overview) model.overviewUsers
                 ++ List.map (viewUser Saved) model.savedUsers
+        , div
+            (class "swipe_tryout" :: attributes model.testGesture UpdateTestGesture)
+            [ text <|
+                case model.testGesture of
+                    None ->
+                        ""
+
+                    Start startPos ->
+                        "Starting: " ++ String.fromFloat startPos.x ++ "," ++ String.fromFloat startPos.y
+
+                    Moving _ curPos ->
+                        "Moving: " ++ String.fromFloat curPos.x ++ "," ++ String.fromFloat curPos.y
+
+                    Ended _ curPos ->
+                        "Ended: " ++ String.fromFloat curPos.x ++ "," ++ String.fromFloat curPos.y
+            ]
         ]
 
 

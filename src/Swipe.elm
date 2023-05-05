@@ -1,13 +1,15 @@
 module Swipe exposing
-    ( Gesture
-    , Position
+    (  Gesture(..)
+       -- , Position
+
     , attributes
+    , init
     )
 
 import Html
 import Html.Attributes as Attributes
-import Html.Events exposing (on, preventDefaultOn)
-import Json.Decode as Json exposing (Decoder)
+import Html.Events exposing (on)
+import Json.Decode as Decode exposing (Decoder)
 
 
 type alias Position =
@@ -15,69 +17,74 @@ type alias Position =
 
 
 type RawEvent
-    = TouchStart Position
-    | TouchMove Position
-    | TouchEnd Position
+    = PointerDown Position
+    | PointerMove Position
+    | PointerUp Position
 
 
 attributes : Gesture -> (Gesture -> msg) -> List (Html.Attribute msg)
 attributes gestureState gestureHandler =
     List.map (Attributes.map (gestureHandler << update gestureState))
-        [ on "touchstart" <| Json.map TouchStart (decodeTouchPosition "touches")
-        , on "touchmove" <| Json.map TouchMove (decodeTouchPosition "changedTouches")
-        , preventDefaultOn "touchend" <| Json.map (\pos -> ( TouchEnd pos, True )) (decodeTouchPosition "changedTouches")
+        [ on "pointerdown" <| Decode.map PointerDown decodePosition
+        , on "pointermove" <| Decode.map PointerMove decodePosition
+        , on "pointerup" <| Decode.map PointerUp decodePosition
         ]
 
 
 type Gesture
     = None
-    | Starting Position
+    | Start Position
     | Moving Position Position
-    | Swipe Position Position
+    | Ended Position Position
+
+
+init : Gesture
+init =
+    None
 
 
 update : Gesture -> RawEvent -> Gesture
 update gesture event =
     case ( gesture, event ) of
-        ( None, TouchStart startPos ) ->
-            Starting startPos
+        ( None, PointerDown startPos ) ->
+            Start startPos
 
-        ( None, TouchMove _ ) ->
+        ( None, PointerMove _ ) ->
             None
 
-        ( None, TouchEnd _ ) ->
+        ( None, PointerUp _ ) ->
             None
 
-        ( Starting _, TouchStart startPos ) ->
-            Starting startPos
+        ( Start _, PointerDown startPos ) ->
+            Start startPos
 
-        ( Starting startPos, TouchMove curPos ) ->
+        ( Start startPos, PointerMove curPos ) ->
             Moving startPos curPos
 
-        ( Starting startPos, TouchEnd endPos ) ->
-            Swipe startPos endPos
+        ( Start startPos, PointerUp endPos ) ->
+            Ended startPos endPos
 
-        ( Moving startPos curPos, TouchStart _ ) ->
+        ( Moving startPos curPos, PointerDown _ ) ->
             -- This is a weird event, we're getting a start event when we're already moving
             -- So we just ignore that event
             Moving startPos curPos
 
-        ( Moving startPos _, TouchMove curPos ) ->
+        ( Moving startPos _, PointerMove curPos ) ->
             Moving startPos curPos
 
-        ( Moving startPos _, TouchEnd endPos ) ->
-            Swipe startPos endPos
+        ( Moving startPos _, PointerUp endPos ) ->
+            Ended startPos endPos
 
-        ( Swipe _ _, TouchStart startPos ) ->
+        ( Ended _ _, PointerDown startPos ) ->
             -- Swipe has already finished, so we start a new one
-            Starting startPos
+            Start startPos
 
-        ( Swipe _ _, TouchMove _ ) ->
+        ( Ended _ _, PointerMove _ ) ->
             -- We've finished but we didn't get a new start and are moving again
             -- So the swipe probably started outside this element, so we ignore this even
             None
 
-        ( Swipe _ _, TouchEnd _ ) ->
+        ( Ended _ _, PointerUp _ ) ->
             -- We've finished and we're finishing again with having even started a new swipe
             -- So the swipe probably started outside this element, so we ignore this even
             None
@@ -85,11 +92,6 @@ update gesture event =
 
 decodePosition : Decoder Position
 decodePosition =
-    Json.map2 Position
-        (Json.field "clientX" Json.float)
-        (Json.field "clientY" Json.float)
-
-
-decodeTouchPosition : String -> Decoder Position
-decodeTouchPosition fieldName =
-    Json.at [ fieldName, "0" ] decodePosition
+    Decode.map2 Position
+        (Decode.field "clientX" Decode.float)
+        (Decode.field "clientY" Decode.float)
