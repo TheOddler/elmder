@@ -1,0 +1,16 @@
+.users {
+  .user {
+    position: absolute;
+    transition: all 1s ease;
+
+    &.overview {
+      top: 0;
+      left: 0;
+    }
+
+    &.saved {
+      top: 0;
+      left: 500px;
+    }
+  }
+}
