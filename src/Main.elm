@@ -2,11 +2,11 @@ module Main exposing (..)
 
 import Browser
 import Html exposing (Attribute, Html, div, img, text)
-import Html.Attributes exposing (class, src)
+import Html.Attributes as Attributes exposing (class, src)
 import Html.Events exposing (onClick)
 import Html.Keyed
 import List.Extra as List
-import Swipe as Swipe exposing (Gesture(..), attributes)
+import Swipe
 
 
 type alias User =
@@ -19,13 +19,16 @@ type alias User =
 type alias Model =
     { overviewUsers : List User
     , savedUsers : List User
-    , testGesture : Gesture
+    , swipeInternalState : Swipe.InternalState
+    , swipeCurrentPosition : Maybe Swipe.Position
     }
 
 
 type Msg
     = SaveForLater User
-    | UpdateTestGesture Gesture
+    | SwipeInternalMsg Swipe.InternalMsg
+    | SetSwipePos Swipe.Position
+    | EndSwipe
 
 
 type alias Flags =
@@ -71,7 +74,8 @@ init : Flags -> ( Model, Cmd Msg )
 init () =
     ( { overviewUsers = genUsers 0
       , savedUsers = []
-      , testGesture = Swipe.init
+      , swipeInternalState = Swipe.init
+      , swipeCurrentPosition = Nothing
       }
     , Cmd.none
     )
@@ -90,8 +94,36 @@ update message model =
             , Cmd.none
             )
 
-        UpdateTestGesture gesture ->
-            ( { model | testGesture = gesture }
+        SwipeInternalMsg msg ->
+            let
+                ( newModel, event, cmd ) =
+                    Swipe.internalUpdate msg model.swipeInternalState
+
+                newPos =
+                    case event of
+                        Nothing ->
+                            model.swipeCurrentPosition
+
+                        Just (Swipe.Start startPos) ->
+                            Just startPos
+
+                        Just (Swipe.Move _ curPos) ->
+                            Just curPos
+
+                        Just (Swipe.End _ _) ->
+                            Nothing
+            in
+            ( { model | swipeInternalState = newModel, swipeCurrentPosition = newPos }
+            , Cmd.map SwipeInternalMsg cmd
+            )
+
+        SetSwipePos newPos ->
+            ( { model | swipeCurrentPosition = Just newPos }
+            , Cmd.none
+            )
+
+        EndSwipe ->
+            ( { model | swipeCurrentPosition = Nothing }
             , Cmd.none
             )
 
@@ -104,21 +136,19 @@ view model =
             List.map (viewUser Overview) model.overviewUsers
                 ++ List.map (viewUser Saved) model.savedUsers
         , div
-            (class "swipe_tryout" :: attributes model.testGesture UpdateTestGesture)
+            (class "swipe_tryout"
+                :: Swipe.onSwipe model.swipeInternalState SwipeInternalMsg
+            )
             [ text <|
-                case model.testGesture of
-                    None ->
+                case model.swipeCurrentPosition of
+                    Nothing ->
                         ""
 
-                    Start startPos ->
-                        "Starting: " ++ String.fromFloat startPos.x ++ "," ++ String.fromFloat startPos.y
-
-                    Moving _ curPos ->
-                        "Moving: " ++ String.fromFloat curPos.x ++ "," ++ String.fromFloat curPos.y
-
-                    Ended _ curPos ->
-                        "Ended: " ++ String.fromFloat curPos.x ++ "," ++ String.fromFloat curPos.y
+                    Just pos ->
+                        String.fromFloat pos.x ++ "," ++ String.fromFloat pos.y
             ]
+        , div []
+            [ text <| Debug.toString model.swipeInternalState ]
         ]
 
 

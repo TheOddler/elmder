@@ -1,97 +1,173 @@
-module Swipe exposing
-    (  Gesture(..)
-       -- , Position
-
-    , attributes
+port module Swipe exposing
+    ( Event(..)
+    , InternalMsg
+    , InternalState
+    , Position
     , init
+    , internalUpdate
+    , onSwipe
     )
 
-import Html
-import Html.Attributes as Attributes
+import Html exposing (Attribute)
 import Html.Events exposing (on)
 import Json.Decode as Decode exposing (Decoder)
+
+
+type InternalState
+    = None
+    | Starting Int Position
+    | Moving Int Position
+
+
+init : InternalState
+init =
+    None
+
+
+type InternalMsg
+    = InternalStart PointerEvent
+    | InternalMove PointerEvent
+    | InternalEnd PointerEvent
+
+
+type Event
+    = Start Position
+    | Move Position Position
+    | End Position Position
+
+
+internalUpdate : InternalMsg -> InternalState -> ( InternalState, Maybe Event, Cmd msg )
+internalUpdate msg model =
+    let
+        ignore =
+            ( model, Nothing, Cmd.none )
+    in
+    case ( msg, model ) of
+        ( InternalStart evnt, None ) ->
+            ( Starting evnt.id evnt.position
+            , Just <| Start evnt.position
+            , setPointerCapture evnt.raw
+            )
+
+        ( InternalStart _, Starting _ _ ) ->
+            -- We've already started and starting again
+            -- Likely a different point, so just ignore
+            ignore
+
+        ( InternalStart _, Moving _ _ ) ->
+            -- We're already moving but getting another start?
+            -- Likely a different point, so just ignore
+            ignore
+
+        ( InternalMove _, None ) ->
+            -- We're getting a move event but haven't started the swipe
+            -- Probably just the mouse moving over this element without having clicked
+            -- So ignore
+            ignore
+
+        ( InternalMove evnt, Starting id startPos ) ->
+            ( Moving id evnt.position
+            , Just <| Move startPos evnt.position
+            , Cmd.none
+            )
+
+        ( InternalMove evnt, Moving id startPos ) ->
+            ( Moving id evnt.position
+            , Just <| Move startPos evnt.position
+            , Cmd.none
+            )
+
+        ( InternalEnd _, None ) ->
+            -- Already ending but we haven't even started
+            -- Just ignore
+            ignore
+
+        ( InternalEnd evnt, Starting _ startPos ) ->
+            -- Our swipe has come to an end, to release capture and reset state
+            ( None
+            , Just <| End startPos evnt.position
+            , releasePointerCapture evnt.raw
+            )
+
+        ( InternalEnd evnt, Moving _ startPos ) ->
+            -- Our swipe has come to an end, to release capture and reset state
+            ( None
+            , Just <| End startPos evnt.position
+            , releasePointerCapture evnt.raw
+            )
+
+
+onSwipe :
+    InternalState
+    -> (InternalMsg -> msg)
+    -> List (Attribute msg)
+onSwipe state swipeMsg =
+    let
+        -- onMapped : String -> (Position -> msg) -> List (Attribute msg)
+        onMapped eventName internalTagger =
+            on eventName <| Decode.map (swipeMsg << internalTagger) decodePointerEvent
+
+        startAttrs =
+            [ onMapped "pointerdown" InternalStart ]
+
+        moveOrEndAttrs =
+            [ onMapped "pointermove" InternalMove
+            , onMapped "pointerup" InternalEnd
+            ]
+    in
+    case state of
+        None ->
+            startAttrs
+
+        Starting _ _ ->
+            moveOrEndAttrs
+
+        Moving _ _ ->
+            moveOrEndAttrs
+
+
+
+-- PointerEvent
+
+
+type alias PointerEvent =
+    { raw : Decode.Value
+    , id : Int
+    , position : Position
+    }
+
+
+decodePointerEvent : Decoder PointerEvent
+decodePointerEvent =
+    Decode.value
+        |> Decode.andThen
+            (\value ->
+                Decode.map3
+                    (\id x y ->
+                        { raw = value
+                        , id = id
+                        , position = { x = x, y = y }
+                        }
+                    )
+                    (Decode.field "pointerId" Decode.int)
+                    (Decode.field "clientX" Decode.float)
+                    (Decode.field "clientY" Decode.float)
+            )
+
+
+
+-- Position
 
 
 type alias Position =
     { x : Float, y : Float }
 
 
-type RawEvent
-    = PointerDown Position
-    | PointerMove Position
-    | PointerUp Position
+
+-- Ports
 
 
-attributes : Gesture -> (Gesture -> msg) -> List (Html.Attribute msg)
-attributes gestureState gestureHandler =
-    List.map (Attributes.map (gestureHandler << update gestureState))
-        [ on "pointerdown" <| Decode.map PointerDown decodePosition
-        , on "pointermove" <| Decode.map PointerMove decodePosition
-        , on "pointerup" <| Decode.map PointerUp decodePosition
-        ]
+port setPointerCapture : Decode.Value -> Cmd msg
 
 
-type Gesture
-    = None
-    | Start Position
-    | Moving Position Position
-    | Ended Position Position
-
-
-init : Gesture
-init =
-    None
-
-
-update : Gesture -> RawEvent -> Gesture
-update gesture event =
-    case ( gesture, event ) of
-        ( None, PointerDown startPos ) ->
-            Start startPos
-
-        ( None, PointerMove _ ) ->
-            None
-
-        ( None, PointerUp _ ) ->
-            None
-
-        ( Start _, PointerDown startPos ) ->
-            Start startPos
-
-        ( Start startPos, PointerMove curPos ) ->
-            Moving startPos curPos
-
-        ( Start startPos, PointerUp endPos ) ->
-            Ended startPos endPos
-
-        ( Moving startPos curPos, PointerDown _ ) ->
-            -- This is a weird event, we're getting a start event when we're already moving
-            -- So we just ignore that event
-            Moving startPos curPos
-
-        ( Moving startPos _, PointerMove curPos ) ->
-            Moving startPos curPos
-
-        ( Moving startPos _, PointerUp endPos ) ->
-            Ended startPos endPos
-
-        ( Ended _ _, PointerDown startPos ) ->
-            -- Swipe has already finished, so we start a new one
-            Start startPos
-
-        ( Ended _ _, PointerMove _ ) ->
-            -- We've finished but we didn't get a new start and are moving again
-            -- So the swipe probably started outside this element, so we ignore this even
-            None
-
-        ( Ended _ _, PointerUp _ ) ->
-            -- We've finished and we're finishing again with having even started a new swipe
-            -- So the swipe probably started outside this element, so we ignore this even
-            None
-
-
-decodePosition : Decoder Position
-decodePosition =
-    Decode.map2 Position
-        (Decode.field "clientX" Decode.float)
-        (Decode.field "clientY" Decode.float)
+port releasePointerCapture : Decode.Value -> Cmd msg
