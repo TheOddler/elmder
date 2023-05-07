@@ -2,7 +2,7 @@ module Main exposing (..)
 
 import Browser
 import Html exposing (Attribute, Html, div, img, text)
-import Html.Attributes exposing (class, src)
+import Html.Attributes exposing (class, src, style)
 import Html.Events exposing (onClick)
 import Html.Keyed
 import List.Extra as List
@@ -20,15 +20,13 @@ type alias Model =
     { overviewUsers : List User
     , savedUsers : List User
     , swipeInternalState : Swipe.InternalState
-    , swipeCurrentPosition : Maybe Swipe.Position
+    , testOffset : { x : Float, y : Float }
     }
 
 
 type Msg
     = SaveForLater User
     | SwipeInternalMsg Swipe.InternalMsg
-    | SetSwipePos Swipe.Position
-    | EndSwipe
 
 
 type alias Flags =
@@ -75,7 +73,7 @@ init () =
     ( { overviewUsers = genUsers 0
       , savedUsers = []
       , swipeInternalState = Swipe.init
-      , swipeCurrentPosition = Nothing
+      , testOffset = { x = 0, y = 0 }
       }
     , Cmd.none
     )
@@ -99,32 +97,22 @@ update message model =
                 ( newModel, event, cmd ) =
                     Swipe.internalUpdate msg model.swipeInternalState
 
-                newPos =
+                newOffset =
                     case event of
                         Nothing ->
-                            model.swipeCurrentPosition
+                            model.testOffset
 
-                        Just (Swipe.Start startPos) ->
-                            Just startPos
+                        Just (Swipe.Start _) ->
+                            { x = 0, y = 0 }
 
-                        Just (Swipe.Move _ curPos) ->
-                            Just curPos
+                        Just (Swipe.Move startPos curPos) ->
+                            { x = curPos.x - startPos.x, y = curPos.y - startPos.y }
 
                         Just (Swipe.End _ _) ->
-                            Nothing
+                            { x = 0, y = 0 }
             in
-            ( { model | swipeInternalState = newModel, swipeCurrentPosition = newPos }
+            ( { model | swipeInternalState = newModel, testOffset = newOffset }
             , Cmd.map SwipeInternalMsg cmd
-            )
-
-        SetSwipePos newPos ->
-            ( { model | swipeCurrentPosition = Just newPos }
-            , Cmd.none
-            )
-
-        EndSwipe ->
-            ( { model | swipeCurrentPosition = Nothing }
-            , Cmd.none
             )
 
 
@@ -136,16 +124,12 @@ view model =
             List.map (viewUser Overview) model.overviewUsers
                 ++ List.map (viewUser Saved) model.savedUsers
         , div
-            (class "swipe_tryout"
-                :: Swipe.onSwipe model.swipeInternalState SwipeInternalMsg
+            ([ class "swipe_tryout"
+             , style "transform" <| "translate(" ++ String.fromFloat model.testOffset.x ++ "px, " ++ String.fromFloat model.testOffset.y ++ "px)"
+             ]
+                ++ Swipe.onSwipe model.swipeInternalState SwipeInternalMsg
             )
-            [ text <|
-                case model.swipeCurrentPosition of
-                    Nothing ->
-                        ""
-
-                    Just pos ->
-                        String.fromFloat pos.x ++ "," ++ String.fromFloat pos.y
+            [ text <| String.fromFloat model.testOffset.x ++ "," ++ String.fromFloat model.testOffset.y
             ]
         , div []
             [ text <| Debug.toString model.swipeInternalState ]

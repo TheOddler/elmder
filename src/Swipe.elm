@@ -15,8 +15,9 @@ import Json.Decode as Decode exposing (Decoder)
 
 type InternalState
     = None
-    | Starting Int Position
-    | Moving Int Position
+      -- We only save the start position, the current position will be part of each message
+    | Starting { id : Int, startPos : Position }
+    | Moving { id : Int, startPos : Position }
 
 
 init : InternalState
@@ -44,17 +45,17 @@ internalUpdate msg model =
     in
     case ( msg, model ) of
         ( InternalStart evnt, None ) ->
-            ( Starting evnt.id evnt.position
+            ( Starting { id = evnt.id, startPos = evnt.position }
             , Just <| Start evnt.position
             , setPointerCapture evnt.raw
             )
 
-        ( InternalStart _, Starting _ _ ) ->
+        ( InternalStart _, Starting _ ) ->
             -- We've already started and starting again
             -- Likely a different point, so just ignore
             ignore
 
-        ( InternalStart _, Moving _ _ ) ->
+        ( InternalStart _, Moving _ ) ->
             -- We're already moving but getting another start?
             -- Likely a different point, so just ignore
             ignore
@@ -65,15 +66,15 @@ internalUpdate msg model =
             -- So ignore
             ignore
 
-        ( InternalMove evnt, Starting id startPos ) ->
-            ( Moving id evnt.position
-            , Just <| Move startPos evnt.position
+        ( InternalMove evnt, Starting state ) ->
+            ( Moving state
+            , Just <| Move state.startPos evnt.position
             , Cmd.none
             )
 
-        ( InternalMove evnt, Moving id startPos ) ->
-            ( Moving id evnt.position
-            , Just <| Move startPos evnt.position
+        ( InternalMove evnt, Moving state ) ->
+            ( Moving state
+            , Just <| Move state.startPos evnt.position
             , Cmd.none
             )
 
@@ -82,17 +83,17 @@ internalUpdate msg model =
             -- Just ignore
             ignore
 
-        ( InternalEnd evnt, Starting _ startPos ) ->
+        ( InternalEnd evnt, Starting state ) ->
             -- Our swipe has come to an end, to release capture and reset state
             ( None
-            , Just <| End startPos evnt.position
+            , Just <| End state.startPos evnt.position
             , releasePointerCapture evnt.raw
             )
 
-        ( InternalEnd evnt, Moving _ startPos ) ->
+        ( InternalEnd evnt, Moving state ) ->
             -- Our swipe has come to an end, to release capture and reset state
             ( None
-            , Just <| End startPos evnt.position
+            , Just <| End state.startPos evnt.position
             , releasePointerCapture evnt.raw
             )
 
@@ -103,7 +104,6 @@ onSwipe :
     -> List (Attribute msg)
 onSwipe state swipeMsg =
     let
-        -- onMapped : String -> (Position -> msg) -> List (Attribute msg)
         onMapped eventName internalTagger =
             on eventName <| Decode.map (swipeMsg << internalTagger) decodePointerEvent
 
@@ -119,10 +119,10 @@ onSwipe state swipeMsg =
         None ->
             startAttrs
 
-        Starting _ _ ->
+        Starting _ ->
             moveOrEndAttrs
 
-        Moving _ _ ->
+        Moving _ ->
             moveOrEndAttrs
 
 
