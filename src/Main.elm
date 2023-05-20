@@ -1,31 +1,25 @@
 module Main exposing (..)
 
 import Browser
-import Html exposing (Attribute, Html, div, img, text)
-import Html.Attributes exposing (class, src, style)
-import Html.Events exposing (onClick)
+import Html exposing (Attribute, Html, div)
+import Html.Attributes exposing (class)
 import Html.Keyed
 import List.Extra as List
+import Random
 import Swipe
-
-
-type alias User =
-    { id : Int
-    , name : String
-    , imageUrl : String
-    }
+import User exposing (User)
+import User.Random as User
 
 
 type alias Model =
-    { overviewUsers : List User
-    , savedUsers : List User
+    { knownUsers : List User
     , swipeInternalState : Swipe.InternalState
     , testOffset : { x : Float, y : Float }
     }
 
 
 type Msg
-    = SaveForLater User
+    = GetUsers (List User)
     | SwipeInternalMsg Swipe.InternalMsg
 
 
@@ -43,39 +37,13 @@ main =
         }
 
 
-genUsers : Int -> List User
-genUsers seed =
-    let
-        count =
-            10
-
-        dummy =
-            List.repeat count ()
-
-        userFromId dummyId () =
-            let
-                id =
-                    seed + dummyId
-
-                stringId =
-                    String.fromInt id
-            in
-            { id = id
-            , name = "User " ++ stringId
-            , imageUrl = "http://placekitten.com/200/300?" ++ stringId
-            }
-    in
-    List.indexedMap userFromId dummy
-
-
 init : Flags -> ( Model, Cmd Msg )
 init () =
-    ( { overviewUsers = genUsers 0
-      , savedUsers = []
+    ( { knownUsers = []
       , swipeInternalState = Swipe.init
       , testOffset = { x = 0, y = 0 }
       }
-    , Cmd.none
+    , Random.generate GetUsers <| Random.list 10 User.random
     )
 
 
@@ -87,8 +55,8 @@ subscriptions _ =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update message model =
     case message of
-        SaveForLater user ->
-            ( { model | overviewUsers = List.remove user model.overviewUsers, savedUsers = user :: model.savedUsers }
+        GetUsers users ->
+            ( { model | knownUsers = users }
             , Cmd.none
             )
 
@@ -119,45 +87,12 @@ update message model =
 view : Model -> Html Msg
 view model =
     div
-        [ class "users" ]
-        [ keyedDiv [ class "overview" ] <|
-            List.map (viewUser Overview) model.overviewUsers
-                ++ List.map (viewUser Saved) model.savedUsers
-        , div
-            ([ class "swipe_tryout"
-             , style "transform" <| "translate(" ++ String.fromFloat model.testOffset.x ++ "px, " ++ String.fromFloat model.testOffset.y ++ "px)"
-             ]
-                ++ Swipe.onSwipe model.swipeInternalState SwipeInternalMsg
-            )
-            [ text <| String.fromFloat model.testOffset.x ++ "," ++ String.fromFloat model.testOffset.y
+        [ class "container is-max-desktop" ]
+        [ div [ class "columns" ]
+            [ div [ class "column" ] <|
+                List.map User.viewCard model.knownUsers
             ]
-        , div []
-            [ text <| Debug.toString model.swipeInternalState ]
         ]
-
-
-type UserLocation
-    = Overview
-    | Saved
-
-
-viewUser : UserLocation -> User -> ( String, Html Msg )
-viewUser location user =
-    ( "user_id_" ++ String.fromInt user.id
-    , div
-        [ class <|
-            case location of
-                Overview ->
-                    "user overview"
-
-                Saved ->
-                    "user saved"
-        , onClick <| SaveForLater user
-        ]
-        [ text user.name
-        , img [ src user.imageUrl ] []
-        ]
-    )
 
 
 keyedDiv : List (Attribute msg) -> List ( String, Html msg ) -> Html msg
