@@ -17,6 +17,8 @@ $contentMargin: 0.75em !default;
     >img {
       width: 100%;
       vertical-align: bottom; // removes a tiny little bit of whitespace in the case there is no extra content in the card
+      max-height: 75vh;
+      object-fit: cover;
     }
 
     >figcaption {
