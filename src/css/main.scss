@@ -1,23 +1,5 @@
-$phoneWidth: 600px;
-$desktopWidth: 1000px;
-
-@mixin onPhone {
-  @media (max-width: #{$phoneWidth}) {
-    @content;
-  }
-}
-
-@mixin onTablet {
-  @media (min-width: #{$phoneWidth}) and (max-width: #{$desktopWidth - 1px}) {
-    @content;
-  }
-}
-
-@mixin onDesktop {
-  @media (min-width: #{$desktopWidth}) {
-    @content;
-  }
-}
+@use 'card';
+@use 'helpers' as h;
 
 body {
   overflow-wrap: break-word;
@@ -34,67 +16,15 @@ body {
     margin-bottom: $columnGap;
   }
 
-  @include onPhone {
+  @include h.onPhone {
     column-count: 1;
   }
 
-  @include onTablet {
+  @include h.onTablet {
     column-count: 2;
   }
 
-  @include onDesktop {
+  @include h.onDesktop {
     column-count: 3;
-  }
-}
-
-.card {
-  $contentMargin: 0.75em;
-
-  overflow: hidden;
-  background-color: #fff;
-  border-radius: 0.25rem;
-  box-shadow: 0 .2em .5em .1em rgba(0, 0, 0, .25);
-
-  >figure {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    position: relative; // to allow for absolute figcaption
-
-    >img {
-      width: 100%;
-      vertical-align: bottom; // removes a tiny little bit of whitespace in the case there is no extra content in the card
-    }
-
-    >figcaption {
-      position: absolute;
-      bottom: $contentMargin;
-      margin: 0 $contentMargin;
-
-      @mixin outline {
-        $outlineColor: rgba(0, 0, 0, 0.25);
-        text-shadow:
-          -1px -1px 0 $outlineColor,
-          1px -1px 0 $outlineColor,
-          -1px 1px 0 $outlineColor,
-          1px 1px 0 $outlineColor;
-      }
-
-      .header {
-        font-size: larger;
-        font-weight: bold;
-        color: white;
-        @include outline;
-      }
-
-      .sub-header {
-        color: lightgrey;
-        @include outline;
-      }
-    }
-  }
-
-  >.content {
-    margin: $contentMargin;
   }
 }

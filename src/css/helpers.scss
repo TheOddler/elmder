@@ -1,0 +1,38 @@
+$phoneWidth: 600px;
+$desktopWidth: 1000px;
+
+@mixin onPhone {
+  @media (max-width: #{$phoneWidth}) {
+    @content;
+  }
+}
+
+@mixin onTablet {
+  @media (min-width: #{$phoneWidth}) and (max-width: #{$desktopWidth - 1px}) {
+    @content;
+  }
+}
+
+@mixin onDesktop {
+  @media (min-width: #{$desktopWidth}) {
+    @content;
+  }
+}
+
+@mixin textOutline {
+  $outlineColor: rgba(0, 0, 0, 0.25);
+  text-shadow:
+    -1px -1px 0 $outlineColor,
+    1px -1px 0 $outlineColor,
+    -1px 1px 0 $outlineColor,
+    1px 1px 0 $outlineColor;
+}
+
+@mixin textGlow {
+  $outlineColor: rgba(0, 0, 0, 0.5);
+  text-shadow:
+    -1px -1px 5px $outlineColor,
+    1px -1px 5px $outlineColor,
+    -1px 1px 5px $outlineColor,
+    1px 1px 5px $outlineColor;
+}
