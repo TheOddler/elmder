@@ -10,6 +10,6 @@
     "parcel": "^2.8.3"
   },
   "scripts": {
-    "live": "npx parcel src/index.html"
+    "live": "npx parcel src/index.html --port 8080"
   }
 }
