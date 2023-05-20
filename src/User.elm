@@ -2,6 +2,7 @@ module User exposing (..)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
+import Html.Components exposing (card)
 
 
 type alias User =
@@ -14,9 +15,9 @@ type alias User =
 
 viewCard : User -> Html msg
 viewCard user =
-    div [ class "card" ]
-        [ img [ src user.headerImage ] []
-        , p [] [ text user.name ]
-        , p [] [ text user.id ]
-        , p [] [ text user.description ]
-        ]
+    card
+        { headerImage = user.headerImage
+        , header = user.name
+        , subHeader = Just user.description
+        , content = Nothing -- Just <| p [] [ text "test" ]
+        }
