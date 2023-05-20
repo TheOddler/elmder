@@ -1,1 +1,54 @@
-@import "https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css";
+$phoneWidth: 600px;
+$desktopWidth: 1000px;
+
+@mixin onPhone {
+  @media (max-width: #{$phoneWidth}) {
+    @content;
+  }
+}
+
+@mixin onTablet {
+  @media (min-width: #{$phoneWidth}) and (max-width: #{$desktopWidth - 1px}) {
+    @content;
+  }
+}
+
+@mixin onDesktop {
+  @media (min-width: #{$desktopWidth}) {
+    @content;
+  }
+}
+
+body {
+  overflow-wrap: break-word;
+}
+
+.columns {
+  @include onPhone {
+    column-count: 1;
+  }
+
+  @include onTablet {
+    column-count: 2;
+  }
+
+  @include onDesktop {
+    column-count: 3;
+  }
+
+
+  >div {
+    break-inside: avoid;
+  }
+}
+
+.card {
+  overflow: hidden;
+  background-color: #fff;
+  border-radius: 0.25rem;
+  box-shadow: 0 .5em 1em -.125em rgba(0, 0, 0, .15);
+
+  >img {
+    width: 100%;
+  }
+}

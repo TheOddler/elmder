@@ -87,12 +87,9 @@ update message model =
 view : Model -> Html Msg
 view model =
     div
-        [ class "container is-max-desktop" ]
-        [ div [ class "columns" ]
-            [ div [ class "column" ] <|
-                List.map User.viewCard model.knownUsers
-            ]
-        ]
+        [ class "columns" ]
+    <|
+        List.map User.viewCard model.knownUsers
 
 
 keyedDiv : List (Attribute msg) -> List ( String, Html msg ) -> Html msg
