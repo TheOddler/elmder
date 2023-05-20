@@ -3,6 +3,7 @@ module Main exposing (..)
 import Browser
 import Html exposing (Attribute, Html, div)
 import Html.Attributes exposing (class)
+import Html.Components exposing (navbar)
 import Html.Keyed
 import List.Extra as List
 import Random
@@ -11,16 +12,40 @@ import User exposing (User)
 import User.Random as User
 
 
+type Screen
+    = Feed
+    | Matches
+    | Settings
+
+
+{-| Return the fontawesome icon name
+This should include the style (regular/solid/...) as not all are available for free
+-}
+screenIcons : Screen -> String
+screenIcons screen =
+    case screen of
+        Feed ->
+            "fa-solid fa-users"
+
+        Matches ->
+            "fa-solid fa-heart"
+
+        Settings ->
+            "fa-solid fa-gear"
+
+
 type alias Model =
     { knownUsers : List User
     , swipeInternalState : Swipe.InternalState
     , testOffset : { x : Float, y : Float }
+    , currentScreen : Screen
     }
 
 
 type Msg
     = GetUsers (List User)
     | SwipeInternalMsg Swipe.InternalMsg
+    | OpenScreen Screen
 
 
 type alias Flags =
@@ -42,6 +67,7 @@ init () =
     ( { knownUsers = []
       , swipeInternalState = Swipe.init
       , testOffset = { x = 0, y = 0 }
+      , currentScreen = Feed
       }
     , Random.generate GetUsers <| Random.list 10 User.random
     )
@@ -83,13 +109,26 @@ update message model =
             , Cmd.map SwipeInternalMsg cmd
             )
 
+        OpenScreen screen ->
+            ( { model | currentScreen = screen }
+            , Cmd.none
+            )
+
 
 view : Model -> Html Msg
 view model =
-    div
-        [ class "columns" ]
-    <|
-        List.map User.viewCard model.knownUsers
+    div [ class "root" ]
+        [ div
+            [ class "columns" ]
+          <|
+            List.map User.viewCard model.knownUsers
+        , navbar
+            { buttons = [ Feed, Matches, Settings ]
+            , getIcon = screenIcons
+            , onSelect = OpenScreen
+            , isSelected = (==) model.currentScreen
+            }
+        ]
 
 
 keyedDiv : List (Attribute msg) -> List ( String, Html msg ) -> Html msg

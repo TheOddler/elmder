@@ -1,0 +1,38 @@
+// When including this file it'll automatically keep some space for the navbar at the bottom of the page.
+// If we don't want a navbar, just don't include this file, and then no space will be reserved for it
+
+$height: 3em !default;
+
+body {
+  padding-bottom: $height;
+}
+
+.navbar {
+  height: $height;
+  width: 100%;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+
+  background-color: rgba(42, 42, 50, 1); // for now just closely mimicing my phone's navbar color
+
+  display: flex;
+  justify-content: space-around;
+  align-items: stretch;
+  align-content: center;
+
+  >.button {
+    height: $height;
+    flex-grow: 1;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    // box-shadow: inset 0px 0px 1em rgba(255, 255, 0, 0.5); // for debugging
+
+    &.selected {
+      color: white;
+    }
+  }
+}
