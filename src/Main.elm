@@ -118,10 +118,7 @@ update message model =
 view : Model -> Html Msg
 view model =
     div [ class "root" ]
-        [ div
-            [ class "columns" ]
-          <|
-            List.map User.viewCard model.knownUsers
+        [ div [ class "masonry" ] (List.map User.viewCard model.knownUsers)
         , navbar
             { buttons = [ Feed, Matches, Settings ]
             , getIcon = screenIcons
