@@ -12,7 +12,7 @@ type alias User =
     , headerImage : String
     , description : String
     , relationshipStatus : RelationshipStatus
-    , section : List UserSection
+    , sections : List UserSection
     }
 
 
@@ -44,16 +44,14 @@ viewCard onClickUser user =
         ]
 
 
-viewProfileOverlay : msg -> User -> Html msg
-viewProfileOverlay close user =
+viewProfile : User -> Html msg
+viewProfile user =
     div
-        [ class "full-screen-overlay"
-        , class "center-content"
-        , onClick close
-        ]
+        []
         [ card
             []
-            [ imageWithOverlay
+          <|
+            imageWithOverlay
                 { image = user.headerImage
                 , attributes = [ class "full-width" ]
                 , overlay =
@@ -62,5 +60,31 @@ viewProfileOverlay close user =
                     ]
                 , overlayAttributes = [ class "content" ]
                 }
-            ]
+                :: List.map viewUserSection user.sections
         ]
+
+
+viewUserSection : UserSection -> Html msg
+viewUserSection userSection =
+    case userSection of
+        Generic { header, content } ->
+            div [ class "content" ]
+                [ div [ class "larger-text" ] [ text header ]
+                , div [] [ text content ]
+                ]
+
+        Image { url, description } ->
+            imageWithOverlay
+                { image = url
+                , attributes = [ class "full-width" ]
+                , overlay =
+                    [ div [ class "text-on-image" ] [ text description ]
+                    ]
+                , overlayAttributes = [ class "content" ]
+                }
+
+        QuestionAndAnswer { question, answer } ->
+            div [ class "content" ]
+                [ div [ class "larger-text" ] [ text question ]
+                , div [] [ text answer ]
+                ]

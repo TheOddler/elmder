@@ -63,6 +63,13 @@ sentence =
         |> map (\words -> String.toSentenceCase <| String.join " " words ++ ".")
 
 
+question : Generator String
+question =
+    int 3 10
+        |> andThen (\length -> list length word)
+        |> map (\words -> String.toSentenceCase <| String.join " " words ++ "?")
+
+
 word : Generator String
 word =
     uniform "time"

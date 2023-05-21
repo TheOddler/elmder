@@ -11,36 +11,15 @@ import User.Random as User
 
 
 type Screen
-    = Feed
-    | Matches
-    | Settings
-
-
-allScreens : List Screen
-allScreens =
-    [ Feed, Matches, Settings ]
-
-
-{-| Return the fontawesome icon name
-This should include the style (regular/solid/...) as not all are available for free
--}
-screenIcons : Screen -> String
-screenIcons screen =
-    case screen of
-        Feed ->
-            "fa-solid fa-users"
-
-        Matches ->
-            "fa-solid fa-heart"
-
-        Settings ->
-            "fa-solid fa-gear"
+    = ScreenFeed
+    | ScreenMatches
+    | ScreenSettings
+    | ScreenUser User
 
 
 type alias Model =
     { knownUsers : List User
     , currentScreen : Screen
-    , viewingUser : Maybe User
     }
 
 
@@ -48,7 +27,6 @@ type Msg
     = GetUsers (List User)
     | OpenScreen Screen
     | ViewUser User
-    | CloseUser
 
 
 type alias Flags =
@@ -68,8 +46,7 @@ main =
 init : Flags -> ( Model, Cmd Msg )
 init () =
     ( { knownUsers = []
-      , currentScreen = Feed
-      , viewingUser = Nothing
+      , currentScreen = ScreenFeed
       }
     , Random.generate GetUsers <| Random.list 10 User.random
     )
@@ -94,12 +71,7 @@ update message model =
             )
 
         ViewUser user ->
-            ( { model | viewingUser = Just user }
-            , Cmd.none
-            )
-
-        CloseUser ->
-            ( { model | viewingUser = Nothing }
+            ( { model | currentScreen = ScreenUser user }
             , Cmd.none
             )
 
@@ -108,24 +80,29 @@ view : Model -> Html Msg
 view model =
     div [ class "root" ]
         [ case model.currentScreen of
-            Feed ->
+            ScreenFeed ->
                 div [ class "masonry" ] (List.map (User.viewCard ViewUser) model.knownUsers)
 
-            Matches ->
+            ScreenMatches ->
                 div [ class "center-content fill-screen" ] [ text "placeholder for matches screen" ]
 
-            Settings ->
+            ScreenSettings ->
                 div [ class "center-content fill-screen" ] [ text "placeholder for settings screen" ]
-        , navbar
-            { buttons = allScreens
-            , getIcon = screenIcons
-            , onSelect = OpenScreen
-            , selected = model.currentScreen
-            }
-        , case model.viewingUser of
-            Nothing ->
-                text ""
 
-            Just viewingUser ->
-                User.viewProfileOverlay CloseUser viewingUser
+            ScreenUser user ->
+                User.viewProfile user
+        , navbar
+            [ { onSelect = OpenScreen ScreenFeed
+              , icon = "fa-solid fa-users"
+              , isSelected = model.currentScreen == ScreenFeed
+              }
+            , { onSelect = OpenScreen ScreenMatches
+              , icon = "fa-solid fa-heart"
+              , isSelected = model.currentScreen == ScreenMatches
+              }
+            , { onSelect = OpenScreen ScreenSettings
+              , icon = "fa-solid fa-gear"
+              , isSelected = model.currentScreen == ScreenSettings
+              }
+            ]
         ]

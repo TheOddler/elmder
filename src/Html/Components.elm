@@ -24,28 +24,30 @@ imageWithOverlay { image, attributes, overlay, overlayAttributes } =
         ]
 
 
-navbar :
-    { buttons : List a
-    , getIcon :
-        a
-        -> String -- should give the font-awesome icon name
-    , onSelect : a -> msg
-    , selected : a
+type alias NavbarButton msg =
+    { icon : String -- The font-awesome icon name, this should include the style (fa-regular/fa-solid/...) as not all are available for free
+    , onSelect : msg
+    , isSelected : Bool
     }
+
+
+navbar :
+    List (NavbarButton msg)
     -> Html msg
-navbar { buttons, getIcon, onSelect, selected } =
+navbar buttons =
     let
-        mkButton a =
+        viewButton : NavbarButton msg -> Html msg
+        viewButton btn =
             div
-                [ onClick <| onSelect a
+                [ onClick <| btn.onSelect
                 , class <|
-                    if selected == a then
+                    if btn.isSelected then
                         "button selected"
 
                     else
                         "button"
                 ]
-                [ i [ class <| getIcon a ] []
+                [ i [ class <| btn.icon ] []
                 ]
     in
-    div [ class "navbar" ] <| List.map mkButton buttons
+    div [ class "navbar" ] <| List.map viewButton buttons

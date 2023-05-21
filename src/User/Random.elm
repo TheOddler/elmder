@@ -44,4 +44,4 @@ randomSectionImage =
 
 randomSectionQuestionAndAnswer : Generator UserSection
 randomSectionQuestionAndAnswer =
-    map2 (\q a -> QuestionAndAnswer { question = q, answer = a }) sentence paragraph
+    map2 (\q a -> QuestionAndAnswer { question = q, answer = a }) question paragraph
