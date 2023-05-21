@@ -41,15 +41,12 @@ screenIcons screen =
 
 type alias Model =
     { knownUsers : List User
-    , swipeInternalState : Swipe.InternalState
-    , testOffset : { x : Float, y : Float }
     , currentScreen : Screen
     }
 
 
 type Msg
     = GetUsers (List User)
-    | SwipeInternalMsg Swipe.InternalMsg
     | OpenScreen Screen
 
 
@@ -70,8 +67,6 @@ main =
 init : Flags -> ( Model, Cmd Msg )
 init () =
     ( { knownUsers = []
-      , swipeInternalState = Swipe.init
-      , testOffset = { x = 0, y = 0 }
       , currentScreen = Feed
       }
     , Random.generate GetUsers <| Random.list 10 User.random
@@ -91,29 +86,6 @@ update message model =
             , Cmd.none
             )
 
-        SwipeInternalMsg msg ->
-            let
-                ( newModel, event, cmd ) =
-                    Swipe.internalUpdate msg model.swipeInternalState
-
-                newOffset =
-                    case event of
-                        Nothing ->
-                            model.testOffset
-
-                        Just (Swipe.Start _) ->
-                            { x = 0, y = 0 }
-
-                        Just (Swipe.Move startPos curPos) ->
-                            { x = curPos.x - startPos.x, y = curPos.y - startPos.y }
-
-                        Just (Swipe.End _ _) ->
-                            { x = 0, y = 0 }
-            in
-            ( { model | swipeInternalState = newModel, testOffset = newOffset }
-            , Cmd.map SwipeInternalMsg cmd
-            )
-
         OpenScreen screen ->
             ( { model | currentScreen = screen }
             , Cmd.none
@@ -131,8 +103,3 @@ view model =
             , selected = model.currentScreen
             }
         ]
-
-
-keyedDiv : List (Attribute msg) -> List ( String, Html msg ) -> Html msg
-keyedDiv =
-    Html.Keyed.node "div"
