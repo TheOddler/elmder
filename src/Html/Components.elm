@@ -5,34 +5,22 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
 
 
-card :
-    { headerImage : String
-    , header : String
-    , subHeader : Maybe String
-    , content : Maybe (Html msg)
+card : List (Html msg) -> Html msg
+card children =
+    div [ class "card" ] children
+
+
+imageWithOverlay :
+    { image : String
+    , attributes : List (Attribute msg)
+    , overlay : List (Html msg)
+    , overlayAttributes : List (Attribute msg)
     }
     -> Html msg
-card settings =
-    div [ class "card" ]
-        [ figure []
-            [ img [ src settings.headerImage ] []
-            , figcaption [] <|
-                div [ class "header" ] [ text settings.header ]
-                    :: (case settings.subHeader of
-                            Nothing ->
-                                []
-
-                            Just subHeader ->
-                                [ div [ class "sub-header" ] [ text subHeader ]
-                                ]
-                       )
-            ]
-        , case settings.content of
-            Nothing ->
-                text ""
-
-            Just content ->
-                div [ class "content" ] [ content ]
+imageWithOverlay { image, attributes, overlay, overlayAttributes } =
+    figure (class "image-with-overlay" :: attributes)
+        [ img [ src image ] []
+        , figcaption (class "overlay" :: overlayAttributes) overlay
         ]
 
 

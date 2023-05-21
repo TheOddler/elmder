@@ -29,3 +29,28 @@ body {
     column-count: 3;
   }
 }
+
+figure.image-with-overlay {
+  position: relative; // to allow for absolute figcaption
+
+  >img {
+    width: 100%;
+    object-fit: cover;
+  }
+
+  >.overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+  }
+}
+
+.larger-text {
+  font-size: larger;
+  font-weight: bold;
+}
+
+.text-on-image {
+  color: white;
+  @include h.textGlow;
+}

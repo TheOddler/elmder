@@ -2,7 +2,7 @@ module User exposing (..)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Components exposing (card)
+import Html.Components exposing (..)
 
 
 type alias User =
@@ -16,8 +16,13 @@ type alias User =
 viewCard : User -> Html msg
 viewCard user =
     card
-        { headerImage = user.headerImage
-        , header = user.name
-        , subHeader = Just user.description
-        , content = Nothing -- Just <| p [] [ text "test" ]
-        }
+        [ imageWithOverlay
+            { image = user.headerImage
+            , attributes = [ class "full-width" ]
+            , overlay =
+                [ div [ class "larger-text text-on-image" ] [ text user.name ]
+                , div [ class "text-on-image" ] [ text user.description ]
+                ]
+            , overlayAttributes = [ class "content" ]
+            }
+        ]
