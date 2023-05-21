@@ -5,9 +5,9 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
 
 
-card : List (Html msg) -> Html msg
-card children =
-    div [ class "card" ] children
+card : List (Attribute msg) -> List (Html msg) -> Html msg
+card attributes children =
+    div (class "card" :: attributes) children
 
 
 imageWithOverlay :

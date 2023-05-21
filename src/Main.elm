@@ -40,12 +40,15 @@ screenIcons screen =
 type alias Model =
     { knownUsers : List User
     , currentScreen : Screen
+    , viewingUser : Maybe User
     }
 
 
 type Msg
     = GetUsers (List User)
     | OpenScreen Screen
+    | ViewUser User
+    | CloseUser
 
 
 type alias Flags =
@@ -66,6 +69,7 @@ init : Flags -> ( Model, Cmd Msg )
 init () =
     ( { knownUsers = []
       , currentScreen = Feed
+      , viewingUser = Nothing
       }
     , Random.generate GetUsers <| Random.list 10 User.random
     )
@@ -89,13 +93,23 @@ update message model =
             , Cmd.none
             )
 
+        ViewUser user ->
+            ( { model | viewingUser = Just user }
+            , Cmd.none
+            )
+
+        CloseUser ->
+            ( { model | viewingUser = Nothing }
+            , Cmd.none
+            )
+
 
 view : Model -> Html Msg
 view model =
     div [ class "root" ]
         [ case model.currentScreen of
             Feed ->
-                div [ class "masonry" ] (List.map User.viewCard model.knownUsers)
+                div [ class "masonry" ] (List.map (User.viewCard ViewUser) model.knownUsers)
 
             Matches ->
                 div [ class "center-content fill-screen" ] [ text "placeholder for matches screen" ]
@@ -108,4 +122,10 @@ view model =
             , onSelect = OpenScreen
             , selected = model.currentScreen
             }
+        , case model.viewingUser of
+            Nothing ->
+                text ""
+
+            Just viewingUser ->
+                User.viewProfileOverlay CloseUser viewingUser
         ]
