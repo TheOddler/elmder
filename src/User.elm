@@ -11,7 +11,21 @@ type alias User =
     , name : String
     , headerImage : String
     , description : String
+    , relationshipStatus : RelationshipStatus
+    , section : List UserSection
     }
+
+
+type RelationshipStatus
+    = Single
+    | Married
+    | InRelationship
+
+
+type UserSection
+    = Generic { header : String, content : String }
+    | Image { url : String, description : String }
+    | QuestionAndAnswer { question : String, answer : String }
 
 
 viewCard : (User -> msg) -> User -> Html msg
