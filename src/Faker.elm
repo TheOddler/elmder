@@ -11,7 +11,7 @@ imgUrl : Generator String
 imgUrl =
     let
         mkImgUrl width height rnd =
-            "http://placekitten.com/" ++ String.fromInt width ++ "/" ++ String.fromInt height ++ "?" ++ String.fromInt rnd
+            "https://placekitten.com/" ++ String.fromInt width ++ "/" ++ String.fromInt height ++ "?" ++ String.fromInt rnd
     in
     map3 mkImgUrl (int 200 600) (int 200 600) (int minInt maxInt)
 
