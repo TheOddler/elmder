@@ -18,6 +18,11 @@ type Screen
     | Settings
 
 
+allScreens : List Screen
+allScreens =
+    [ Feed, Matches, Settings ]
+
+
 {-| Return the fontawesome icon name
 This should include the style (regular/solid/...) as not all are available for free
 -}
@@ -120,10 +125,10 @@ view model =
     div [ class "root" ]
         [ div [ class "masonry" ] (List.map User.viewCard model.knownUsers)
         , navbar
-            { buttons = [ Feed, Matches, Settings ]
+            { buttons = allScreens
             , getIcon = screenIcons
             , onSelect = OpenScreen
-            , isSelected = (==) model.currentScreen
+            , selected = model.currentScreen
             }
         ]
 

@@ -30,16 +30,16 @@ navbar :
         a
         -> String -- should give the font-awesome icon name
     , onSelect : a -> msg
-    , isSelected : a -> Bool
+    , selected : a
     }
     -> Html msg
-navbar { buttons, getIcon, onSelect, isSelected } =
+navbar { buttons, getIcon, onSelect, selected } =
     let
         mkButton a =
             div
                 [ onClick <| onSelect a
                 , class <|
-                    if isSelected a then
+                    if selected == a then
                         "button selected"
 
                     else
