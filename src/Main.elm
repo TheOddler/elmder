@@ -1,13 +1,11 @@
 module Main exposing (..)
 
 import Browser
-import Html exposing (Attribute, Html, div)
+import Html exposing (Html, div)
 import Html.Attributes exposing (class)
 import Html.Components exposing (navbar)
-import Html.Keyed
 import List.Extra as List
 import Random
-import Swipe
 import User exposing (User)
 import User.Random as User
 
