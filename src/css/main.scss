@@ -12,7 +12,7 @@ body {
 
   column-gap: $columnGap;
 
-  >div {
+  >* {
     break-inside: avoid;
     margin-bottom: $columnGap;
   }
