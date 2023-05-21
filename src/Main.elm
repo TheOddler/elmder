@@ -1,7 +1,7 @@
 module Main exposing (..)
 
 import Browser
-import Html exposing (Html, div)
+import Html exposing (Html, div, text)
 import Html.Attributes exposing (class)
 import Html.Components exposing (navbar)
 import List.Extra as List
@@ -93,7 +93,15 @@ update message model =
 view : Model -> Html Msg
 view model =
     div [ class "root" ]
-        [ div [ class "masonry" ] (List.map User.viewCard model.knownUsers)
+        [ case model.currentScreen of
+            Feed ->
+                div [ class "masonry" ] (List.map User.viewCard model.knownUsers)
+
+            Matches ->
+                div [ class "center-content fill-screen" ] [ text "placeholder for matches screen" ]
+
+            Settings ->
+                div [ class "center-content fill-screen" ] [ text "placeholder for settings screen" ]
         , navbar
             { buttons = allScreens
             , getIcon = screenIcons

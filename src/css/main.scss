@@ -54,3 +54,14 @@ figure.image-with-overlay {
   color: white;
   @include h.textGlow;
 }
+
+.center-content {
+  display: flex;
+  justify-content: center;
+  align-content: center;
+  align-items: center;
+}
+
+.fill-screen {
+  height: 100vh;
+}
