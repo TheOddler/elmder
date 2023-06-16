@@ -3,7 +3,6 @@ module User exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Components exposing (..)
-import Html.Events exposing (onClick)
 
 
 type alias User =
@@ -28,12 +27,13 @@ type UserSection
     | QuestionAndAnswer { question : String, answer : String }
 
 
-viewCard : (User -> msg) -> User -> Html msg
-viewCard onClickUser user =
+viewCard : List (Attribute msg) -> User -> Html msg
+viewCard attributes user =
     card
-        [ onClick <| onClickUser user ]
+        attributes
         [ img [ src user.headerImage, class "full-width max-height-half-screen" ] []
-            |> withOverlay [ class "content text-on-image" ]
+            |> withOverlay
+                [ class "content text-on-image" ]
                 [ div [ class "larger-text" ] [ text user.name ]
                 , div [] [ text user.description ]
                 ]
@@ -43,37 +43,32 @@ viewCard onClickUser user =
 viewProfile : User -> Html msg
 viewProfile user =
     div
-        []
-        [ card
-            []
-          <|
-            (img [ src user.headerImage, class "full-width max-height-half-screen" ] []
-                |> withOverlay [ class "content text-on-image" ]
-                    [ div [ class "larger-text" ] [ text user.name ]
-                    , div [] [ text user.description ]
-                    ]
-            )
-                :: List.map viewUserSection user.sections
-        ]
+        [ class "masonry" ]
+    <|
+        viewCard [] user
+            :: List.map viewUserSection user.sections
 
 
 viewUserSection : UserSection -> Html msg
 viewUserSection userSection =
     case userSection of
         Generic { header, content } ->
-            div []
-                [ div [ class "larger-text" ] [ text header ]
-                , div [] [ text content ]
+            card []
+                [ div [ class "larger-text content" ] [ text header ]
+                , div [ class "content" ] [ text content ]
                 ]
 
         Image { url, description } ->
-            img [ src url, class "full-width max-height-half-screen" ] []
-                |> withOverlay [ class "content text-on-image" ]
-                    [ text description
-                    ]
+            card []
+                [ img [ src url, class "full-width max-height-half-screen" ] []
+                    |> withOverlay
+                        [ class "content text-on-image" ]
+                        [ text description
+                        ]
+                ]
 
         QuestionAndAnswer { question, answer } ->
-            div []
-                [ div [ class "larger-text" ] [ text question ]
-                , div [] [ text answer ]
+            card []
+                [ div [ class "larger-text content" ] [ text question ]
+                , div [ class "content" ] [ text answer ]
                 ]

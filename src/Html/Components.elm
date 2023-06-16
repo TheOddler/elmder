@@ -16,7 +16,7 @@ withOverlay :
     -> Html msg
     -> Html msg
 withOverlay overlayAttributes overlayElements base =
-    div (class "with-overlay" :: [])
+    div [ class "overlay-wrapper" ]
         [ base
         , div (class "overlay" :: overlayAttributes) overlayElements
         ]

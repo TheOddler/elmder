@@ -4,6 +4,7 @@ import Browser
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class)
 import Html.Components exposing (navbar)
+import Html.Events exposing (onClick)
 import List.Extra as List
 import Random
 import User exposing (User)
@@ -81,7 +82,7 @@ view model =
     div [ class "root" ]
         [ case model.currentScreen of
             ScreenFeed ->
-                div [ class "masonry" ] (List.map (User.viewCard ViewUser) model.knownUsers)
+                div [ class "masonry" ] (List.map (\u -> User.viewCard [ onClick <| ViewUser u ] u) model.knownUsers)
 
             ScreenMatches ->
                 div [ class "center-content fill-screen" ] [ text "placeholder for matches screen" ]

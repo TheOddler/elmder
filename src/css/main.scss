@@ -34,12 +34,8 @@ img {
   }
 }
 
-.with-overlay {
+.overlay-wrapper {
   position: relative; // to allow for absolute positioning of the overlay
-
-  >* {
-    width: 100%;
-  }
 
   >.overlay {
     position: absolute;
