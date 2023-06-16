@@ -32,16 +32,11 @@ viewCard : (User -> msg) -> User -> Html msg
 viewCard onClickUser user =
     card
         [ onClick <| onClickUser user ]
-        [ imageWithOverlay
-            { src = user.headerImage
-            , attributes = [ class "full-width" ]
-            , imageAttributes = [ class "max-height-half-screen" ]
-            , overlay =
+        [ img [ src user.headerImage, class "full-width max-height-half-screen" ] []
+            |> withOverlay [ class "content text-on-image" ]
                 [ div [ class "larger-text" ] [ text user.name ]
                 , div [] [ text user.description ]
                 ]
-            , overlayAttributes = [ class "match-card-content text-on-image" ]
-            }
         ]
 
 
@@ -52,16 +47,12 @@ viewProfile user =
         [ card
             []
           <|
-            imageWithOverlay
-                { src = user.headerImage
-                , attributes = [ class "full-width" ]
-                , imageAttributes = []
-                , overlay =
+            (img [ src user.headerImage, class "full-width max-height-half-screen" ] []
+                |> withOverlay [ class "content text-on-image" ]
                     [ div [ class "larger-text" ] [ text user.name ]
                     , div [] [ text user.description ]
                     ]
-                , overlayAttributes = [ class "match-card-content text-on-image" ]
-                }
+            )
                 :: List.map viewUserSection user.sections
         ]
 
@@ -76,15 +67,10 @@ viewUserSection userSection =
                 ]
 
         Image { url, description } ->
-            imageWithOverlay
-                { src = url
-                , attributes = [ class "full-width" ]
-                , imageAttributes = []
-                , overlay =
-                    [ div [ class "text-on-image" ] [ text description ]
+            img [ src url, class "full-width max-height-half-screen" ] []
+                |> withOverlay [ class "content text-on-image" ]
+                    [ text description
                     ]
-                , overlayAttributes = [ class "match-card-content" ]
-                }
 
         QuestionAndAnswer { question, answer } ->
             div []

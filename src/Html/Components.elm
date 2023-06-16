@@ -10,18 +10,15 @@ card attributes children =
     div (class "card" :: attributes) children
 
 
-imageWithOverlay :
-    { src : String
-    , attributes : List (Attribute msg)
-    , imageAttributes : List (Attribute msg)
-    , overlay : List (Html msg)
-    , overlayAttributes : List (Attribute msg)
-    }
+withOverlay :
+    List (Attribute msg)
+    -> List (Html msg)
     -> Html msg
-imageWithOverlay { src, attributes, overlay, overlayAttributes, imageAttributes } =
-    figure (class "image-with-overlay" :: attributes)
-        [ img (Html.Attributes.src src :: imageAttributes) []
-        , figcaption (class "overlay" :: overlayAttributes) overlay
+    -> Html msg
+withOverlay overlayAttributes overlayElements base =
+    div (class "with-overlay" :: [])
+        [ base
+        , div (class "overlay" :: overlayAttributes) overlayElements
         ]
 
 
