@@ -7,16 +7,29 @@ $contentMargin: 0.75em !default;
   border-radius: 0.25rem;
   box-shadow: 0 .2em .5em .1em rgba(0, 0, 0, .25);
 
+  // By default content has a bit of a margin
+  @mixin content {
+    margin: $contentMargin;
+  }
+
+  >* {
+    @include content
+  }
+
+  // Allow overriding the content margin and go full width
   >.full-width {
     margin: 0;
     width: 100%;
 
-    img {
-      vertical-align: bottom; // removes a tiny little bit of whitespace that sometimes appears under an image like this
+    >img {
+      // Removes a tiny little bit of whitespace that sometimes appears under an image like this
+      // This makes images that are last in the card look better, as they don't have a bit of whitespace under them
+      vertical-align: bottom;
     }
   }
 
-  .content {
-    margin: $contentMargin;
+  // Mimic the card content margin for use with stuff nested in a full-width element
+  .match-card-content {
+    @include content
   }
 }

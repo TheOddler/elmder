@@ -11,15 +11,16 @@ card attributes children =
 
 
 imageWithOverlay :
-    { image : String
+    { src : String
     , attributes : List (Attribute msg)
+    , imageAttributes : List (Attribute msg)
     , overlay : List (Html msg)
     , overlayAttributes : List (Attribute msg)
     }
     -> Html msg
-imageWithOverlay { image, attributes, overlay, overlayAttributes } =
+imageWithOverlay { src, attributes, overlay, overlayAttributes, imageAttributes } =
     figure (class "image-with-overlay" :: attributes)
-        [ img [ src image ] []
+        [ img (Html.Attributes.src src :: imageAttributes) []
         , figcaption (class "overlay" :: overlayAttributes) overlay
         ]
 

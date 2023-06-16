@@ -7,6 +7,10 @@ body {
   text-align: justify;
 }
 
+img {
+  object-fit: cover;
+}
+
 .masonry {
   $columnGap: 1em;
 
@@ -35,7 +39,6 @@ figure.image-with-overlay {
 
   >img {
     width: 100%;
-    object-fit: cover;
   }
 
   >.overlay {
@@ -52,7 +55,7 @@ figure.image-with-overlay {
 
 .text-on-image {
   color: white;
-  @include h.textGlow;
+  @include h.textGlow(rgba(0, 0, 0, 0.5));
 }
 
 .center-content {
@@ -76,4 +79,8 @@ figure.image-with-overlay {
 
   background-color: rgba(0, 0, 0, 0.5);
   overflow: auto;
+}
+
+.max-height-half-screen {
+  max-height: 50vh;
 }

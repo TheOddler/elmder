@@ -19,8 +19,8 @@ $desktopWidth: 1000px;
   }
 }
 
-@mixin textOutline {
-  $outlineColor: rgba(0, 0, 0, 0.25);
+@mixin textOutline($color) {
+  $outlineColor: $color;
   text-shadow:
     -1px -1px 0 $outlineColor,
     1px -1px 0 $outlineColor,
@@ -28,8 +28,8 @@ $desktopWidth: 1000px;
     1px 1px 0 $outlineColor;
 }
 
-@mixin textGlow {
-  $outlineColor: rgba(0, 0, 0, 0.5);
+@mixin textGlow($color) {
+  $outlineColor: $color;
   text-shadow:
     -1px -1px 5px $outlineColor,
     1px -1px 5px $outlineColor,
