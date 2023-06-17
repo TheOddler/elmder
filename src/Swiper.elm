@@ -8,8 +8,41 @@ import Swiper.Internal exposing (..)
 
 
 container : List (ContainerAttribute msg) -> List (Slide msg) -> Html msg
-container attr slides =
-    node "swiper-container" (toHtmlAttributes attr) (List.map unSlide slides)
+container attrs slides =
+    node "swiper-container" (toHtmlAttributes attrs) (List.map unSlide slides)
+
+
+type SafeLoopStrategy
+    = DuplicateSlides
+    | DisableLoop
+    | DisableMultiView
+
+
+{-| Having multiple slides per view visible and enabling loop can be glitchy if you don't have enough slides.
+This tries to solve that by checking if there are enough slides, and if not applying the chosen strategy.
+I'm not sure yet which strategy makes most sense, maybe it depends on the specific case, or maybe one is clearly better.
+-}
+containerMultiViewSafeLoop : SafeLoopStrategy -> Float -> List (ContainerAttribute msg) -> List (Slide msg) -> Html msg
+containerMultiViewSafeLoop strategy slidesPerViewCount attrs slides =
+    let
+        isSafe =
+            -- Swiper's docs say to use `>=` but there's a tiny graphical glitch then still
+            -- not too bad though, so might be worth it for allowing multi-view-loop slightly more often
+            List.length slides > ceiling slidesPerViewCount * 2
+    in
+    if isSafe then
+        container (loop True :: slidesPerView (Count slidesPerViewCount) :: attrs) slides
+
+    else
+        case strategy of
+            DuplicateSlides ->
+                container (loop True :: slidesPerView (Count slidesPerViewCount) :: attrs) <| List.concat [ slides, slides ]
+
+            DisableLoop ->
+                container (slidesPerView (Count slidesPerViewCount) :: attrs) slides
+
+            DisableMultiView ->
+                container (loop True :: attrs) slides
 
 
 slide : List (Html msg) -> Slide msg

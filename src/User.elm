@@ -54,14 +54,12 @@ viewProfile user =
     <|
         viewCard [] user
             :: card []
-                [ Swiper.container
+                [ Swiper.containerMultiViewSafeLoop Swiper.DisableMultiView
+                    1.2
                     [ Swiper.class "full-width"
-
-                    -- , Swiper.loop True -- loop is glitchy combined with slides per view if there aren't enough slides
                     , Swiper.grabCursor True
                     , Swiper.navigation True
                     , Swiper.pagination Swiper.Bullets
-                    , Swiper.slidesPerView (Swiper.Count 1.2)
                     , Swiper.centeredSlides True
                     , Swiper.slideToClickedSlide True
                     ]
