@@ -9,7 +9,9 @@ html {
   text-align: justify;
 }
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: inherit;
 }
 
