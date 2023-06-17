@@ -185,3 +185,11 @@ Default: False
 slideToClickedSlide : Bool -> ContainerAttribute msg
 slideToClickedSlide =
     booleanCAttribute "slide-to-clicked-slide"
+
+
+{-| When enabled Swiper will be disabled and hide navigation buttons on case there are not enough slides for sliding.
+Default: True
+-}
+watchOverflow : Bool -> ContainerAttribute msg
+watchOverflow =
+    booleanCAttribute "watch-overflow"

@@ -32,18 +32,20 @@ viewCard : List (Attribute msg) -> User -> Html msg
 viewCard attributes user =
     card
         attributes
-        [ case user.images of
-            first :: _ ->
-                img [ src first, class "max-height-half-screen" ] []
-                    |> withOverlay
-                        [ class "full-width" ]
-                        [ class "match-content text-on-image" ]
-                        [ div [ class "larger-text" ] [ text user.name ]
-                        , div [] [ text user.description ]
-                        ]
-
-            [] ->
-                div [] []
+        [ Swiper.container
+            [ Swiper.class "full-width"
+            , Swiper.grabCursor True
+            , Swiper.pagination Swiper.ProgressBar
+            , Swiper.loop True
+            , Swiper.watchOverflow False
+            ]
+            (List.map (\url -> Swiper.imgSlide [ src url, class "full-width standard-height" ]) user.images)
+            |> withOverlay
+                [ class "full-width" ]
+                [ class "match-content text-on-image" ]
+                [ div [ class "larger-text" ] [ text user.name ]
+                , div [] [ text user.description ]
+                ]
         ]
 
 
