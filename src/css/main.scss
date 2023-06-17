@@ -2,13 +2,23 @@
 @use 'helpers' as h;
 @use 'nav-bar';
 
-body {
+html {
+  box-sizing: border-box;
   overflow-wrap: break-word;
   text-align: justify;
 }
 
+*, *::before, *::after {
+  box-sizing: inherit;
+}
+
 img {
+  // Nicer default for images, otherwise they squish when resized
   object-fit: cover;
+
+  // Removes a tiny little bit of whitespace that sometimes appears under images
+  // This makes images that are last in the card look better, but I think is a good default for everthing as even in different places the extra whitespace looks bad
+  vertical-align: middle;
 }
 
 .masonry {
