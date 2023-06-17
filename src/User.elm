@@ -4,7 +4,6 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Components exposing (..)
 import Swiper
-import Swiper.Config as Swiper
 
 
 type alias User =
@@ -56,13 +55,12 @@ viewProfile user =
         viewCard [] user
             :: card []
                 [ Swiper.container
-                    [ class "full-width"
+                    [ Swiper.class "full-width"
 
                     -- , Swiper.loop True -- loop is glitchy combined with slides per view if there aren't enough slides
                     , Swiper.grabCursor True
                     , Swiper.navigation True
-                    , Swiper.pagination True
-                    , Swiper.paginationType Swiper.ProgressBar
+                    , Swiper.pagination Swiper.Bullets
                     , Swiper.slidesPerView (Swiper.Count 1.2)
                     , Swiper.centeredSlides True
                     , Swiper.slideToClickedSlide True
