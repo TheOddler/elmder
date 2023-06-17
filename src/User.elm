@@ -61,7 +61,7 @@ viewProfile user =
                     [ Swiper.class "full-width"
                     , Swiper.grabCursor True
                     , Swiper.navigation True
-                    , Swiper.pagination Swiper.Bullets
+                    , Swiper.pagination (Swiper.Bullets Swiper.Standard)
                     , Swiper.centeredSlides True
                     , Swiper.slideToClickedSlide True
                     ]

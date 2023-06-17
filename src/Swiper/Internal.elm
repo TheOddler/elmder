@@ -24,7 +24,7 @@ unSlide (Slide html) =
 
 type ContainerAttribute msg
     = CAttribute (Html.Attribute msg)
-    | CAttributes (List (Html.Attribute msg))
+    | CAttributes (List (ContainerAttribute msg))
 
 
 cAttribute : String -> String -> ContainerAttribute msg
@@ -41,7 +41,7 @@ toHtmlAttributes =
                     [ attr ]
 
                 CAttributes attrs ->
-                    attrs
+                    toHtmlAttributes attrs
 
 
 booleanCAttribute : String -> Bool -> ContainerAttribute msg

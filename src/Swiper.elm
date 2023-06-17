@@ -110,44 +110,56 @@ navigation =
     booleanCAttribute "navigation"
 
 
+type PaginationBulletKind
+    = Dynamic
+    | Standard
+
+
 type PaginationType
-    = Bullets
+    = Bullets PaginationBulletKind
     | Fraction
     | ProgressBar
-      -- The following two are a bit special, but I consider them kinds of pagination
-    | DynamicBullets
-    | Scrollbar
 
 
 pagination : PaginationType -> ContainerAttribute msg
 pagination type_ =
     let
-        useTypeAttrSimple =
-            useTypeAttr "pagination-type"
-
-        useTypeAttr typeAttrName typeString =
+        useTypeAttr typeString =
             CAttributes
-                [ Html.Attributes.attribute "pagination" "true"
-                , Html.Attributes.attribute typeAttrName typeString
+                [ booleanCAttribute "pagination" True
+                , cAttribute "pagination-type" typeString
                 ]
     in
     case type_ of
-        Bullets ->
-            useTypeAttrSimple "bullets"
+        Bullets kind ->
+            case kind of
+                Dynamic ->
+                    CAttributes
+                        [ booleanCAttribute "pagination-dynamic-bullets" True
+                        , useTypeAttr "bullets"
+                        ]
+
+                Standard ->
+                    useTypeAttr "bullets"
 
         Fraction ->
-            useTypeAttrSimple "fraction"
+            useTypeAttr "fraction"
 
         ProgressBar ->
-            useTypeAttrSimple "progressbar"
+            useTypeAttr "progressbar"
 
-        DynamicBullets ->
-            -- Dynamic Bullets for some reason does not use the normal "pagination-type" attribute
-            useTypeAttr "pagination-dynamic-bullets" "true"
 
-        Scrollbar ->
-            -- Scrollbar is not considered pagination at all, but I think it serves the same purpose
-            cAttribute "scrollbar" "true"
+type SrollbarHide
+    = AutoHide
+    | AlwaysVisible
+
+
+scrollbar : SrollbarHide -> ContainerAttribute msg
+scrollbar hide =
+    CAttributes
+        [ booleanCAttribute "scrollbar" True
+        , booleanCAttribute "scrollbar-hide" (hide == AutoHide)
+        ]
 
 
 {-| Because of nature of how the loop mode works (it will rearrange slides), total number of slides must be >= slidesPerView \* 2
