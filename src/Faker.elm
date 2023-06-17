@@ -10,10 +10,10 @@ import String.Extra as String
 imgUrl : Generator String
 imgUrl =
     let
-        mkImgUrl width height rnd =
-            "https://placekitten.com/" ++ String.fromInt width ++ "/" ++ String.fromInt height ++ "?" ++ String.fromInt rnd
+        mkImgUrl width height =
+            "https://placekitten.com/" ++ String.fromInt width ++ "/" ++ String.fromInt height
     in
-    map3 mkImgUrl (int 200 600) (int 200 600) (int minInt maxInt)
+    map2 mkImgUrl (int 200 600) (int 200 600)
 
 
 name : Generator String
