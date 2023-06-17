@@ -7,6 +7,12 @@ import Random.String exposing (..)
 import String.Extra as String
 
 
+listMinMax : Int -> Int -> Generator a -> Generator (List a)
+listMinMax min max gen =
+    int min max
+        |> andThen (\len -> list len gen)
+
+
 imgUrl : Generator String
 imgUrl =
     let

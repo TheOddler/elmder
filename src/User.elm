@@ -9,7 +9,7 @@ import Swiper
 type alias User =
     { id : String
     , name : String
-    , images : List String
+    , headerImage : String
     , description : String
     , relationshipStatus : RelationshipStatus
     , sections : List UserSection
@@ -24,7 +24,7 @@ type RelationshipStatus
 
 type UserSection
     = Generic { header : String, content : String }
-    | Image { url : String, description : String }
+    | Images { images : List String, description : String }
     | QuestionAndAnswer { question : String, answer : String }
 
 
@@ -32,14 +32,7 @@ viewCard : List (Attribute msg) -> User -> Html msg
 viewCard attributes user =
     card
         attributes
-        [ Swiper.container
-            [ Swiper.class "full-width"
-            , Swiper.grabCursor True
-            , Swiper.pagination Swiper.ProgressBar
-            , Swiper.loop True
-            , Swiper.watchOverflow False
-            ]
-            (List.map (\url -> Swiper.imgSlide [ src url, class "full-width standard-height" ]) user.images)
+        [ img [ src user.headerImage, class "full-width standard-height" ] []
             |> withOverlay
                 [ class "full-width" ]
                 [ class "match-content text-on-image" ]
@@ -55,26 +48,6 @@ viewProfile user =
         [ class "masonry" ]
     <|
         viewCard [] user
-            :: card []
-                [ Swiper.containerMultiViewSafeLoop Swiper.DisableMultiView
-                    1.2
-                    [ Swiper.class "full-width"
-                    , Swiper.grabCursor True
-                    , Swiper.navigation True
-                    , Swiper.pagination (Swiper.Bullets Swiper.Standard)
-                    , Swiper.centeredSlides True
-                    , Swiper.slideToClickedSlide True
-                    ]
-                  <|
-                    let
-                        viewSlide url =
-                            Swiper.imgSlide
-                                [ src url
-                                , class "full-width standard-height"
-                                ]
-                    in
-                    List.map viewSlide user.images
-                ]
             :: List.map viewUserSection user.sections
 
 
@@ -87,11 +60,25 @@ viewUserSection userSection =
                 , div [] [ text content ]
                 ]
 
-        Image { url, description } ->
+        Images { images, description } ->
             card []
-                [ img [ src url, class "full-width max-height-half-screen" ] []
-                , div []
-                    [ text description ]
+                [ Swiper.containerMultiViewSafeLoop Swiper.DisableMultiView
+                    1.2
+                    [ Swiper.grabCursor True
+                    , Swiper.pagination Swiper.ProgressBar
+                    , Swiper.centeredSlides True
+                    , Swiper.slideToClickedSlide True
+                    ]
+                    (let
+                        viewSlide url =
+                            Swiper.imgSlide
+                                [ src url
+                                , class "full-width standard-height"
+                                ]
+                     in
+                     List.map viewSlide images
+                    )
+                    |> withOverlay [ class "full-width" ] [ class "match-content text-on-image" ] [ text description ]
                 ]
 
         QuestionAndAnswer { question, answer } ->

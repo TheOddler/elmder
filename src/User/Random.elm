@@ -13,15 +13,10 @@ random =
     let
         id =
             string 10 lowerCaseLatin
-
-        listMinMax : Int -> Int -> Generator a -> Generator (List a)
-        listMinMax min max gen =
-            int min max
-                |> andThen (\len -> list len gen)
     in
     map User id
         |> andMap name
-        |> andMap (listMinMax 1 10 imgUrl)
+        |> andMap imgUrl
         |> andMap paragraph
         |> andMap (uniform Single [ Married, InRelationship ])
         |> andMap (listMinMax 3 15 randomSection)
@@ -39,7 +34,7 @@ randomSectionGeneric =
 
 randomSectionImage : Generator UserSection
 randomSectionImage =
-    map2 (\u d -> Image { url = u, description = d }) imgUrl sentence
+    map2 (\images descr -> Images { images = images, description = descr }) (listMinMax 1 10 imgUrl) sentence
 
 
 randomSectionQuestionAndAnswer : Generator UserSection

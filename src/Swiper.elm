@@ -205,3 +205,39 @@ Default: True
 watchOverflow : Bool -> ContainerAttribute msg
 watchOverflow =
     booleanCAttribute "watch-overflow"
+
+
+type Effect
+    = EffectSlide
+    | EffectFade
+    | EffectCube
+    | EffectCoverflow
+    | EffectFlip
+    | EffectCreative
+    | EffectCards
+
+
+effect : Effect -> ContainerAttribute msg
+effect kind =
+    cAttribute "effect" <|
+        case kind of
+            EffectSlide ->
+                "slide"
+
+            EffectFade ->
+                "fade"
+
+            EffectCube ->
+                "cube"
+
+            EffectCoverflow ->
+                "coverflow"
+
+            EffectFlip ->
+                "flip"
+
+            EffectCreative ->
+                "creative"
+
+            EffectCards ->
+                "cards"
