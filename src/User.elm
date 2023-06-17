@@ -3,12 +3,14 @@ module User exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Components exposing (..)
+import Swiper
+import Swiper.Config as Swiper
 
 
 type alias User =
     { id : String
     , name : String
-    , headerImage : String
+    , images : List String
     , description : String
     , relationshipStatus : RelationshipStatus
     , sections : List UserSection
@@ -31,13 +33,18 @@ viewCard : List (Attribute msg) -> User -> Html msg
 viewCard attributes user =
     card
         attributes
-        [ img [ src user.headerImage, class "max-height-half-screen" ] []
-            |> withOverlay
-                [ class "full-width" ]
-                [ class "match-content text-on-image" ]
-                [ div [ class "larger-text" ] [ text user.name ]
-                , div [] [ text user.description ]
-                ]
+        [ case user.images of
+            first :: _ ->
+                img [ src first, class "max-height-half-screen" ] []
+                    |> withOverlay
+                        [ class "full-width" ]
+                        [ class "match-content text-on-image" ]
+                        [ div [ class "larger-text" ] [ text user.name ]
+                        , div [] [ text user.description ]
+                        ]
+
+            [] ->
+                div [] []
         ]
 
 
@@ -47,6 +54,22 @@ viewProfile user =
         [ class "masonry" ]
     <|
         viewCard [] user
+            :: card []
+                [ Swiper.container
+                    [ class "full-width"
+
+                    -- , Swiper.loop True -- loop is glitchy combined with slides per view if there aren't enough slides
+                    , Swiper.grabCursor True
+                    , Swiper.navigation True
+                    , Swiper.pagination True
+                    , Swiper.paginationType Swiper.ProgressBar
+                    , Swiper.slidesPerView (Swiper.Count 1.2)
+                    , Swiper.centeredSlides True
+                    , Swiper.slideToClickedSlide True
+                    ]
+                  <|
+                    List.map (\url -> Swiper.slide [ img [ src url, class "full-width" ] [] ]) user.images
+                ]
             :: List.map viewUserSection user.sections
 
 

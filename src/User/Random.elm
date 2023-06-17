@@ -21,7 +21,7 @@ random =
     in
     map User id
         |> andMap name
-        |> andMap imgUrl
+        |> andMap (listMinMax 1 10 imgUrl)
         |> andMap paragraph
         |> andMap (uniform Single [ Married, InRelationship ])
         |> andMap (listMinMax 3 15 randomSection)
