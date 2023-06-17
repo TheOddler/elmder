@@ -66,7 +66,14 @@ viewProfile user =
                     , Swiper.slideToClickedSlide True
                     ]
                   <|
-                    List.map (\url -> Swiper.slide [ img [ src url, class "full-width" ] [] ]) user.images
+                    let
+                        viewSlide url =
+                            Swiper.imgSlide
+                                [ src url
+                                , class "full-width standard-height"
+                                ]
+                    in
+                    List.map viewSlide user.images
                 ]
             :: List.map viewUserSection user.sections
 

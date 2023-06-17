@@ -1,0 +1,13 @@
+img {
+  &.standard-height {
+    height: 20em;
+  }
+
+  &.small {
+    height: 12em;
+  }
+
+  &.tall {
+    height: 30em;
+  }
+}

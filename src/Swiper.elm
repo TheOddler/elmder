@@ -17,6 +17,15 @@ slide elements =
     Slide <| node "swiper-slide" [] elements
 
 
+imgSlide : List (Html.Attribute msg) -> Slide msg
+imgSlide imgAttrs =
+    slide
+        [ Html.img
+            imgAttrs
+            []
+        ]
+
+
 
 -- Attributes
 
