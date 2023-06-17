@@ -12,13 +12,14 @@ card attributes children =
 
 withOverlay :
     List (Attribute msg)
+    -> List (Attribute msg)
     -> List (Html msg)
     -> Html msg
     -> Html msg
-withOverlay overlayAttributes overlayElements base =
-    div [ class "overlay-wrapper" ]
+withOverlay wrapperAttrs overlayAttrs overlayElements base =
+    div (class "with-overlay" :: wrapperAttrs)
         [ base
-        , div (class "overlay" :: overlayAttributes) overlayElements
+        , div (class "overlay" :: overlayAttrs) overlayElements
         ]
 
 

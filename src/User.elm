@@ -31,9 +31,10 @@ viewCard : List (Attribute msg) -> User -> Html msg
 viewCard attributes user =
     card
         attributes
-        [ img [ src user.headerImage, class "full-width max-height-half-screen" ] []
+        [ img [ src user.headerImage, class "max-height-half-screen" ] []
             |> withOverlay
-                [ class "content text-on-image" ]
+                [ class "full-width" ]
+                [ class "match-content text-on-image" ]
                 [ div [ class "larger-text" ] [ text user.name ]
                 , div [] [ text user.description ]
                 ]
@@ -54,21 +55,19 @@ viewUserSection userSection =
     case userSection of
         Generic { header, content } ->
             card []
-                [ div [ class "larger-text content" ] [ text header ]
-                , div [ class "content" ] [ text content ]
+                [ div [ class "larger-text" ] [ text header ]
+                , div [] [ text content ]
                 ]
 
         Image { url, description } ->
             card []
                 [ img [ src url, class "full-width max-height-half-screen" ] []
-                    |> withOverlay
-                        [ class "content text-on-image" ]
-                        [ text description
-                        ]
+                , div []
+                    [ text description ]
                 ]
 
         QuestionAndAnswer { question, answer } ->
             card []
-                [ div [ class "larger-text content" ] [ text question ]
-                , div [ class "content" ] [ text answer ]
+                [ div [ class "larger-text" ] [ text question ]
+                , div [] [ text answer ]
                 ]

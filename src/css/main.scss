@@ -1,4 +1,5 @@
 @use 'card';
+@use 'overlay';
 @use 'helpers' as h;
 @use 'nav-bar';
 
@@ -41,16 +42,6 @@ img {
 
   @include h.onDesktop {
     column-count: 3;
-  }
-}
-
-.overlay-wrapper {
-  position: relative; // to allow for absolute positioning of the overlay
-
-  >.overlay {
-    position: absolute;
-    bottom: 0;
-    left: 0;
   }
 }
 

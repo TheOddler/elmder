@@ -7,19 +7,17 @@ $contentMargin: 0.75em !default;
   border-radius: 0.25rem;
   box-shadow: 0 .2em .5em .1em rgba(0, 0, 0, .25);
 
-  .full-width {
-    margin: 0;
-    width: 100%;
+  >*, .match-content  {
+    // Use margin for top and bottom because they can overlap
+    margin: $contentMargin 0;
+    // Use padding for left and right for cleaner box-sizing
+    padding: 0 $contentMargin;
   }
 
   // Allow overriding the content margin and go full width
-  .content {
-    margin: $contentMargin;
-  }
-
-  // Removes a tiny little bit of whitespace that sometimes appears under images
-  // This makes images that are last in the card look better, as they don't have a bit of whitespace under them
-  img {
-    vertical-align: bottom;
+  .full-width {
+    padding: 0;
+    margin: 0;
+    width: 100%;
   }
 }

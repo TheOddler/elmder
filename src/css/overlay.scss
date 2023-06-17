@@ -1,0 +1,20 @@
+.with-overlay {
+  // Give an element an overlay
+  // Tested with one child and one overlay
+
+  position: relative; // to allow for absolute positioning of the overlay
+
+  >* {
+    // Inherit the sizing so we don't have to explicitly set it again for the children
+    width: inherit;
+    height: inherit;
+    max-width: inherit;
+    max-height: inherit;
+  }
+
+  >.overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+  }
+}
