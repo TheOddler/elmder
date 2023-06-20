@@ -75,7 +75,7 @@ type SliderPerView
 
 slidesPerView : SliderPerView -> ContainerAttribute msg
 slidesPerView count =
-    cAttribute "slides-per-view" <|
+    attribute "slides-per-view" <|
         case count of
             Auto ->
                 "auto"
@@ -86,7 +86,7 @@ slidesPerView count =
 
 centeredSlides : Bool -> ContainerAttribute msg
 centeredSlides =
-    booleanCAttribute "centered-slides"
+    booleanAttribute "centered-slides"
 
 
 type SpaceBetween
@@ -96,7 +96,7 @@ type SpaceBetween
 
 spaceBetween : SpaceBetween -> ContainerAttribute msg
 spaceBetween space =
-    cAttribute "space-between" <|
+    attribute "space-between" <|
         case space of
             Px px ->
                 String.fromInt px
@@ -107,7 +107,7 @@ spaceBetween space =
 
 navigation : Bool -> ContainerAttribute msg
 navigation =
-    booleanCAttribute "navigation"
+    booleanAttribute "navigation"
 
 
 type PaginationBulletKind
@@ -126,8 +126,8 @@ pagination type_ =
     let
         useTypeAttr typeString =
             CAttributes
-                [ booleanCAttribute "pagination" True
-                , cAttribute "pagination-type" typeString
+                [ booleanAttribute "pagination" True
+                , attribute "pagination-type" typeString
                 ]
     in
     case type_ of
@@ -135,7 +135,7 @@ pagination type_ =
             case kind of
                 Dynamic ->
                     CAttributes
-                        [ booleanCAttribute "pagination-dynamic-bullets" True
+                        [ booleanAttribute "pagination-dynamic-bullets" True
                         , useTypeAttr "bullets"
                         ]
 
@@ -157,8 +157,8 @@ type SrollbarHide
 scrollbar : SrollbarHide -> ContainerAttribute msg
 scrollbar hide =
     CAttributes
-        [ booleanCAttribute "scrollbar" True
-        , booleanCAttribute "scrollbar-hide" (hide == AutoHide)
+        [ booleanAttribute "scrollbar" True
+        , booleanAttribute "scrollbar-hide" (hide == AutoHide)
         ]
 
 
@@ -167,12 +167,12 @@ Default: False
 -}
 loop : Bool -> ContainerAttribute msg
 loop =
-    booleanCAttribute "loop"
+    booleanAttribute "loop"
 
 
 autoHeight : Bool -> ContainerAttribute msg
 autoHeight =
-    booleanCAttribute "auto-height"
+    booleanAttribute "auto-height"
 
 
 {-| This option may a little improve desktop usability. If true, user will see the "grab" cursor when hover on Swiper
@@ -180,7 +180,7 @@ Default: False
 -}
 grabCursor : Bool -> ContainerAttribute msg
 grabCursor =
-    booleanCAttribute "grab-cursor"
+    booleanAttribute "grab-cursor"
 
 
 {-| Set to true to round values of slides width and height to prevent blurry texts on usual resolution screens (if you have such)
@@ -188,7 +188,7 @@ Default: False
 -}
 roundLengths : Bool -> ContainerAttribute msg
 roundLengths =
-    booleanCAttribute "round-lengths"
+    booleanAttribute "round-lengths"
 
 
 {-| Set to true and click on any slide will produce transition to this slide
@@ -196,7 +196,7 @@ Default: False
 -}
 slideToClickedSlide : Bool -> ContainerAttribute msg
 slideToClickedSlide =
-    booleanCAttribute "slide-to-clicked-slide"
+    booleanAttribute "slide-to-clicked-slide"
 
 
 {-| When enabled Swiper will be disabled and hide navigation buttons on case there are not enough slides for sliding.
@@ -204,7 +204,7 @@ Default: True
 -}
 watchOverflow : Bool -> ContainerAttribute msg
 watchOverflow =
-    booleanCAttribute "watch-overflow"
+    booleanAttribute "watch-overflow"
 
 
 type Effect
@@ -219,7 +219,7 @@ type Effect
 
 effect : Effect -> ContainerAttribute msg
 effect kind =
-    cAttribute "effect" <|
+    attribute "effect" <|
         case kind of
             EffectSlide ->
                 "slide"

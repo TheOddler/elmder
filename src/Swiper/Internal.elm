@@ -27,8 +27,8 @@ type ContainerAttribute msg
     | CAttributes (List (ContainerAttribute msg))
 
 
-cAttribute : String -> String -> ContainerAttribute msg
-cAttribute name val =
+attribute : String -> String -> ContainerAttribute msg
+attribute name val =
     CAttribute <| Html.attribute name val
 
 
@@ -44,9 +44,9 @@ toHtmlAttributes =
                     toHtmlAttributes attrs
 
 
-booleanCAttribute : String -> Bool -> ContainerAttribute msg
-booleanCAttribute name bool =
-    cAttribute name <|
+booleanAttribute : String -> Bool -> ContainerAttribute msg
+booleanAttribute name bool =
+    attribute name <|
         if bool then
             "true"
 
