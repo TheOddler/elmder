@@ -10,12 +10,17 @@ import User exposing (..)
 
 random : Generator User
 random =
-    let
-        id =
-            string 10 lowerCaseLatin
-    in
-    map User id
-        |> andMap name
+    userID |> andThen forID
+
+
+userID : Generator UserID
+userID =
+    string 10 lowerCaseLatin
+
+
+forID : UserID -> Generator User
+forID id =
+    map (User id) name
         |> andMap imgUrl
         |> andMap paragraph
         |> andMap (uniform Single [ Married, InRelationship ])

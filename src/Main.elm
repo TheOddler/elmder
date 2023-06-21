@@ -1,33 +1,35 @@
 module Main exposing (..)
 
 import Browser
+import Feed
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class)
 import Html.Components exposing (navbar)
-import Html.Events exposing (onClick)
-import List.Extra as List
-import Random
 import User exposing (User)
 import User.Random as User
+import User.Store exposing (UserStore)
 
 
 type Screen
-    = ScreenFeed
+    = ScreenFeed Feed.Model
     | ScreenMatches
     | ScreenSettings
     | ScreenUser User
 
 
 type alias Model =
-    { knownUsers : List User
+    { userStore : UserStore
     , currentScreen : Screen
     }
 
 
 type Msg
-    = GetUsers (List User)
-    | OpenScreen Screen
+    = OpenScreen Screen
     | ViewUser User
+    | -- You can specify another Msg that will be called when after the store has been updated,
+      -- that will allow you to notify whatever other update function you got the store msg from
+      UserStoreMsg Msg User.Store.Msg
+    | FeedMsg Feed.Msg
 
 
 type alias Flags =
@@ -46,10 +48,20 @@ main =
 
 init : Flags -> ( Model, Cmd Msg )
 init () =
-    ( { knownUsers = []
-      , currentScreen = ScreenFeed
+    let
+        store =
+            User.Store.init
+
+        ( feedModel, feedCmd, storeCmd ) =
+            Feed.init store
+    in
+    ( { userStore = User.Store.init
+      , currentScreen = ScreenFeed feedModel
       }
-    , Random.generate GetUsers <| Random.list 10 User.random
+    , Cmd.batch
+        [ Cmd.map FeedMsg feedCmd
+        , Cmd.map (UserStoreMsg <| FeedMsg Feed.Refresh) storeCmd
+        ]
     )
 
 
@@ -61,11 +73,6 @@ subscriptions _ =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update message model =
     case message of
-        GetUsers users ->
-            ( { model | knownUsers = users }
-            , Cmd.none
-            )
-
         OpenScreen screen ->
             ( { model | currentScreen = screen }
             , Cmd.none
@@ -76,13 +83,38 @@ update message model =
             , Cmd.none
             )
 
+        UserStoreMsg followupMsg storeMsg ->
+            -- Update the store,
+            { model | userStore = User.Store.update model.userStore storeMsg }
+                -- and then do the followup update
+                |> update followupMsg
+
+        FeedMsg msg ->
+            case model.currentScreen of
+                ScreenFeed feed ->
+                    let
+                        ( feedModel, feedCmd, storeCmd ) =
+                            Feed.update model.userStore msg feed
+                    in
+                    ( { model | currentScreen = ScreenFeed feedModel }
+                    , Cmd.batch
+                        [ Cmd.map FeedMsg feedCmd
+                        , Cmd.map (UserStoreMsg <| FeedMsg Feed.Refresh) storeCmd
+                        ]
+                    )
+
+                _ ->
+                    ( model
+                    , Cmd.none
+                    )
+
 
 view : Model -> Html Msg
 view model =
     div [ class "root" ]
         [ case model.currentScreen of
-            ScreenFeed ->
-                div [ class "masonry" ] (List.map (\u -> User.viewCard [ onClick <| ViewUser u ] u) model.knownUsers)
+            ScreenFeed feed ->
+                Feed.view FeedMsg ViewUser feed
 
             ScreenMatches ->
                 div [ class "center-content fill-screen" ] [ text "placeholder for matches screen" ]
@@ -93,11 +125,7 @@ view model =
             ScreenUser user ->
                 User.viewProfile user
         , navbar
-            [ { onSelect = OpenScreen ScreenFeed
-              , icon = "fa-solid fa-users"
-              , isSelected = model.currentScreen == ScreenFeed
-              }
-            , { onSelect = OpenScreen ScreenMatches
+            [ { onSelect = OpenScreen ScreenMatches
               , icon = "fa-solid fa-heart"
               , isSelected = model.currentScreen == ScreenMatches
               }

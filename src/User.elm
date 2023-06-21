@@ -6,8 +6,12 @@ import Html.Components exposing (..)
 import Swiper
 
 
+type alias UserID =
+    String
+
+
 type alias User =
-    { id : String
+    { id : UserID
     , name : String
     , headerImage : String
     , description : String
