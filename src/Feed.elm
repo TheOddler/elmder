@@ -34,6 +34,11 @@ init userStore =
     )
 
 
+onStoreFollowup : Msg
+onStoreFollowup =
+    Refresh
+
+
 update : UserStore -> Msg -> Model -> ( Model, Cmd User.Store.Msg )
 update userStore message model =
     case message of

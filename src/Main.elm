@@ -94,7 +94,7 @@ update message model =
                             Feed.update model.userStore msg feed
                     in
                     ( { model | currentScreen = ScreenFeed feedModel }
-                    , Cmd.map (UserStoreMsg <| FeedMsg Feed.Refresh) storeCmd
+                    , Cmd.map (UserStoreMsg <| FeedMsg Feed.onStoreFollowup) storeCmd
                     )
 
                 _ ->
