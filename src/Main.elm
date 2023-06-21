@@ -52,16 +52,13 @@ init () =
         store =
             User.Store.init
 
-        ( feedModel, feedCmd, storeCmd ) =
+        ( feedModel, storeCmd ) =
             Feed.init store
     in
     ( { userStore = User.Store.init
       , currentScreen = ScreenFeed feedModel
       }
-    , Cmd.batch
-        [ Cmd.map FeedMsg feedCmd
-        , Cmd.map (UserStoreMsg <| FeedMsg Feed.Refresh) storeCmd
-        ]
+    , Cmd.map (UserStoreMsg <| FeedMsg Feed.Refresh) storeCmd
     )
 
 
@@ -93,14 +90,11 @@ update message model =
             case model.currentScreen of
                 ScreenFeed feed ->
                     let
-                        ( feedModel, feedCmd, storeCmd ) =
+                        ( feedModel, storeCmd ) =
                             Feed.update model.userStore msg feed
                     in
                     ( { model | currentScreen = ScreenFeed feedModel }
-                    , Cmd.batch
-                        [ Cmd.map FeedMsg feedCmd
-                        , Cmd.map (UserStoreMsg <| FeedMsg Feed.Refresh) storeCmd
-                        ]
+                    , Cmd.map (UserStoreMsg <| FeedMsg Feed.Refresh) storeCmd
                     )
 
                 _ ->

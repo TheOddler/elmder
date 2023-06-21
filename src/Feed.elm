@@ -18,7 +18,7 @@ type Msg
     | AddUsers (List UserID)
 
 
-init : UserStore -> ( Model, Cmd Msg, Cmd User.Store.Msg )
+init : UserStore -> ( Model, Cmd User.Store.Msg )
 init userStore =
     let
         pretendUserIDs =
@@ -30,12 +30,11 @@ init userStore =
     ( { userIDs = pretendUserIDs
       , usersCache = users
       }
-    , Cmd.none
     , storeCmd
     )
 
 
-update : UserStore -> Msg -> Model -> ( Model, Cmd Msg, Cmd User.Store.Msg )
+update : UserStore -> Msg -> Model -> ( Model, Cmd User.Store.Msg )
 update userStore message model =
     case message of
         Refresh ->
@@ -44,7 +43,6 @@ update userStore message model =
                     User.Store.getUsers userStore model.userIDs
             in
             ( { model | usersCache = users }
-            , Cmd.none
             , storeCmd
             )
 
@@ -60,7 +58,6 @@ update userStore message model =
                 | userIDs = newUserIDs
                 , usersCache = users
               }
-            , Cmd.none
             , storeCmd
             )
 
