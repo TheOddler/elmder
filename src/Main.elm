@@ -2,8 +2,8 @@ module Main exposing (..)
 
 import Browser
 import Feed
-import Html exposing (Html, div, text)
-import Html.Attributes exposing (class)
+import Html exposing (Html, a, div, h1, p, text)
+import Html.Attributes exposing (class, href)
 import Html.Components exposing (navbar)
 import User exposing (UserID)
 import User.Random as User
@@ -15,6 +15,7 @@ type Screen
     | ScreenMatches
     | ScreenSettings
     | ScreenUser RequestedUserID
+    | Attributions
 
 
 type alias Model =
@@ -137,6 +138,14 @@ view model =
 
                     Nothing ->
                         div [ class "center-content fill-screen" ] [ text "Loading User..." ]
+
+            Attributions ->
+                div [ class "center-content fill-screen" ] <|
+                    h1 [] [ text "We use:" ]
+                        :: List.map (\( label, url ) -> a [ href url ] [ text label ])
+                            [ ( "loading.io", "https://loading.io/" )
+                            , ( "Font Awesome", "https://fontawesome.com/" )
+                            ]
         , navbar
             [ { onSelect = OpenScreen ScreenMatches
               , icon = "fa-solid fa-heart"
@@ -145,6 +154,10 @@ view model =
             , { onSelect = OpenScreen ScreenSettings
               , icon = "fa-solid fa-gear"
               , isSelected = model.currentScreen == ScreenSettings
+              }
+            , { onSelect = OpenScreen Attributions
+              , icon = "fa-solid fa-hippo"
+              , isSelected = model.currentScreen == Attributions
               }
             ]
         ]
