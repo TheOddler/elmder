@@ -26,9 +26,7 @@ type alias Model =
 type Msg
     = OpenScreen Screen
     | ViewUser User
-    | -- You can specify another Msg that will be called when after the store has been updated,
-      -- that will allow you to notify whatever other update function you got the store msg from
-      UserStoreMsg Msg User.Store.Msg
+    | UserStoreMsg User.Store.Msg
     | FeedMsg Feed.Msg
 
 
@@ -52,13 +50,13 @@ init () =
         store =
             User.Store.init
 
-        ( feedModel, storeCmd ) =
-            Feed.init store
+        ( feedModel, feedMsg ) =
+            Feed.init (Cmd.map UserStoreMsg << User.Store.mkUpdateCommand store)
     in
-    ( { userStore = User.Store.init
+    ( { userStore = store
       , currentScreen = ScreenFeed feedModel
       }
-    , Cmd.map (UserStoreMsg <| FeedMsg Feed.Refresh) storeCmd
+    , feedMsg
     )
 
 
@@ -80,21 +78,20 @@ update message model =
             , Cmd.none
             )
 
-        UserStoreMsg followupMsg storeMsg ->
-            -- Update the store,
-            { model | userStore = User.Store.update model.userStore storeMsg }
-                -- and then do the followup update
-                |> update followupMsg
+        UserStoreMsg msg ->
+            ( { model | userStore = User.Store.update model.userStore msg }
+            , Cmd.none
+            )
 
         FeedMsg msg ->
             case model.currentScreen of
                 ScreenFeed feed ->
                     let
-                        ( feedModel, storeCmd ) =
-                            Feed.update model.userStore msg feed
+                        ( feedModel, nextMsg ) =
+                            Feed.update (Cmd.map UserStoreMsg << User.Store.mkUpdateCommand model.userStore) msg feed
                     in
                     ( { model | currentScreen = ScreenFeed feedModel }
-                    , Cmd.map (UserStoreMsg <| FeedMsg Feed.onStoreFollowup) storeCmd
+                    , nextMsg
                     )
 
                 _ ->
@@ -108,7 +105,7 @@ view model =
     div [ class "root" ]
         [ case model.currentScreen of
             ScreenFeed feed ->
-                Feed.view FeedMsg ViewUser feed
+                Feed.view model.userStore FeedMsg ViewUser feed
 
             ScreenMatches ->
                 div [ class "center-content fill-screen" ] [ text "placeholder for matches screen" ]
