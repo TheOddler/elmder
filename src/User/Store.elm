@@ -94,7 +94,7 @@ getMaybeUsers store wantedUsers =
 {-| Similar to getMaybeUsers, but for the missing users you get their ID back.
 This is just a helper function as in some cases you could show a loading user block that is still clickable if you only need the userID to make it clickable.
 -}
-getUsersOrID : UserStore -> List RequestedUserID -> List (Either UserID User)
+getUsersOrID : UserStore -> List RequestedUserID -> List (Either RequestedUserID User)
 getUsersOrID store wantedUsers =
     let
         getUserEither userID =
@@ -103,6 +103,6 @@ getUsersOrID store wantedUsers =
                     Right u
 
                 Nothing ->
-                    Left <| unRequestUserID userID
+                    Left userID
     in
     List.map getUserEither wantedUsers

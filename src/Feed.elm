@@ -5,6 +5,7 @@ import Html exposing (Html, button, div, text)
 import Html.Attributes exposing (class)
 import Html.Events exposing (onClick)
 import User exposing (UserID)
+import User.Loading
 import User.Store exposing (RequestedUserID, UserStore, unRequestUserID)
 
 
@@ -58,7 +59,7 @@ view userStore msgWrapper viewUser model =
                     User.viewCard [ onClick <| viewUser u.id ] u
 
                 Left uID ->
-                    User.viewCardLoading [ onClick <| viewUser uID ]
+                    User.Loading.viewCardLoading [ onClick <| viewUser (unRequestUserID uID) ] uID
     in
     div []
         [ button

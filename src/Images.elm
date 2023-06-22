@@ -1,15 +1,17 @@
 module Images exposing (..)
 
 import Html exposing (Html)
-import Svg exposing (svg)
+import Svg exposing (path, svg)
 import Svg.Attributes as SvgAttr
 
 
-{-| Loading image.
-Created with <https://loading.io/spinner/spinner/-spinner-preloader-ajax-loading-icon>
-Converted using <https://html-to-elm.com/>
-And then customized a bit
--}
+
+-- Many/most/all of these where:
+-- Created with https://loading.io/spinner/spinner/-spinner-preloader-ajax-loading-icon
+-- Converted using https://html-to-elm.com/
+-- And then customized a bit
+
+
 loading : String -> Html msg
 loading class =
     svg
@@ -198,6 +200,38 @@ loading class =
                     , SvgAttr.dur "1s"
                     , SvgAttr.begin "0s"
                     , SvgAttr.repeatCount "indefinite"
+                    ]
+                    []
+                ]
+            ]
+        ]
+
+
+heart : String -> String -> Html msg
+heart class fill =
+    svg
+        [ SvgAttr.style "margin: auto; background: none; display: block; shape-rendering: auto;"
+        , SvgAttr.class class
+        , SvgAttr.viewBox "0 0 100 100"
+        , SvgAttr.preserveAspectRatio "xMidYMid"
+        ]
+        [ Svg.g
+            [ SvgAttr.transform "translate(50 50)"
+            ]
+            [ path
+                [ SvgAttr.fill fill -- "#e90c59"
+                , SvgAttr.transform "scale(0.8)"
+                , SvgAttr.d "M40.7-34.3c-9.8-9.8-25.6-9.8-35.4,0L0-29l-5.3-5.3c-9.8-9.8-25.6-9.8-35.4,0l0,0c-9.8,9.8-9.8,25.6,0,35.4l5.3,5.3L-23,18.7l23,23l23-23L35.4,6.3L40.7,1C50.4-8.8,50.4-24.6,40.7-34.3z"
+                ]
+                [ Svg.animateTransform
+                    [ SvgAttr.attributeName "transform"
+                    , SvgAttr.type_ "scale"
+                    , SvgAttr.repeatCount "indefinite"
+                    , SvgAttr.dur "1s"
+                    , SvgAttr.keyTimes "0;0.05;0.39;0.45;0.6;1"
+                    , SvgAttr.values "0.68;0.8;0.6000000000000001;0.7200000000000001;0.68;0.6400000000000001"
+                    , SvgAttr.calcMode "spline"
+                    , SvgAttr.keySplines "0.215 0.61,0.355 1;0.215 0.61,0.355 1;0.215 0.61,0.355 1;0.215 0.61,0.355 1;0.215 0.61,0.355 1"
                     ]
                     []
                 ]
