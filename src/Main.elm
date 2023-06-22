@@ -2,7 +2,7 @@ module Main exposing (..)
 
 import Browser
 import Feed
-import Html exposing (Html, a, div, h1, p, text)
+import Html exposing (Html, a, div, h1, text)
 import Html.Attributes exposing (class, href)
 import Html.Components exposing (navbar)
 import User exposing (UserID)
