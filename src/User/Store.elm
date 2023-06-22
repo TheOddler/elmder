@@ -1,6 +1,7 @@
-module User.Store exposing (Msg, UserStore, getMaybeUsers, getUsers, init, mkUpdateCommand, update)
+module User.Store exposing (Msg, UserStore, getMaybeUsers, getUser, getUsers, getUsersOrID, init, mkUpdateCommand, update)
 
 import Dict exposing (Dict)
+import Either exposing (Either(..))
 import Maybe.Extra as Maybe
 import Random
 import User exposing (User, UserID)
@@ -48,6 +49,11 @@ mkUpdateCommand store wantedUsers =
         Cmd.map UpdateUsers <| fakeGetUsersFromServer missingWantedUsers
 
 
+getUser : UserStore -> UserID -> Maybe User
+getUser store id =
+    Dict.get id store
+
+
 {-| Get users from the store.
 It returns all the users it already knows about, so you can start rendering the UI.
 This Cmd should then be run somehow (probably return it to whatever owns the store), and it'll update the store.
@@ -64,8 +70,21 @@ and then when the command finishes and updates the store those users will be loa
 -}
 getMaybeUsers : UserStore -> List UserID -> List (Maybe User)
 getMaybeUsers store wantedUsers =
+    List.map (getUser store) wantedUsers
+
+
+{-| Similar to getMaybeUsers, but for the missing users you get their ID back.
+This is just a helper function as in some cases you could show a loading user block that is still clickable if you only need the userID to make it clickable.
+-}
+getUsersOrID : UserStore -> List UserID -> List (Either UserID User)
+getUsersOrID store wantedUsers =
     let
-        maybeUsers =
-            List.map (\i -> Dict.get i store) wantedUsers
+        getUserEither userID =
+            case getUser store userID of
+                Just u ->
+                    Right u
+
+                Nothing ->
+                    Left userID
     in
-    maybeUsers
+    List.map getUserEither wantedUsers

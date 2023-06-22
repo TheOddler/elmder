@@ -1,5 +1,6 @@
 module Feed exposing (..)
 
+import Either exposing (Either(..))
 import Html exposing (Html, button, div, text)
 import Html.Attributes exposing (class)
 import Html.Events exposing (onClick)
@@ -42,8 +43,17 @@ update requestUsers message model =
             )
 
 
-view : UserStore -> (Msg -> msg) -> (User -> msg) -> Model -> Html msg
+view : UserStore -> (Msg -> msg) -> (UserID -> msg) -> Model -> Html msg
 view userStore msgWrapper viewUser model =
+    let
+        viewUserOrID userOrID =
+            case userOrID of
+                Right u ->
+                    User.viewCard [ onClick <| viewUser u.id ] u
+
+                Left uID ->
+                    User.viewCardLoading [ onClick <| viewUser uID ]
+    in
     div []
         [ button
             [ onClick <| msgWrapper <| AddUsers [ "2", "7", "8", "9" ] ]
@@ -51,7 +61,7 @@ view userStore msgWrapper viewUser model =
         , div
             [ class "masonry" ]
             (List.map
-                (\u -> User.viewCard [ onClick <| viewUser u ] u)
-                (User.Store.getUsers userStore model.userIDs)
+                viewUserOrID
+                (User.Store.getUsersOrID userStore model.userIDs)
             )
         ]

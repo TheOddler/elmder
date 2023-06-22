@@ -5,7 +5,7 @@ import Feed
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class)
 import Html.Components exposing (navbar)
-import User exposing (User)
+import User exposing (UserID)
 import User.Random as User
 import User.Store exposing (UserStore)
 
@@ -14,7 +14,7 @@ type Screen
     = ScreenFeed Feed.Model
     | ScreenMatches
     | ScreenSettings
-    | ScreenUser User
+    | ScreenUser UserID
 
 
 type alias Model =
@@ -25,7 +25,7 @@ type alias Model =
 
 type Msg
     = OpenScreen Screen
-    | ViewUser User
+    | ViewUser UserID
     | UserStoreMsg User.Store.Msg
     | FeedMsg Feed.Msg
 
@@ -73,9 +73,9 @@ update message model =
             , Cmd.none
             )
 
-        ViewUser user ->
-            ( { model | currentScreen = ScreenUser user }
-            , Cmd.none
+        ViewUser userID ->
+            ( { model | currentScreen = ScreenUser userID }
+            , Cmd.map UserStoreMsg <| User.Store.mkUpdateCommand model.userStore [ userID ]
             )
 
         UserStoreMsg msg ->
@@ -113,8 +113,13 @@ view model =
             ScreenSettings ->
                 div [ class "center-content fill-screen" ] [ text "placeholder for settings screen" ]
 
-            ScreenUser user ->
-                User.viewProfile user
+            ScreenUser userID ->
+                case User.Store.getUser model.userStore userID of
+                    Just u ->
+                        User.viewProfile u
+
+                    Nothing ->
+                        div [ class "center-content fill-screen" ] [ text "Loading User..." ]
         , navbar
             [ { onSelect = OpenScreen ScreenMatches
               , icon = "fa-solid fa-heart"

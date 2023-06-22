@@ -3,6 +3,7 @@ module User exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Components exposing (..)
+import Images
 import Swiper
 
 
@@ -43,6 +44,14 @@ viewCard attributes user =
                 [ div [ class "larger-text" ] [ text user.name ]
                 , div [] [ text user.description ]
                 ]
+        ]
+
+
+viewCardLoading : List (Attribute msg) -> Html msg
+viewCardLoading attributes =
+    card
+        attributes
+        [ Images.loading "full-width standard-height"
         ]
 
 
