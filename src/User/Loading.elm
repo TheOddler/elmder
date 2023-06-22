@@ -16,10 +16,10 @@ cssColor id =
             [ "#e6261f" -- Red
             , "#eb7532" -- Orange
             , "#f7d038" -- Yellow
-            , "#a3e048" --Green
+            , "#a3e048" -- Green
             , "#49da9a" -- Geen Blue
             , "#34bbe6" -- Light Blue
-            , "#4355db" -- Dark Blue
+            , "#4355db" -- Blue
             , "#d23be7" -- Purple
             ]
 
