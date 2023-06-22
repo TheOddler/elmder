@@ -4,12 +4,12 @@ import Either exposing (Either(..))
 import Html exposing (Html, button, div, text)
 import Html.Attributes exposing (class)
 import Html.Events exposing (onClick)
-import User exposing (User, UserID)
-import User.Store exposing (UserStore)
+import User exposing (UserID)
+import User.Store exposing (RequestedUserID, UserStore, unRequestUserID)
 
 
 type alias Model =
-    { userIDs : List UserID
+    { userIDs : List RequestedUserID
     }
 
 
@@ -17,29 +17,35 @@ type Msg
     = AddUsers (List UserID)
 
 
-init : (List UserID -> Cmd msg) -> ( Model, Cmd msg )
+init : (List UserID -> ( List RequestedUserID, Cmd msg )) -> ( Model, Cmd msg )
 init requestUsers =
     let
         -- For new just dome dummy data
         initialIDs =
             [ "1", "1", "2", "3", "4", "5", "6" ]
+
+        ( requestedIds, requestCmd ) =
+            requestUsers initialIDs
     in
-    ( { userIDs = initialIDs
+    ( { userIDs = requestedIds
       }
-    , requestUsers initialIDs
+    , requestCmd
     )
 
 
-update : (List UserID -> Cmd msg) -> Msg -> Model -> ( Model, Cmd msg )
+update : (List UserID -> ( List RequestedUserID, Cmd msg )) -> Msg -> Model -> ( Model, Cmd msg )
 update requestUsers message model =
     case message of
         AddUsers newIDs ->
             let
                 allUserIDs =
-                    List.concat [ model.userIDs, newIDs ]
+                    List.concat [ List.map unRequestUserID model.userIDs, newIDs ]
+
+                ( requestedIds, requestCmd ) =
+                    requestUsers allUserIDs
             in
-            ( { model | userIDs = allUserIDs }
-            , requestUsers allUserIDs
+            ( { model | userIDs = requestedIds }
+            , requestCmd
             )
 
 

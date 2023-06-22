@@ -7,14 +7,14 @@ import Html.Attributes exposing (class)
 import Html.Components exposing (navbar)
 import User exposing (UserID)
 import User.Random as User
-import User.Store exposing (UserStore)
+import User.Store exposing (RequestedUserID, UserStore)
 
 
 type Screen
     = ScreenFeed Feed.Model
     | ScreenMatches
     | ScreenSettings
-    | ScreenUser UserID
+    | ScreenUser RequestedUserID
 
 
 type alias Model =
@@ -51,13 +51,18 @@ init () =
             User.Store.init
 
         ( feedModel, feedMsg ) =
-            Feed.init (Cmd.map UserStoreMsg << User.Store.mkUpdateCommand store)
+            Feed.init <| mkrequestUsersFunc store
     in
     ( { userStore = store
       , currentScreen = ScreenFeed feedModel
       }
     , feedMsg
     )
+
+
+mkrequestUsersFunc : UserStore -> List UserID -> ( List User.Store.RequestedUserID, Cmd Msg )
+mkrequestUsersFunc store =
+    Tuple.mapSecond (Cmd.map UserStoreMsg) << User.Store.mkRequestCommand store
 
 
 subscriptions : Model -> Sub Msg
@@ -74,9 +79,21 @@ update message model =
             )
 
         ViewUser userID ->
-            ( { model | currentScreen = ScreenUser userID }
-            , Cmd.map UserStoreMsg <| User.Store.mkUpdateCommand model.userStore [ userID ]
-            )
+            let
+                ( requestedUsers, storeCmd ) =
+                    mkrequestUsersFunc model.userStore [ userID ]
+            in
+            case requestedUsers of
+                [ requestedUserID ] ->
+                    ( { model | currentScreen = ScreenUser requestedUserID }
+                    , storeCmd
+                    )
+
+                _ ->
+                    -- This should never happen, we request one userID so we should get one back.
+                    ( model
+                    , storeCmd
+                    )
 
         UserStoreMsg msg ->
             ( { model | userStore = User.Store.update model.userStore msg }
@@ -88,7 +105,7 @@ update message model =
                 ScreenFeed feed ->
                     let
                         ( feedModel, nextMsg ) =
-                            Feed.update (Cmd.map UserStoreMsg << User.Store.mkUpdateCommand model.userStore) msg feed
+                            Feed.update (mkrequestUsersFunc model.userStore) msg feed
                     in
                     ( { model | currentScreen = ScreenFeed feedModel }
                     , nextMsg
