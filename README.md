@@ -2,8 +2,8 @@
 
 ## Dev
 
-(if you don't direnv open nix-shell first, or install nodejs)
-
-```
+```bash
+direnv allow # or nix-shell if you don't have direnv, or just install nodejs directly
+npm install # only the first time
 npm run live
 ```

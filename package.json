@@ -6,12 +6,10 @@
     "@parcel/transformer-elm": "^2.8.3",
     "@parcel/transformer-sass": "^2.8.3",
     "@parcel/transformer-webmanifest": "^2.8.3",
-    "parcel-plugin-asset-copier": "^1.0.0",
     "elm": "^0.19.1-5",
     "parcel": "^2.8.3"
   },
   "scripts": {
-    "live": "npx parcel src/index.html --port 8080"
-  },
-  "assetsPath": "images"
+    "live": "parcel src/index.html --port 8080"
+  }
 }
