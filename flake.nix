@@ -11,18 +11,55 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
 
-        packages = with pkgs; [
-          # Node to manage the project, the actual building happens with Parcel (installed by node)
-          nodejs
+        buildPackages = with pkgs; [
+          nodejs_18
+        ];
 
-          # And some basic stuff for the dev setup, everything to build the project is managed by node
-          elmPackages.elm-format # Formatter
-          elmPackages.elm-json # Install, upgrade and uninstall Elm dependencies
+        nativeBuildPackages = with pkgs; [
+          # Add elm through nix and not node (as a dependency of `@parcel/transformer-elm`) because the node installer tries to download the installer and that fails in the nix sandbox.
+          # For the we also had to exclude elm as a dependency of the Parcel Elm tranformer.
+          elmPackages.elm
+        ];
+
+        devPackages = with pkgs; [
+          elmPackages.elm-format # Formatter for Elm
+          elmPackages.elm-json # elm.json management
+          elm2nix # needed to build elm with nix
         ];
       in
       {
         devShells.default = pkgs.mkShell {
-          buildInputs = packages;
+          buildInputs = buildPackages ++ devPackages;
+          nativeBuildInputs = nativeBuildPackages;
+        };
+
+        packages.default = pkgs.buildNpmPackage {
+          name = "elmder";
+
+          buildInputs = buildPackages;
+          nativeBuildInputs = nativeBuildPackages;
+          src = ./.;
+          npmDepsHash = "sha256-SvlklTgqGSoDyjlHRIjlhBuB4dyYl4Ro1Sc2aBgx76I=";
+
+          configurePhase = pkgs.elmPackages.fetchElmDeps {
+            elmPackages = import ./elm-srcs.nix;
+            elmVersion = "0.19.1";
+            registryDat = ./registry.dat;
+          };
+
+          # The Elm npm package tries to download the binary, but instead we disable scripts and do a manual fix
+          npmFlags = [ "--ignore-scripts" ];
+          preBuild = ''
+            substituteInPlace node_modules/.bin/elm \
+              --replace 'var binaryPath = path.resolve' 'var binaryPath = "${pkgs.lib.getExe pkgs.elmPackages.elm}"; runCommand(); return; //'
+          '';
+
+          npmBuild = "npm run build";
+
+          installPhase = ''
+            mkdir $out
+            cp -r dist/ $out
+          '';
         };
       }
     );

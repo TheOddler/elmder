@@ -6,10 +6,10 @@
     "@parcel/transformer-elm": "^2.8.3",
     "@parcel/transformer-sass": "^2.8.3",
     "@parcel/transformer-webmanifest": "^2.8.3",
-    "elm": "^0.19.1-5",
     "parcel": "^2.8.3"
   },
   "scripts": {
-    "live": "parcel src/index.html --port 8080"
+    "live": "parcel src/index.html --port 8080",
+    "build": "parcel build src/index.html"
   }
 }
