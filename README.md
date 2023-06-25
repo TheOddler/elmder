@@ -17,5 +17,5 @@ npm run live
 # To update node/elm dependencies
 
 ```bash
-elm2nix convert > elm-srcs.nix && elm2nix snapshot && npm install
+npm install && elm2nix convert > elm-srcs.nix && elm2nix snapshot
 ```
