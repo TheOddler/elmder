@@ -5,21 +5,21 @@ import Feed
 import Html exposing (Html, a, div, h1, text)
 import Html.Attributes exposing (class, href)
 import Html.Components exposing (navbar)
-import User exposing (UserID)
-import User.Random as User
-import User.Store exposing (RequestedUserID, UserStore)
+import Server exposing (User, UserID)
+import Store exposing (Requested, Store)
+import User
 
 
 type Screen
     = ScreenFeed Feed.Model
     | ScreenMatches
     | ScreenSettings
-    | ScreenUser RequestedUserID
+    | ScreenUser (Requested UserID)
     | Attributions
 
 
 type alias Model =
-    { userStore : UserStore
+    { userStore : Store UserID User
     , currentScreen : Screen
     }
 
@@ -27,7 +27,7 @@ type alias Model =
 type Msg
     = OpenScreen Screen
     | ViewUser UserID
-    | UserStoreMsg User.Store.Msg
+    | AddUserToStore (List User)
     | FeedMsg Feed.Msg
 
 
@@ -49,21 +49,21 @@ init : Flags -> ( Model, Cmd Msg )
 init () =
     let
         store =
-            User.Store.init
+            Store.init Server.getUsers .id
 
         ( feedModel, feedMsg ) =
-            Feed.init <| mkrequestUsersFunc store
+            Feed.init
     in
     ( { userStore = store
       , currentScreen = ScreenFeed feedModel
       }
-    , feedMsg
+    , Cmd.map FeedMsg feedMsg
     )
 
 
-mkrequestUsersFunc : UserStore -> List UserID -> ( List User.Store.RequestedUserID, Cmd Msg )
+mkrequestUsersFunc : Store UserID User -> List UserID -> ( List (Requested UserID), Cmd Msg )
 mkrequestUsersFunc store =
-    Tuple.mapSecond (Cmd.map UserStoreMsg) << User.Store.mkRequestCommand store
+    Tuple.mapSecond (Cmd.map AddUserToStore) << Store.mkRequestCommand store
 
 
 subscriptions : Model -> Sub Msg
@@ -96,8 +96,8 @@ update message model =
                     , storeCmd
                     )
 
-        UserStoreMsg msg ->
-            ( { model | userStore = User.Store.update model.userStore msg }
+        AddUserToStore newUsers ->
+            ( { model | userStore = Store.update model.userStore newUsers }
             , Cmd.none
             )
 
@@ -132,7 +132,7 @@ view model =
                 div [ class "center-content fill-screen" ] [ text "placeholder for settings screen" ]
 
             ScreenUser userID ->
-                case User.Store.getUser model.userStore userID of
+                case Store.getOne model.userStore userID of
                     Just u ->
                         User.viewProfile u
 

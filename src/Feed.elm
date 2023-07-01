@@ -1,16 +1,20 @@
 module Feed exposing (..)
 
 import Either exposing (Either(..))
+import Faker
 import Html exposing (Html, button, div, text)
 import Html.Attributes exposing (class)
 import Html.Events exposing (onClick)
-import User exposing (UserID)
+import Random
+import Server exposing (Feed, User, UserID)
+import Store exposing (Requested, Store, unRequest)
+import User
 import User.Loading
-import User.Store exposing (RequestedUserID, UserStore, unRequestUserID)
 
 
 type alias Model =
-    { userIDs : List RequestedUserID
+    { feed : Feed
+    , requestedUsers : List (Requested UserID)
     }
 
 
@@ -18,39 +22,40 @@ type Msg
     = AddUsers (List UserID)
 
 
-init : (List UserID -> ( List RequestedUserID, Cmd msg )) -> ( Model, Cmd msg )
-init requestUsers =
+init : ( Model, Cmd Msg )
+init =
     let
         -- For new just dome dummy data
         initialIDs =
-            [ "1", "1", "2", "3", "4", "5", "6" ]
-
-        ( requestedIds, requestCmd ) =
-            requestUsers initialIDs
+            Random.int 0 50
+                |> Random.map String.fromInt
+                |> Faker.listMinMax 5 15
+                |> Random.generate AddUsers
     in
-    ( { userIDs = requestedIds
+    ( { feed = { id = "TODO: Actually get this from the server of whatever" }
+      , requestedUsers = []
       }
-    , requestCmd
+    , initialIDs
     )
 
 
-update : (List UserID -> ( List RequestedUserID, Cmd msg )) -> Msg -> Model -> ( Model, Cmd msg )
+update : (List UserID -> ( List (Requested UserID), Cmd msg )) -> Msg -> Model -> ( Model, Cmd msg )
 update requestUsers message model =
     case message of
         AddUsers newIDs ->
             let
                 allUserIDs =
-                    List.concat [ List.map unRequestUserID model.userIDs, newIDs ]
+                    List.concat [ List.map unRequest model.requestedUsers, newIDs ]
 
                 ( requestedIds, requestCmd ) =
                     requestUsers allUserIDs
             in
-            ( { model | userIDs = requestedIds }
+            ( { model | requestedUsers = requestedIds }
             , requestCmd
             )
 
 
-view : UserStore -> (Msg -> msg) -> (UserID -> msg) -> Model -> Html msg
+view : Store UserID User -> (Msg -> msg) -> (UserID -> msg) -> Model -> Html msg
 view userStore msgWrapper viewUser model =
     let
         viewUserOrID userOrID =
@@ -59,7 +64,7 @@ view userStore msgWrapper viewUser model =
                     User.viewCard [ onClick <| viewUser u.id ] u
 
                 Left uID ->
-                    User.Loading.viewCardLoading [ onClick <| viewUser (unRequestUserID uID) ] uID
+                    User.Loading.viewCardLoading [ onClick <| viewUser (unRequest uID) ] uID
     in
     div []
         [ button
@@ -69,6 +74,6 @@ view userStore msgWrapper viewUser model =
             [ class "masonry" ]
             (List.map
                 viewUserOrID
-                (User.Store.getUsersOrID userStore model.userIDs)
+                (Store.getEithers userStore model.requestedUsers)
             )
         ]

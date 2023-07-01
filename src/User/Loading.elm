@@ -4,8 +4,8 @@ import Html exposing (Attribute, Html)
 import Html.Components exposing (card)
 import Images
 import List.Extra as List
-import User exposing (UserID)
-import User.Store exposing (RequestedUserID, unRequestUserID)
+import Server exposing (UserID)
+import Store exposing (Requested, unRequest)
 
 
 cssColor : UserID -> String
@@ -37,9 +37,9 @@ cssColor id =
         |> Maybe.withDefault "#000000"
 
 
-viewCardLoading : List (Attribute msg) -> RequestedUserID -> Html msg
+viewCardLoading : List (Attribute msg) -> Requested UserID -> Html msg
 viewCardLoading attributes userID =
     card
         attributes
-        [ Images.heart "full-width standard-height" <| cssColor (unRequestUserID userID)
+        [ Images.heart "full-width standard-height" <| cssColor (unRequest userID)
         ]

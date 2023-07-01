@@ -3,33 +3,8 @@ module User exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Components exposing (..)
+import Server exposing (User, UserSection(..))
 import Swiper
-
-
-type alias UserID =
-    String
-
-
-type alias User =
-    { id : UserID
-    , name : String
-    , headerImage : String
-    , description : String
-    , relationshipStatus : RelationshipStatus
-    , sections : List UserSection
-    }
-
-
-type RelationshipStatus
-    = Single
-    | Married
-    | InRelationship
-
-
-type UserSection
-    = Generic { header : String, content : String }
-    | Images { images : List String, description : String }
-    | QuestionAndAnswer { question : String, answer : String }
 
 
 viewCard : List (Attribute msg) -> User -> Html msg
