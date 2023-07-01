@@ -3,9 +3,8 @@ module User.Store exposing (Msg, RequestedUserID, UserStore, getMaybeUsers, getU
 import Dict exposing (Dict)
 import Either exposing (Either(..))
 import Maybe.Extra as Maybe
-import Random
+import Server
 import User exposing (User, UserID)
-import User.Random exposing (forID)
 
 
 {-| A user id that you've requested to the store to fetch.
@@ -48,13 +47,6 @@ mkRequestCommand store wantedUsers =
         missingWantedUsers =
             List.filter (\u -> not <| List.member u <| Dict.keys store) wantedUsers
 
-        fakeGetUsersFromServer : List UserID -> Cmd (List User)
-        fakeGetUsersFromServer idsToRequest =
-            -- IRL we'd do a backend call here (we should support batch requesting users), but for now just generate random users
-            List.map forID idsToRequest
-                |> List.foldr (Random.map2 (::)) (Random.constant [])
-                |> Random.generate identity
-
         requestedIDs =
             List.map RequestedUserID wantedUsers
     in
@@ -63,7 +55,7 @@ mkRequestCommand store wantedUsers =
         Cmd.none
 
       else
-        Cmd.map UpdateUsers <| fakeGetUsersFromServer missingWantedUsers
+        Cmd.map UpdateUsers <| Server.getUsers missingWantedUsers
     )
 
 
