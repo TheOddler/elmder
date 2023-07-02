@@ -22,8 +22,8 @@ type Msg
     = AddUsers (List UserID)
 
 
-init : ( Model, Cmd Msg )
-init =
+init : Feed -> ( Model, Cmd Msg )
+init feed =
     let
         -- For new just dome dummy data
         initialIDs =
@@ -32,7 +32,7 @@ init =
                 |> Faker.listMinMax 5 15
                 |> Random.generate AddUsers
     in
-    ( { feed = { id = "TODO: Actually get this from the server of whatever" }
+    ( { feed = feed
       , requestedUsers = []
       }
     , initialIDs
@@ -77,3 +77,8 @@ view userStore msgWrapper viewUser model =
                 (Store.getEithers userStore model.requestedUsers)
             )
         ]
+
+
+viewListCard : Feed -> Html msg
+viewListCard feed =
+    div [] [ text feed.name ]

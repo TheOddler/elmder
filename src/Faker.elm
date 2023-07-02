@@ -59,7 +59,7 @@ paragraph : Generator String
 paragraph =
     int 2 8
         |> andThen (\length -> list length sentence)
-        |> andThen (\sentences -> constant <| String.join " " sentences)
+        |> map (\sentences -> String.join " " sentences)
 
 
 sentence : Generator String

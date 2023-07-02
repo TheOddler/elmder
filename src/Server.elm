@@ -6,7 +6,9 @@ module Server exposing (..)
 import Faker
 import Process
 import Random exposing (Generator, map, map2, uniform)
+import Random.Char
 import Random.Extra as Random exposing (andMap)
+import Random.String
 import Task
 import Time
 
@@ -89,4 +91,12 @@ type alias FeedID =
 
 type alias Feed =
     { id : FeedID
+    , name : String
     }
+
+
+getFeeds : Cmd (List Feed)
+getFeeds =
+    map2 Feed (Random.String.string 5 Random.Char.lowerCaseLatin) (Random.list 3 Faker.word |> map (\words -> String.join " " words))
+        |> Random.list 5
+        |> fakeHttpRequest
