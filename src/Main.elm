@@ -1,30 +1,30 @@
 module Main exposing (..)
 
 import Browser
-import Feed
-import Html exposing (Html, a, div, h1, text, ul)
+import Either exposing (Either(..))
+import Html exposing (Html, a, div, h1, text)
 import Html.Attributes exposing (class, href)
 import Html.Components exposing (navbar)
-import Server exposing (Feed, FeedID, User, UserID)
-import Store exposing (Requested, Store)
+import Html.Events exposing (onClick)
+import Server exposing (User, UserID)
+import Store exposing (Requested, Store, unRequest)
 import User
+import User.Loading
 
 
 type MainScreen
-    = ScreenFeeds
-    | ScreenMatches
+    = ScreenMatches
     | ScreenSettings
     | Attributions
 
 
 allMainScreens : List MainScreen
 allMainScreens =
-    [ ScreenFeeds, ScreenMatches, ScreenSettings, Attributions ]
+    [ ScreenMatches, ScreenSettings, Attributions ]
 
 
 type SubScreen
     = ScreenUser (Requested UserID)
-    | ScreenFeed Feed.Model
 
 
 type Screen
@@ -45,7 +45,7 @@ getMain screen =
 type alias Model =
     { userStore : Store UserID User
     , currentScreen : Screen
-    , feeds : List Feed
+    , requestedUsers : List (Requested UserID)
     }
 
 
@@ -53,8 +53,6 @@ type Msg
     = OpenScreen Screen
     | ViewUser UserID
     | AddUserToStore (List User)
-    | FeedsLoaded (List Feed)
-    | FeedMsg FeedID Feed.Msg
 
 
 type alias Flags =
@@ -76,12 +74,28 @@ init () =
     let
         store =
             Store.init Server.getUsers .id
+
+        mockUserIds =
+            [ "1"
+            , "2"
+            , "3"
+            , "4"
+            , "5"
+            , "6"
+            , "7"
+            , "8"
+            , "9"
+            , "10"
+            ]
+
+        ( requestedMockUsers, storeCmd ) =
+            Store.mkRequestCommand store mockUserIds
     in
     ( { userStore = store
-      , currentScreen = Main ScreenFeeds
-      , feeds = []
+      , currentScreen = Main ScreenMatches
+      , requestedUsers = requestedMockUsers
       }
-    , Cmd.map FeedsLoaded Server.getFeeds
+    , Cmd.map AddUserToStore storeCmd
     )
 
 
@@ -125,25 +139,29 @@ update message model =
             , Cmd.none
             )
 
-        FeedMsg feedID msg ->
-            Debug.todo "Needs implementing"
-
-        FeedsLoaded feeds ->
-            ( { model | feeds = feeds }
-            , Cmd.none
-            )
-
 
 view : Model -> Html Msg
 view model =
     div [ class "root" ]
         [ case model.currentScreen of
-            Main ScreenFeeds ->
-                ul [] <|
-                    List.map Feed.viewListCard model.feeds
-
             Main ScreenMatches ->
-                div [ class "center-content fill-screen" ] [ text "placeholder for matches screen" ]
+                let
+                    viewUserOrID userOrID =
+                        case userOrID of
+                            Right u ->
+                                User.viewCard [ onClick <| ViewUser u.id ] u
+
+                            Left uID ->
+                                User.Loading.viewCardLoading [ onClick <| ViewUser (unRequest uID) ] uID
+                in
+                div []
+                    [ div
+                        [ class "masonry" ]
+                        (List.map
+                            viewUserOrID
+                            (Store.getEithers model.userStore model.requestedUsers)
+                        )
+                    ]
 
             Main ScreenSettings ->
                 div [ class "center-content fill-screen" ] [ text "placeholder for settings screen" ]
@@ -163,15 +181,9 @@ view model =
 
                     Nothing ->
                         div [ class "center-content fill-screen" ] [ text "Loading User..." ]
-
-            Sub _ (ScreenFeed feed) ->
-                Debug.todo "To Implement"
         , let
             icon mainScreen =
                 case mainScreen of
-                    ScreenFeeds ->
-                        "fa-solid fa-magnifying-glass"
-
                     ScreenMatches ->
                         "fa-solid fa-heart"
 

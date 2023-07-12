@@ -6,9 +6,7 @@ module Server exposing (..)
 import Faker
 import Process
 import Random exposing (Generator, map, map2, uniform)
-import Random.Char
 import Random.Extra as Random exposing (andMap)
-import Random.String
 import Task
 import Time
 
@@ -20,7 +18,7 @@ fakeHttpRequest resultGenerator =
             Time.now
                 |> Task.map (Tuple.first << Random.step generator << Random.initialSeed << Time.posixToMillis)
     in
-    randomToTask (Random.float 1 5)
+    randomToTask (Random.float 1 1)
         |> Task.andThen (\s -> Process.sleep <| s * 1000)
         |> Task.andThen (\() -> randomToTask resultGenerator)
         |> Task.perform identity
@@ -82,21 +80,4 @@ getUsers idsToRequest =
     -- IRL we'd do a backend call here (we should support batch requesting users), but for now just generate random users
     List.map forID idsToRequest
         |> List.foldr (Random.map2 (::)) (Random.constant [])
-        |> fakeHttpRequest
-
-
-type alias FeedID =
-    String
-
-
-type alias Feed =
-    { id : FeedID
-    , name : String
-    }
-
-
-getFeeds : Cmd (List Feed)
-getFeeds =
-    map2 Feed (Random.String.string 5 Random.Char.lowerCaseLatin) (Random.list 3 Faker.word |> map (\words -> String.join " " words))
-        |> Random.list 5
         |> fakeHttpRequest
