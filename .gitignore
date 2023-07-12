@@ -1,6 +1,2 @@
-elm-stuff
-dist
-.parcel-cache
-node_modules
 .direnv
 result
