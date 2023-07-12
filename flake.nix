@@ -13,6 +13,7 @@
 
         buildPackages = with pkgs; [
           nodejs_18
+          just
         ];
 
         devPackages = with pkgs; [
@@ -35,9 +36,9 @@
           # 2. Manage the Elm dependencies through nix too, otherwise Parcel will try to download them and that is again not allowed in Nix's sandbox.
           # For this we had to use `elm2nix`, see README on how to generate the required files when updating dependencies.
           configurePhase = pkgs.elmPackages.fetchElmDeps {
-            elmPackages = import ./elm-srcs.nix;
+            elmPackages = import ./frontend/elm-srcs.nix;
             elmVersion = "0.19.1";
-            registryDat = ./registry.dat;
+            registryDat = ./frontend/registry.dat;
           };
         };
       in
@@ -46,13 +47,13 @@
           buildInputs = buildPackages ++ devPackages;
         };
 
-        packages.default = pkgs.buildNpmPackage {
+        packages.frontend = pkgs.buildNpmPackage {
           name = "elmder";
           buildInputs = buildPackages;
-          src = ./.;
+          src = ./frontend;
           npmDepsHash = "sha256-SvlklTgqGSoDyjlHRIjlhBuB4dyYl4Ro1Sc2aBgx76I=";
 
-          npmBuild = "npm run build";
+          npmBuild = "npm run --prefix frontend build";
           installPhase = ''
             mkdir $out
             cp -r dist/ $out
