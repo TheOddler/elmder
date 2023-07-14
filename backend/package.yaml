@@ -17,7 +17,7 @@ ghc-options:
   - -freverse-errors
 
 library:
-  source-dirs: backend/src
+  source-dirs: src
   dependencies:
     - servant-server
     - warp
@@ -25,14 +25,14 @@ library:
 executables:
   backend-exe:
     main: Main.hs
-    source-dirs: backend/exe
+    source-dirs: exe
     dependencies:
       - backend
 
 tests:
   backend-test:
     main: Spec.hs
-    source-dirs: backend/test
+    source-dirs: test
     dependencies:
       - backend
       - QuickCheck
