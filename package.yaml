@@ -1,0 +1,42 @@
+name: backend
+version: 0.1.0.0
+author: "Pablo Bollansée"
+maintainer: "pablo@pabloproductions.be"
+license: NONE
+copyright: "2023 Pablo Bollansée"
+
+dependencies:
+  - base >= 4.16.4.0 && < 5
+
+ghc-options:
+  - -Wall
+  - -Werror
+  - -threaded
+  - -rtsopts
+  - -with-rtsopts=-N
+  - -freverse-errors
+
+library:
+  source-dirs: backend/src
+  dependencies:
+    - servant-server
+    - warp
+
+executables:
+  backend-exe:
+    main: Main.hs
+    source-dirs: backend/exe
+    dependencies:
+      - backend
+
+tests:
+  backend-test:
+    main: Spec.hs
+    source-dirs: backend/test
+    dependencies:
+      - backend
+      - QuickCheck
+      - servant-client
+      - servant-server
+      - sydtest
+      - sydtest-servant

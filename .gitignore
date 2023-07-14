@@ -1,2 +1,6 @@
 .direnv
 result
+
+# Backend stuff, once I can move the stack files into the backend folder I should remove this
+.stack-work
+backend.cabal

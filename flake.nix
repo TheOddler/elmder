@@ -1,5 +1,5 @@
 {
-  description = "Elmder, an experiment in making a dating-app-like interface in Elm";
+  description = "Elmder, a dating-app experiment";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-23.05";
@@ -12,14 +12,28 @@
         pkgs = nixpkgs.legacyPackages.${system};
 
         buildPackages = with pkgs; [
+          # Stuff for the frontend
           nodejs_18
-          just
+
+          # Stuff for the backend
+          stack
         ];
 
         devPackages = with pkgs; [
+          # Stuff to make development easier
+          just # Run commands, like a modern make
+          watchexec # Executes commands in response to file modifications
+
+          # Stuff for the frontend development
           elmPackages.elm-format # Formatter for Elm
           elmPackages.elm-json # elm.json management
           elm2nix # needed to build elm with nix
+
+          # Stuff for the backend development, make sure the haskell stuff matches the stackage snapshot we're using
+          # The snapshot can be found in `backend/stack.yaml` under the field `resolver`
+          # The ghc version that snapshot is using can be found by going to the stackage page for it, for example: https://www.stackage.org/lts-20.25
+          haskell.compiler.ghc92
+          (haskell-language-server.override { supportedGhcVersions = [ "928" ]; })
         ];
 
         elmParcelNixFix = {
