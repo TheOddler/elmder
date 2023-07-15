@@ -1,15 +1,15 @@
 module User.Loading exposing (..)
 
+import Generated.BackendApi exposing (UserID(..))
 import Html exposing (Attribute, Html)
 import Html.Components exposing (card)
 import Images
 import List.Extra as List
-import Server exposing (UserID)
 import Store exposing (Requested, unRequest)
 
 
 cssColor : UserID -> String
-cssColor id =
+cssColor (UserID id) =
     let
         colors : List String
         colors =

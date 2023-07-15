@@ -1,4 +1,4 @@
-module Server exposing (..)
+module Server exposing (fakeHttpRequest)
 
 -- For now this module just fakes these requests as we don't actually have any server yet
 -- The idea is that everything here is what we generate based on what's on the server

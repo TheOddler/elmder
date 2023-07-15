@@ -5,10 +5,10 @@ import Either exposing (Either(..))
 import Maybe.Extra as Maybe
 
 
-type alias Store comparable a =
-    { get : List comparable -> Cmd (List a)
-    , getKey : a -> comparable
-    , cache : Dict comparable a
+type alias Store id value =
+    { idToString : id -> String
+    , getID : value -> id
+    , cache : Dict String value
     }
 
 
@@ -21,77 +21,81 @@ unRequest (Requested id) =
     id
 
 
-init : (List comparable -> Cmd (List a)) -> (a -> comparable) -> Store comparable a
-init get getKey =
-    { get = get
-    , getKey = getKey
+init : (id -> String) -> (value -> id) -> Store id value
+init idToString getID =
+    { idToString = idToString
+    , getID = getID
     , cache = Dict.empty
     }
 
 
-update : Store comparable a -> List a -> Store comparable a
+update : Store id value -> List value -> Store id value
 update store newThings =
     { store
         | cache =
-            List.foldr (\a -> Dict.insert (store.getKey a) a) store.cache newThings
+            List.foldr (\value -> Dict.insert (store.idToString <| store.getID value) value) store.cache newThings
     }
 
 
-mkRequestCommand : Store comparable a -> List comparable -> ( List (Requested comparable), Cmd (List a) )
-mkRequestCommand store wantedUsers =
+mkRequestCommand : (List id -> Cmd msg) -> Store id value -> List id -> ( List (Requested id), Cmd msg )
+mkRequestCommand getMissing store wantedIDs =
     let
-        missingThings : List comparable
+        isInCache : id -> Bool
+        isInCache u =
+            List.member (store.idToString u) (Dict.keys store.cache)
+
+        missingThings : List id
         missingThings =
-            List.filter (\u -> not <| List.member u <| Dict.keys store.cache) wantedUsers
+            List.filter (not << isInCache) wantedIDs
 
         requestedIDs =
-            List.map Requested wantedUsers
+            List.map Requested wantedIDs
     in
     ( requestedIDs
     , if List.isEmpty missingThings then
         Cmd.none
 
       else
-        store.get missingThings
+        getMissing missingThings
     )
 
 
-getOne : Store comparable a -> Requested comparable -> Maybe a
+getOne : Store id value -> Requested id -> Maybe value
 getOne store (Requested id) =
-    Dict.get id store.cache
+    Dict.get (store.idToString id) store.cache
 
 
-{-| Get users from the store.
-It returns all the users it already knows about, so you can start rendering the UI.
+{-| Get values from the store.
+It returns all the values it already knows about, so you can start rendering the UI.
 This Cmd should then be run somehow (probably return it to whatever owns the store), and it'll update the store.
-This will then trigger a new render cycle and then you should get all the users requested (assuming nothing else changed).
+This will then trigger value new render cycle and then you should get all the values requested (assuming nothing else changed).
 -}
-getMany : Store comparable a -> List (Requested comparable) -> List a
-getMany store wantedUsers =
-    Maybe.values <| getMaybes store wantedUsers
+getMany : Store id value -> List (Requested id) -> List value
+getMany store wantedIDs =
+    Maybe.values <| getMaybes store wantedIDs
 
 
-{-| Similar to getUsers, but returns a list of `Maybe Uesr`.
-This can be used to start rendering a loading space for the unknown users,
-and then when the command finishes and updates the store those users will be loaded.
+{-| Similar to getMany, but returns value list of `Maybe Uesr`.
+This can be used to start rendering value loading space for the unknown values,
+and then when the command finishes and updates the store those values will be loaded.
 -}
-getMaybes : Store comparable a -> List (Requested comparable) -> List (Maybe a)
-getMaybes store wantedUsers =
-    List.map (getOne store) wantedUsers
+getMaybes : Store id value -> List (Requested id) -> List (Maybe value)
+getMaybes store wantedIDs =
+    List.map (getOne store) wantedIDs
 
 
-{-| Similar to getMaybeUsers, but for the missing users you get their ID back.
-This is just a helper function as in some cases you could show a loading user block that is still clickable if you only need the userID to make it clickable.
+{-| Similar to getMaybes, but for the missing values you get their ID back.
+This is just value helper function as in some cases you could show value loading value block that is still clickable if you only need the ID to make it clickable.
 -}
-getEithers : Store comparable a -> List (Requested comparable) -> List (Either (Requested comparable) a)
-getEithers store wantedUsers =
+getEithers : Store id value -> List (Requested id) -> List (Either (Requested id) value)
+getEithers store wantedIDs =
     let
-        getUserEither userID =
-            case getOne store userID of
+        getEither id =
+            case getOne store id of
                 Just u ->
                     Right u
 
                 Nothing ->
-                    Left userID
+                    Left id
     in
-    List.map getUserEither wantedUsers
+    List.map getEither wantedIDs

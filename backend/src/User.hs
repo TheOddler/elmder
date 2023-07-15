@@ -50,7 +50,8 @@ data UserSection
   deriving (Generic, ToJSON, FromJSON)
 
 data UserRoutes mode = UserRoutes
-  { getUsers :: mode :- Capture "id" [UserID] :> Get '[JSON] [User]
+  { getUsers :: mode :- "many" :> Capture "id" [UserID] :> Get '[JSON] [User],
+    getSomeUserIDs :: mode :- "exampleIDs" :> Get '[JSON] [UserID]
   }
   deriving (Generic)
 
@@ -71,3 +72,6 @@ userRoutes = UserRoutes {..}
             relationshipStatus = RelationshipStatusSingle,
             userSections = []
           }
+
+    getSomeUserIDs :: Handler [UserID]
+    getSomeUserIDs = pure $ UserID . T.pack . show <$> [1 .. 10 :: Int]

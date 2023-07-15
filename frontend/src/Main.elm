@@ -2,11 +2,12 @@ module Main exposing (..)
 
 import Browser
 import Either exposing (Either(..))
+import Generated.BackendApi as Backend exposing (User, UserID(..))
 import Html exposing (Html, a, div, h1, text)
 import Html.Attributes exposing (class, href)
 import Html.Components exposing (navbar)
 import Html.Events exposing (onClick)
-import Server exposing (User, UserID)
+import Http
 import Store exposing (Requested, Store, unRequest)
 import User
 import User.Loading
@@ -52,7 +53,8 @@ type alias Model =
 type Msg
     = OpenScreen Screen
     | ViewUser UserID
-    | AddUserToStore (List User)
+    | GotUserExamples (Result Http.Error (List UserID))
+    | AddUserToStore (Result Http.Error (List User))
 
 
 type alias Flags =
@@ -72,36 +74,26 @@ main =
 init : Flags -> ( Model, Cmd Msg )
 init () =
     let
+        store : Store UserID User
         store =
-            Store.init Server.getUsers .id
-
-        mockUserIds =
-            [ "1"
-            , "2"
-            , "3"
-            , "4"
-            , "5"
-            , "6"
-            , "7"
-            , "8"
-            , "9"
-            , "10"
-            ]
-
-        ( requestedMockUsers, storeCmd ) =
-            Store.mkRequestCommand store mockUserIds
+            Store.init (\(UserID id) -> id) .userID
     in
     ( { userStore = store
       , currentScreen = Main ScreenMatches
-      , requestedUsers = requestedMockUsers
+      , requestedUsers = []
       }
-    , Cmd.map AddUserToStore storeCmd
+    , Backend.getUserExampleIDs "http://localhost:8081" GotUserExamples
     )
 
 
 requestUsers : Store UserID User -> List UserID -> ( List (Requested UserID), Cmd Msg )
 requestUsers store =
-    Tuple.mapSecond (Cmd.map AddUserToStore) << Store.mkRequestCommand store
+    let
+        getMissing : List UserID -> Cmd Msg
+        getMissing ids =
+            Backend.getUserManyById "http://localhost:8081" ids AddUserToStore
+    in
+    Store.mkRequestCommand getMissing store
 
 
 subscriptions : Model -> Sub Msg
@@ -134,10 +126,25 @@ update message model =
                     , storeCmd
                     )
 
-        AddUserToStore newUsers ->
+        GotUserExamples (Ok exampleIDs) ->
+            let
+                ( requestedUsers, cmd ) =
+                    requestUsers model.userStore exampleIDs
+            in
+            ( { model | requestedUsers = requestedUsers }
+            , cmd
+            )
+
+        GotUserExamples (Err error) ->
+            Debug.todo <| "We can't handle errors yet, but got one: " ++ Debug.toString error
+
+        AddUserToStore (Ok newUsers) ->
             ( { model | userStore = Store.update model.userStore newUsers }
             , Cmd.none
             )
+
+        AddUserToStore (Err error) ->
+            Debug.todo <| "We can't handle errors yet, but got one: " ++ Debug.toString error
 
 
 view : Model -> Html Msg
@@ -146,10 +153,11 @@ view model =
         [ case model.currentScreen of
             Main ScreenMatches ->
                 let
+                    viewUserOrID : Either (Requested Backend.UserID) Backend.User -> Html Msg
                     viewUserOrID userOrID =
                         case userOrID of
                             Right u ->
-                                User.viewCard [ onClick <| ViewUser u.id ] u
+                                User.viewCard [ onClick <| ViewUser u.userID ] u
 
                             Left uID ->
                                 User.Loading.viewCardLoading [ onClick <| ViewUser (unRequest uID) ] uID

@@ -1,9 +1,9 @@
 module User exposing (..)
 
+import Generated.BackendApi exposing (User, UserSection(..))
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Components exposing (..)
-import Server exposing (User, UserSection(..))
 import Swiper
 
 
@@ -11,12 +11,12 @@ viewCard : List (Attribute msg) -> User -> Html msg
 viewCard attributes user =
     card
         attributes
-        [ img [ src user.headerImage, class "full-width standard-height" ] []
+        [ img [ src user.userHeaderImage, class "full-width standard-height" ] []
             |> withOverlay
                 [ class "full-width" ]
                 [ class "match-content text-on-image" ]
-                [ div [ class "larger-text" ] [ text user.name ]
-                , div [] [ text user.description ]
+                [ div [ class "larger-text" ] [ text user.userName ]
+                , div [] [ text user.userDescription ]
                 ]
         ]
 
@@ -27,19 +27,19 @@ viewProfile user =
         [ class "masonry" ]
     <|
         viewCard [] user
-            :: List.map viewUserSection user.sections
+            :: List.map viewUserSection user.userSections
 
 
 viewUserSection : UserSection -> Html msg
 viewUserSection userSection =
     case userSection of
-        Generic { header, content } ->
+        UserSectionGeneric { header, content } ->
             card []
                 [ div [ class "larger-text" ] [ text header ]
                 , div [] [ text content ]
                 ]
 
-        Images { images, description } ->
+        UserSectionImages { images, description } ->
             card []
                 [ Swiper.containerMultiViewSafeLoop Swiper.DisableMultiView
                     1.2
@@ -60,7 +60,7 @@ viewUserSection userSection =
                     |> withOverlay [ class "full-width" ] [ class "match-content text-on-image" ] [ text description ]
                 ]
 
-        QuestionAndAnswer { question, answer } ->
+        UserSectionQuestionAndAnswer { question, answer } ->
             card []
                 [ div [ class "larger-text" ] [ text question ]
                 , div [] [ text answer ]
