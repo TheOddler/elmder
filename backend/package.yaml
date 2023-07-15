@@ -10,16 +10,28 @@ dependencies:
 
 ghc-options:
   - -Wall
+  - -Wcompat # Shows warning that will in the future will be enabled by default
+  - -Wincomplete-record-updates
+  - -with-rtsopts=-N
+  - -Wredundant-constraints
+  - -Wunused-packages
   - -Werror
   - -threaded
   - -rtsopts
   - -with-rtsopts=-N
   - -freverse-errors
 
+language: GHC2021
+
+default-extensions:
+  - StrictData
+
 library:
   source-dirs: src
   dependencies:
+    - aeson
     - servant-server
+    - text
     - warp
 
 executables:
@@ -37,6 +49,5 @@ tests:
       - backend
       - QuickCheck
       - servant-client
-      - servant-server
       - sydtest
       - sydtest-servant

@@ -1,31 +1,35 @@
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TypeOperators #-}
 
 module Web where
 
-import GHC.Generics
+import GHC.Generics (Generic)
 import Servant
 import Servant.Server.Generic (AsServerT)
+import User (UserRoutes)
+import User qualified
 
-type Api = NamedRoutes ApiEndpoints
+type Api = NamedRoutes ApiRoutes
 
-data ApiEndpoints mode = ApiEndpoints
+data ApiRoutes mode = ApiRoutes
   { ping :: mode :- "ping" :> Get '[JSON] String,
     pong :: mode :- "pong" :> Get '[JSON] String,
-    iAm :: mode :- "iAm" :> Capture "name" String :> Get '[JSON] String
+    iAm :: mode :- "iAm" :> Capture "name" String :> Get '[JSON] String,
+    userRoutes :: mode :- "user" :> NamedRoutes UserRoutes
   }
   deriving (Generic)
 
 apiProxy :: Proxy Api
 apiProxy = Proxy
 
-endpoints :: ApiEndpoints (AsServerT Handler)
-endpoints =
-  ApiEndpoints
+routes :: ApiRoutes (AsServerT Handler)
+routes =
+  ApiRoutes
     { ping = pure "pong",
       pong = pure "ping",
-      iAm = greet
+      iAm = greet,
+      userRoutes = User.userRoutes
     }
 
 say :: String -> Handler String
