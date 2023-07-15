@@ -40,6 +40,17 @@ executables:
     source-dirs: exe
     dependencies:
       - backend
+  
+  elm-gen:
+    main: Main.hs
+    source-dirs: elm-gen
+    dependencies:
+      - backend
+      - elm-bridge
+      - servant-elm
+      - servant-foreign
+      - servant-server
+      - text
 
 tests:
   backend-test:

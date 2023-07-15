@@ -29,7 +29,15 @@ fe-update:
 # This tests the backend and starts it.
 # Also, by default we have `-Werror` but while developing that can be annoying, so for this loop here we set `-Wwarn` to override.
 be:
-  watchexec -e=hs,yaml --project-origin=./backend --restart --stop-timeout=10s 'clear; stack test --ghc-options="-Wwarn"; stack run'
+  # watchexec -e=hs,yaml --project-origin=./backend --restart --stop-timeout=10s 'clear && stack test --ghc-options="-Wwarn" && stack run elm-gen && stack run backend-exe'
+  watchexec -e=hs,yaml --project-origin=./backend --restart --stop-timeout=10s 'just be-go-once'
+
+[private]
+be-go-once:
+  clear
+  stack test --ghc-options="-Wwarn"
+  stack run elm-gen
+  stack run backend-exe
 
 # Runs the backend tests in a loop.
 be-test match='':
