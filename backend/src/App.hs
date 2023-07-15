@@ -9,4 +9,4 @@ webServer =
   serve apiProxy routes
 
 main :: IO ()
-main = run 8080 webServer
+main = run 8081 webServer

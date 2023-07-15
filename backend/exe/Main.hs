@@ -1,8 +1,8 @@
 module Main where
 
-import qualified App
+import App qualified
 
 main :: IO ()
 main = do
-  putStrLn "Starting app:"
+  putStrLn "Starting app..."
   App.main
