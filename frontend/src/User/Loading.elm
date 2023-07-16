@@ -9,7 +9,7 @@ import Store exposing (Requested, unRequest)
 
 
 cssColor : UserID -> String
-cssColor (UserID id) =
+cssColor (UserID { unUserID }) =
     let
         colors : List String
         colors =
@@ -26,7 +26,7 @@ cssColor (UserID id) =
         random : Int
         random =
             -- Random enough assuming the id is random
-            String.toList id
+            String.toList unUserID
                 |> List.map Char.toCode
                 |> List.sum
 

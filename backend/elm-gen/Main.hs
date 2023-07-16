@@ -9,7 +9,6 @@ module Main where
 
 import Data.Text (Text)
 import Data.Text qualified as T
-import Debug.Trace qualified as Debug
 import Elm.TyRep
 import Servant
 import Servant.Elm
@@ -24,17 +23,6 @@ instance HasForeign lang ftype (ToServantApi r) => HasForeign lang ftype (NamedR
 
   foreignFor lang ftype Proxy =
     foreignFor lang ftype (Proxy :: Proxy (ToServantApi r))
-
--- deriveElmDef defaultOptions ''User.UserID
-instance IsElmDefinition User.UserID where
-  compileElmDef :: Proxy User.UserID -> ETypeDef
-  -- This just makes an `type alias UserID  = String`
-  -- compileElmDef Proxy = ETypePrimAlias $ EPrimAlias (ETypeName "UserID" []) (ETyCon $ ETCon "String")
-  compileElmDef _ = ETypeSum $ ESum (ETypeName "UserID" []) [STC "UserID" "UserID" $ Anonymous [ETyCon $ ETCon "String"]] defSumEncoding False False
-
-deriveElmDef defaultOptions ''User.User
-deriveElmDef defaultOptions ''User.RelationshipStatus
-deriveElmDef defaultOptions ''User.UserSection
 
 main :: IO ()
 main = do
@@ -73,7 +61,7 @@ elmImports =
 
 myElmToString :: EType -> Text
 myElmToString argType =
-  case Debug.traceShowId argType of
-    ETyCon (ETCon "UserID") -> "(\\(UserID id) -> id)"
+  case argType of
+    ETyCon (ETCon "UserID") -> "(\\(UserID { unUserID }) -> unUserID)"
     ETyApp (ETyCon (ETCon "List")) v -> "((List.map " <> myElmToString v <> ") >> String.join \",\")"
     _ -> defaultElmToString argType

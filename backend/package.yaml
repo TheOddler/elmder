@@ -30,6 +30,8 @@ library:
   source-dirs: src
   dependencies:
     - aeson
+    - fakedata
+    - servant-elm
     - servant-server
     - text
     - warp
