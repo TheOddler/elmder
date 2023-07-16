@@ -3,27 +3,28 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-23.05";
+    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
+  outputs = { self, nixpkgs, nixpkgs-unstable, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
+        pkgs-unstable = nixpkgs-unstable.legacyPackages.${system};
 
         buildPackages = with pkgs; [
+          pkgs-unstable.go-task # Run commands, like a modern make
+
           # Stuff for the frontend
           nodejs_18
+          openapi-generator-cli
 
           # Stuff for the backend
           stack
         ];
 
         devPackages = with pkgs; [
-          # Stuff to make development easier
-          just # Run commands, like a modern make
-          watchexec # Executes commands in response to file modifications
-
           # Stuff for the frontend development
           elmPackages.elm-format # Formatter for Elm
           elmPackages.elm-json # elm.json management
@@ -63,20 +64,20 @@
 
         packages.frontend = pkgs.buildNpmPackage {
           name = "elmder";
-          buildInputs = buildPackages;
+          nativeBuildInputs = buildPackages ++ elmParcelNixFix.nativeBuildPackages;
           src = ./frontend;
           npmDepsHash = "sha256-SvlklTgqGSoDyjlHRIjlhBuB4dyYl4Ro1Sc2aBgx76I=";
 
-          npmBuild = "npm run --prefix frontend build";
+          preBuild = ''
+            task gen-api
+          '' + elmParcelNixFix.preBuild;
+
           installPhase = ''
             mkdir $out
             cp -r dist/ $out
           '';
 
-          # Fixes for using Elm and Parcel with nix
-          nativeBuildInputs = elmParcelNixFix.nativeBuildPackages;
           npmFlags = elmParcelNixFix.npmFlags;
-          preBuild = elmParcelNixFix.preBuild;
           configurePhase = elmParcelNixFix.configurePhase;
         };
       }
