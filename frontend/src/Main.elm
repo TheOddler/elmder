@@ -1,15 +1,17 @@
 module Main exposing (..)
 
+import Api
+import Api.Data exposing (User)
+import Api.Request.Default as Api
 import Browser
 import Either exposing (Either(..))
-import Generated.BackendApi as Backend exposing (User, UserID(..))
 import Html exposing (Html, a, div, h1, text)
 import Html.Attributes exposing (class, href)
 import Html.Components exposing (navbar)
 import Html.Events exposing (onClick)
 import Http
 import Store exposing (Requested, Store, unRequest)
-import User
+import User exposing (UserID)
 import User.Loading
 
 
@@ -71,18 +73,23 @@ main =
         }
 
 
+send8081 : (Result Http.Error a -> msg) -> Api.Request a -> Cmd msg
+send8081 handler =
+    Api.send handler << Api.withBasePath "http://localhost:8081"
+
+
 init : Flags -> ( Model, Cmd Msg )
 init () =
     let
         store : Store UserID User
         store =
-            Store.init (\(UserID { unUserID }) -> unUserID) .userID
+            Store.init (\userID -> userID) .id
     in
     ( { userStore = store
       , currentScreen = Main ScreenMatches
       , requestedUsers = []
       }
-    , Backend.getUserExampleIDs "http://localhost:8081" GotUserExamples
+    , send8081 GotUserExamples Api.userExampleIDsGet
     )
 
 
@@ -91,7 +98,7 @@ requestUsers store =
     let
         getMissing : List UserID -> Cmd Msg
         getMissing ids =
-            Backend.getUserManyById "http://localhost:8081" ids AddUserToStore
+            send8081 AddUserToStore <| Api.userManyIdGet ids
     in
     Store.mkRequestCommand getMissing store
 
@@ -153,11 +160,11 @@ view model =
         [ case model.currentScreen of
             Main ScreenMatches ->
                 let
-                    viewUserOrID : Either (Requested Backend.UserID) Backend.User -> Html Msg
+                    viewUserOrID : Either (Requested UserID) User -> Html Msg
                     viewUserOrID userOrID =
                         case userOrID of
                             Right u ->
-                                User.viewCard [ onClick <| ViewUser u.userID ] u
+                                User.viewCard [ onClick <| ViewUser u.id ] u
 
                             Left uID ->
                                 User.Loading.viewCardLoading [ onClick <| ViewUser (unRequest uID) ] uID

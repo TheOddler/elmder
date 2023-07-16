@@ -1,0 +1,269 @@
+{
+    "components": {
+        "schemas": {
+            "User": {
+                "properties": {
+                    "description": {
+                        "description": "The user's profile description",
+                        "type": "string"
+                    },
+                    "headerImage": {
+                        "description": "A url to the user's primary image",
+                        "type": "string"
+                    },
+                    "id": {
+                        "description": "The user's unique ID",
+                        "type": "string"
+                    },
+                    "name": {
+                        "description": "The users's name",
+                        "type": "string"
+                    },
+                    "relationshipStatus": {
+                        "description": "The user's relationship status",
+                        "enum": [
+                            "single",
+                            "married",
+                            "in-relationship"
+                        ],
+                        "type": "string"
+                    },
+                    "sections": {
+                        "description": "Different sections of the user's profile",
+                        "items": {
+                            "$ref": "#/components/schemas/UserSection"
+                        },
+                        "type": "array"
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "headerImage",
+                    "description",
+                    "relationshipStatus",
+                    "sections"
+                ],
+                "type": "object"
+            },
+            "UserSection": {
+                "discriminator": {
+                    "mapping": {
+                        "generic": "UserSectionGeneric",
+                        "images": "UserSectionImages",
+                        "qna": "UserSectionQuestionAndAnswer"
+                    },
+                    "propertyName": "tag"
+                },
+                "oneOf": [
+                    {
+                        "$ref": "#/components/schemas/UserSectionGeneric"
+                    },
+                    {
+                        "$ref": "#/components/schemas/UserSectionQuestionAndAnswer"
+                    },
+                    {
+                        "$ref": "#/components/schemas/UserSectionImages"
+                    }
+                ]
+            },
+            "UserSectionGeneric": {
+                "properties": {
+                    "content": {
+                        "description": "The content of this section",
+                        "type": "string"
+                    },
+                    "header": {
+                        "description": "The header for this section",
+                        "type": "string"
+                    },
+                    "tag": {
+                        "enum": [
+                            "generic"
+                        ],
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "header",
+                    "content",
+                    "tag"
+                ],
+                "type": "object"
+            },
+            "UserSectionImages": {
+                "properties": {
+                    "description": {
+                        "description": "De description for all images together",
+                        "type": "string"
+                    },
+                    "images": {
+                        "description": "A list of image urls",
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array"
+                    },
+                    "tag": {
+                        "enum": [
+                            "images"
+                        ],
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "images",
+                    "description",
+                    "tag"
+                ],
+                "type": "object"
+            },
+            "UserSectionQuestionAndAnswer": {
+                "properties": {
+                    "answer": {
+                        "description": "The answer",
+                        "type": "string"
+                    },
+                    "question": {
+                        "description": "The question",
+                        "type": "string"
+                    },
+                    "tag": {
+                        "enum": [
+                            "qna"
+                        ],
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "question",
+                    "answer",
+                    "tag"
+                ],
+                "type": "object"
+            }
+        }
+    },
+    "info": {
+        "title": "",
+        "version": ""
+    },
+    "openapi": "3.0.0",
+    "paths": {
+        "/iAm/{name}": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "name",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json;charset=utf-8": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "404": {
+                        "description": "`name` not found"
+                    }
+                }
+            }
+        },
+        "/ping": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json;charset=utf-8": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/pong": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json;charset=utf-8": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/user/exampleIDs": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json;charset=utf-8": {
+                                "schema": {
+                                    "items": {
+                                        "type": "string"
+                                    },
+                                    "type": "array"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/user/many/{id}": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "items": {
+                                "type": "string"
+                            },
+                            "type": "array"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json;charset=utf-8": {
+                                "schema": {
+                                    "items": {
+                                        "$ref": "#/components/schemas/User"
+                                    },
+                                    "type": "array"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "404": {
+                        "description": "`id` not found"
+                    }
+                }
+            }
+        }
+    }
+}

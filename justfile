@@ -21,22 +21,24 @@ fe-update:
   # elm2nix must be run in the root of the frontend folder
   cd frontend && elm2nix convert > elm-srcs.nix && elm2nix snapshot
 
+fe-gen-api:
+  openapi-generator-cli generate -g elm -i backend/openapi/openapi.json -o frontend/generated
+  # There's currently a bug in openapi-generator so we need to do an ugly manual fix
+  # https://github.com/OpenAPITools/openapi-generator/issues/16104
+  sed -e "s/, UserSectionTag(..), userSectionTagVariants//g" -i frontend/generated/src/Api/Data.elm
+
 
 
 
 
 # Runs the backend loop.
-# This tests the backend and starts it.
-# Also, by default we have `-Werror` but while developing that can be annoying, so for this loop here we set `-Wwarn` to override.
+# This tests the backend and starts it, looping when changes to the backend happen.
 be:
-  # watchexec -e=hs,yaml --project-origin=./backend --restart --stop-timeout=10s 'clear && stack test --ghc-options="-Wwarn" && stack run elm-gen && stack run backend-exe'
-  watchexec -e=hs,yaml --project-origin=./backend --restart --stop-timeout=10s 'just be-go-once'
+  watchexec -e=hs,yaml --project-origin=./backend --restart --stop-timeout=10s 'clear; just be-go-once'
 
 [private]
 be-go-once:
-  clear
   stack test --ghc-options="-Wwarn"
-  stack run elm-gen
   stack run backend-exe
 
 # Runs the backend tests in a loop.
@@ -44,4 +46,4 @@ be-test match='':
   stack test --test-arguments="--match=""{{match}}""" --file-watch
 
 be-golden-test-reset:
-  stack test --test-arguments="--golden-reset"
+  stack test --test-arguments="--golden-reset --golden-start" --file-watch

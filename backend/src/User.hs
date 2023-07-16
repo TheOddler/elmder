@@ -1,17 +1,25 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE StrictData #-}
-{-# LANGUAGE TemplateHaskell #-}
 
 module User where
 
+import Autodocodec
+import Autodocodec.OpenAPI ()
 import Control.Monad.IO.Class (liftIO)
+import Data.Aeson (FromJSON, ToJSON)
+import Data.HashMap.Strict qualified as HashMap
+import Data.List.NonEmpty qualified as NE
 import Data.Maybe (catMaybes)
+import Data.OpenApi (ToParamSchema, ToSchema)
 import Data.Text (Text)
 import Data.Text qualified as T
+import Data.Void (Void)
 import Faker (Fake, generateNonDeterministic)
 import Faker.Book.Lovecraft qualified
 import Faker.Combinators (fakeBoundedEnum, fromRange, listOf, oneof)
@@ -22,12 +30,12 @@ import Faker.Name qualified
 import Faker.Superhero qualified
 import GHC.Generics (Generic)
 import Servant
-import Servant.Elm
 import Servant.Server.Generic (AsServerT)
 
 newtype UserID = UserID {unUserID :: Text}
   deriving (Generic)
-  deriving newtype (FromHttpApiData, ToHttpApiData)
+  deriving newtype (FromHttpApiData, ToHttpApiData, ToParamSchema)
+  deriving (ToJSON, FromJSON, ToSchema) via Autodocodec UserID
 
 instance ToHttpApiData [UserID] where
   toUrlPiece :: [UserID] -> Text
@@ -37,38 +45,113 @@ instance FromHttpApiData [UserID] where
   parseUrlPiece :: Text -> Either Text [UserID]
   parseUrlPiece = traverse parseUrlPiece . T.split (== ',')
 
+instance HasCodec UserID where
+  codec = dimapCodec UserID unUserID codec
+
 data User = User
   { userID :: UserID,
     userName :: Text,
     userHeaderImage :: Text,
     userDescription :: Text,
-    relationshipStatus :: RelationshipStatus,
+    userRelationshipStatus :: RelationshipStatus,
     userSections :: [UserSection]
   }
   deriving (Generic)
+  deriving (ToJSON, FromJSON, ToSchema) via Autodocodec User
+
+instance HasCodec User where
+  codec =
+    object "User" $
+      User
+        <$> requiredField "id" "The user's unique ID"
+        .= userID
+        <*> requiredField "name" "The users's name"
+        .= userName
+        <*> requiredField "headerImage" "A url to the user's primary image"
+        .= userHeaderImage
+        <*> requiredField "description" "The user's profile description"
+        .= userDescription
+        <*> requiredField "relationshipStatus" "The user's relationship status"
+        .= userRelationshipStatus
+        <*> requiredField "sections" "Different sections of the user's profile"
+        .= userSections
 
 data RelationshipStatus
   = RelationshipStatusSingle
   | RelationshipStatusMarried
   | RelationshipStatusInRelationship
-  deriving (Generic, Enum, Bounded)
+  deriving (Generic, Show, Eq, Enum, Bounded)
+  deriving (ToJSON, FromJSON, ToSchema) via Autodocodec RelationshipStatus
+
+instance HasCodec RelationshipStatus where
+  codec =
+    let allStatuses = minBound NE.:| [succ minBound .. maxBound]
+        encode = \case
+          RelationshipStatusSingle -> "single"
+          RelationshipStatusMarried -> "married"
+          RelationshipStatusInRelationship -> "in-relationship"
+     in stringConstCodec (NE.map (\v -> (v, encode v)) allStatuses)
 
 data UserSection
-  = UserSectionGeneric {header :: Text, content :: Text}
-  | UserSectionImages {images :: [Text], description :: Text}
-  | UserSectionQuestionAndAnswer {question :: Text, answer :: Text}
+  = UserSectionGeneric
+      { userSectionGenericHeader :: Text,
+        userSectionGenericContent :: Text
+      }
+  | UserSectionImages
+      { userSectionImagesImages :: [Text],
+        userSectionImagesDescription :: Text
+      }
+  | UserSectionQuestionAndAnswer
+      { userSectionQuestionAndAnswerQuestion :: Text,
+        userSectionQuestionAndAnswerAnswer :: Text
+      }
   deriving (Generic)
+  deriving (FromJSON, ToJSON, ToSchema) via Autodocodec UserSection
+
+instance HasCodec UserSection where
+  codec = object "UserSection" $ discriminatedUnionCodec "tag" enc dec
+    where
+      enc :: UserSection -> (Discriminator, ObjectCodec UserSection ())
+      enc section =
+        case section of
+          UserSectionGeneric _ _ -> ("generic", mapToEncoder section generic)
+          UserSectionImages _ _ -> ("images", mapToEncoder section images)
+          UserSectionQuestionAndAnswer _ _ -> ("qna", mapToEncoder section questionAndAnswer)
+
+      dec :: HashMap.HashMap Discriminator (Text, ObjectCodec Void UserSection)
+      dec =
+        HashMap.fromList
+          [ ("generic", ("UserSectionGeneric", mapToDecoder id generic)),
+            ("images", ("UserSectionImages", mapToDecoder id images)),
+            ("qna", ("UserSectionQuestionAndAnswer", mapToDecoder id questionAndAnswer))
+          ]
+
+      generic =
+        UserSectionGeneric
+          <$> requiredField "header" "The header for this section"
+          .= userSectionGenericHeader
+          <*> requiredField "content" "The content of this section"
+          .= userSectionGenericContent
+
+      images =
+        UserSectionImages
+          <$> requiredField "images" "A list of image urls"
+          .= userSectionImagesImages
+          <*> requiredField "description" "De description for all images together"
+          .= userSectionImagesDescription
+
+      questionAndAnswer =
+        UserSectionQuestionAndAnswer
+          <$> requiredField "question" "The question"
+          .= userSectionQuestionAndAnswerQuestion
+          <*> requiredField "answer" "The answer"
+          .= userSectionQuestionAndAnswerAnswer
 
 data UserRoutes mode = UserRoutes
   { getUsers :: mode :- "many" :> Capture "id" [UserID] :> Get '[JSON] [User],
     getSomeUserIDs :: mode :- "exampleIDs" :> Get '[JSON] [UserID]
   }
   deriving (Generic)
-
-deriveBoth defaultOptions ''UserID
-deriveBoth defaultOptions ''RelationshipStatus
-deriveBoth defaultOptions ''UserSection
-deriveBoth defaultOptions ''User
 
 userRoutes :: UserRoutes (AsServerT Handler)
 userRoutes = UserRoutes {..}
@@ -92,17 +175,17 @@ getUsersHandler ids = liftIO $ generateNonDeterministic $ mapM fakeUser ids
     fakeUserSection = do
       oneof
         [ do
-            header <- Faker.Food.dish
-            content <- Faker.Food.descriptions
+            userSectionGenericHeader <- Faker.Food.dish
+            userSectionGenericContent <- Faker.Food.descriptions
             pure UserSectionGeneric {..},
           do
             imageCount <- fromRange (1, 10 :: Int)
-            images <- listOf imageCount fakeImgUrl
-            description <- Faker.Superhero.descriptor
+            userSectionImagesImages <- listOf imageCount fakeImgUrl
+            userSectionImagesDescription <- Faker.Superhero.descriptor
             pure UserSectionImages {..},
           do
-            question <- Faker.Food.dish
-            answer <- Faker.Food.descriptions
+            userSectionQuestionAndAnswerQuestion <- Faker.Food.dish
+            userSectionQuestionAndAnswerAnswer <- Faker.Food.descriptions
             pure UserSectionQuestionAndAnswer {..}
         ]
 
@@ -122,7 +205,7 @@ getUsersHandler ids = liftIO $ generateNonDeterministic $ mapM fakeUser ids
       descriptionLength <- fromRange (4, 15 :: Int)
       userDescription <- T.unwords <$> listOf descriptionLength Faker.Book.Lovecraft.words
 
-      relationshipStatus <- fakeBoundedEnum
+      userRelationshipStatus <- fakeBoundedEnum
 
       sectionsCount <- fromRange (3, 15 :: Int)
       userSections <- listOf sectionsCount fakeUserSection

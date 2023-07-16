@@ -15,7 +15,6 @@ ghc-options:
   - -with-rtsopts=-N
   - -Wredundant-constraints
   - -Wunused-packages
-  - -Werror
   - -threaded
   - -rtsopts
   - -with-rtsopts=-N
@@ -30,10 +29,13 @@ library:
   source-dirs: src
   dependencies:
     - aeson
+    - autodocodec
+    - autodocodec-openapi3
     - fakedata
-    - servant-elm
+    - openapi3
     - servant-server
     - text
+    - unordered-containers
     - warp
 
 executables:
@@ -42,25 +44,17 @@ executables:
     source-dirs: exe
     dependencies:
       - backend
-  
-  elm-gen:
-    main: Main.hs
-    source-dirs: elm-gen
-    dependencies:
-      - backend
-      - elm-bridge
-      - servant-elm
-      - servant-foreign
-      - servant-server
-      - text
 
 tests:
   backend-test:
     main: Spec.hs
     source-dirs: test
     dependencies:
+      - aeson-pretty
       - backend
       - QuickCheck
       - servant-client
+      - servant-openapi3
       - sydtest
       - sydtest-servant
+      - text
