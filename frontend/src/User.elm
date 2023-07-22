@@ -7,6 +7,8 @@ import Html.Components exposing (..)
 import Swiper
 
 
+{-| The generated API has the ids just as strings
+-}
 type alias UserID =
     String
 
