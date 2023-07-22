@@ -12,8 +12,7 @@
                         "type": "string"
                     },
                     "id": {
-                        "description": "The user's unique ID",
-                        "type": "string"
+                        "$ref": "#/components/schemas/UserID"
                     },
                     "name": {
                         "description": "The users's name",
@@ -45,6 +44,9 @@
                     "sections"
                 ],
                 "type": "object"
+            },
+            "UserID": {
+                "type": "string"
             },
             "UserSection": {
                 "discriminator": {
@@ -219,7 +221,7 @@
                             "application/json;charset=utf-8": {
                                 "schema": {
                                     "items": {
-                                        "type": "string"
+                                        "$ref": "#/components/schemas/UserID"
                                     },
                                     "type": "array"
                                 }

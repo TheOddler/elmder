@@ -46,7 +46,7 @@ instance FromHttpApiData [UserID] where
   parseUrlPiece = traverse parseUrlPiece . T.split (== ',')
 
 instance HasCodec UserID where
-  codec = dimapCodec UserID unUserID codec
+  codec = named "UserID" $ dimapCodec UserID unUserID codec
 
 data User = User
   { userID :: UserID,
