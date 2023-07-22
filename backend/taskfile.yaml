@@ -8,6 +8,7 @@ tasks:
   default:
     aliases: [test-and-run]
     cmds:
+      - task: regen-open-api
       - task: test
       - task: run
 
@@ -29,6 +30,6 @@ tasks:
 
   regen-open-api:
     cmds:
-      - stack test --test-arguments="--golden-reset --golden-start --match=\"OpenAPI schema\""
+      - stack test --test-arguments="--golden-reset --match \"OpenAPI schema\""
     sources:
       - 'test/OpenApiSpec.hs'
