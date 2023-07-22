@@ -1,8 +1,8 @@
 version: '3'
 
-sources: &sources
-  - '**/*.hs'
-  - package.yaml
+sources: &defaultSources
+  - &srcFiles 'src/**/*.hs'
+  - &packageYaml package.yaml
 
 tasks:
   default:
@@ -15,20 +15,26 @@ tasks:
   test:
     cmds:
       - stack test --test-arguments="--match=""{{.MATCH}}"""
-    sources: *sources
+    sources: &sources-for-test
+      - *srcFiles
+      - *packageYaml
+      - 'test/**/*.hs'
   
   run:
     cmds:
       - pkill backend-exe || true # Kill existing backend if it's still running, Task should already do that, but apparently not: https://github.com/go-task/task/issues/160
       - stack run backend-exe
-    sources: *sources
+    sources: *defaultSources
   
   golden-test-reset:
     cmds:
       - stack test --test-arguments="--golden-reset --golden-start"
-    sources: *sources
+    sources: *sources-for-test
 
   elm-gen:
     cmds:
       - stack run elm-gen
-    sources: *sources
+    sources:
+      - *srcFiles
+      - *packageYaml
+      - 'elm-gen/**/*.hs'
