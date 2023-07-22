@@ -31,5 +31,4 @@ tasks:
   regen-open-api:
     cmds:
       - stack test --test-arguments="--golden-reset --match \"OpenAPI schema\""
-    sources:
-      - 'test/OpenApiSpec.hs'
+    sources: *sources
