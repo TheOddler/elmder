@@ -6,15 +6,20 @@ sources: &sources
 
 tasks:
   default:
+    aliases: [test-and-run]
     cmds:
-      - stack test --ghc-options="-Wwarn"
-      - pkill backend-exe || true # Kill existing backend if it's still running, Task should already do that, but apparently not: https://github.com/go-task/task/issues/160
-      - stack run backend-exe
-    sources: *sources
+      - task: test
+      - task: run
 
   test:
     cmds:
       - stack test --test-arguments="--match=""{{.MATCH}}"""
+    sources: *sources
+  
+  run:
+    cmds:
+      - pkill backend-exe || true # Kill existing backend if it's still running, Task should already do that, but apparently not: https://github.com/go-task/task/issues/160
+      - stack run backend-exe
     sources: *sources
   
   golden-test-reset:
