@@ -3,9 +3,8 @@
 
 module Main (main) where
 
-import Data.Aeson.Encode.Pretty (encodePretty)
+import OpenApiSpec qualified
 import Servant.Client
-import Servant.OpenApi (toOpenApi)
 import Test.QuickCheck
 import Test.Syd
 import Test.Syd.Servant
@@ -32,7 +31,7 @@ main = sydTest $ do
         answer `shouldBe` "Hello " <> name
 
   userSpec
-  openApiSpec
+  OpenApiSpec.spec
 
 userSpec :: Spec
 userSpec =
@@ -41,10 +40,3 @@ userSpec =
       let requestedUsers = UserID <$> ["a", "b", "c"]
       answer <- testClient clientEnv (api.userRoutes.getUsers requestedUsers)
       length answer `shouldBe` length requestedUsers
-
-openApiSpec :: Spec
-openApiSpec =
-  it "spits out an OpenAPI schema" $
-    pureGoldenLazyByteStringFile "openapi/openapi.json" $
-      encodePretty $
-        toOpenApi apiProxy
