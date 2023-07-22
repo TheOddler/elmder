@@ -1,15 +1,15 @@
 module User.Loading exposing (..)
 
+import Generated.Backend exposing (UserID(..))
 import Html exposing (Attribute, Html)
 import Html.Components exposing (card)
 import Images
 import List.Extra as List
 import Store exposing (Requested, unRequest)
-import User exposing (UserID)
 
 
 cssColor : UserID -> String
-cssColor userID =
+cssColor (UserID { unUserID }) =
     let
         colors : List String
         colors =
@@ -26,7 +26,7 @@ cssColor userID =
         random : Int
         random =
             -- Random enough assuming the id is random
-            String.toList userID
+            String.toList unUserID
                 |> List.map Char.toCode
                 |> List.sum
 

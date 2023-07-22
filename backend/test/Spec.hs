@@ -3,7 +3,6 @@
 
 module Main (main) where
 
-import OpenApiSpec qualified
 import Servant.Client
 import Test.QuickCheck
 import Test.Syd
@@ -31,7 +30,6 @@ main = sydTest $ do
         answer `shouldBe` "Hello " <> name
 
   userSpec
-  OpenApiSpec.spec
 
 userSpec :: Spec
 userSpec =

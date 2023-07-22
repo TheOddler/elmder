@@ -8,8 +8,8 @@ tasks:
   default:
     aliases: [test-and-run]
     cmds:
-      - task: regen-open-api
       - task: test
+      - task: elm-gen
       - task: run
 
   test:
@@ -28,7 +28,7 @@ tasks:
       - stack test --test-arguments="--golden-reset --golden-start"
     sources: *sources
 
-  regen-open-api:
+  elm-gen:
     cmds:
-      - stack test --test-arguments="--golden-reset --match \"OpenAPI schema\""
+      - stack run elm-gen
     sources: *sources

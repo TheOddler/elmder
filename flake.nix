@@ -18,7 +18,6 @@
 
           # Stuff for the frontend
           nodejs_18
-          openapi-generator-cli
 
           # Stuff for the backend
           stack

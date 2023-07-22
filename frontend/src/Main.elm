@@ -1,17 +1,15 @@
 module Main exposing (..)
 
-import Api
-import Api.Data exposing (User)
-import Api.Request.Default as Api
 import Browser
 import Either exposing (Either(..))
+import Generated.Backend as Backend exposing (User, UserID(..))
 import Html exposing (Html, a, div, h1, text)
 import Html.Attributes exposing (class, href)
 import Html.Components exposing (navbar)
 import Html.Events exposing (onClick)
 import Http
 import Store exposing (Requested, Store, unRequest)
-import User exposing (UserID)
+import User
 import User.Loading
 
 
@@ -73,9 +71,9 @@ main =
         }
 
 
-send8081 : (Result Http.Error a -> msg) -> Api.Request a -> Cmd msg
-send8081 handler =
-    Api.send handler << Api.withBasePath "http://localhost:8081"
+baseUrl : String
+baseUrl =
+    "http://localhost:8081"
 
 
 init : Flags -> ( Model, Cmd Msg )
@@ -83,13 +81,13 @@ init () =
     let
         store : Store UserID User
         store =
-            Store.init (\userID -> userID) .id
+            Store.init (\(UserID { unUserID }) -> unUserID) .userID
     in
     ( { userStore = store
       , currentScreen = Main ScreenMatches
       , requestedUsers = []
       }
-    , send8081 GotUserExamples Api.userExampleIDsGet
+    , Backend.getUserExampleIDs baseUrl GotUserExamples
     )
 
 
@@ -98,7 +96,7 @@ requestUsers store =
     let
         getMissing : List UserID -> Cmd Msg
         getMissing ids =
-            send8081 AddUserToStore <| Api.userManyIdGet ids
+            Backend.postUserGetMany baseUrl ids AddUserToStore
     in
     Store.mkRequestCommand getMissing store
 
@@ -164,7 +162,7 @@ view model =
                     viewUserOrID userOrID =
                         case userOrID of
                             Right u ->
-                                User.viewCard [ onClick <| ViewUser u.id ] u
+                                User.viewCard [ onClick <| ViewUser u.userID ] u
 
                             Left uID ->
                                 User.Loading.viewCardLoading [ onClick <| ViewUser (unRequest uID) ] uID

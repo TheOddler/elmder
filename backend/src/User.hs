@@ -1,25 +1,19 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE StrictData #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module User where
 
-import Autodocodec
-import Autodocodec.OpenAPI ()
 import Control.Monad.IO.Class (liftIO)
-import Data.Aeson (FromJSON, ToJSON)
-import Data.HashMap.Strict qualified as HashMap
-import Data.List.NonEmpty qualified as NE
 import Data.Maybe (catMaybes)
-import Data.OpenApi (ToParamSchema, ToSchema)
 import Data.Text (Text)
 import Data.Text qualified as T
-import Data.Void (Void)
+import Elm.Derive (deriveBoth)
 import Faker (Fake, generateNonDeterministic)
 import Faker.Book.Lovecraft qualified
 import Faker.Combinators (fakeBoundedEnum, fromRange, listOf, oneof)
@@ -30,23 +24,19 @@ import Faker.Name qualified
 import Faker.Superhero qualified
 import GHC.Generics (Generic)
 import Servant
+  ( GenericMode ((:-)),
+    Get,
+    Handler,
+    JSON,
+    Post,
+    ReqBody,
+    (:>),
+  )
+import Servant.Elm qualified
 import Servant.Server.Generic (AsServerT)
 
 newtype UserID = UserID {unUserID :: Text}
   deriving (Generic)
-  deriving newtype (FromHttpApiData, ToHttpApiData, ToParamSchema)
-  deriving (ToJSON, FromJSON, ToSchema) via Autodocodec UserID
-
-instance ToHttpApiData [UserID] where
-  toUrlPiece :: [UserID] -> Text
-  toUrlPiece ids = T.intercalate "," $ unUserID <$> ids
-
-instance FromHttpApiData [UserID] where
-  parseUrlPiece :: Text -> Either Text [UserID]
-  parseUrlPiece = traverse parseUrlPiece . T.split (== ',')
-
-instance HasCodec UserID where
-  codec = named "UserID" $ dimapCodec UserID unUserID codec
 
 data User = User
   { userID :: UserID,
@@ -57,40 +47,12 @@ data User = User
     userSections :: [UserSection]
   }
   deriving (Generic)
-  deriving (ToJSON, FromJSON, ToSchema) via Autodocodec User
-
-instance HasCodec User where
-  codec =
-    object "User" $
-      User
-        <$> requiredField "id" "The user's unique ID"
-        .= userID
-        <*> requiredField "name" "The users's name"
-        .= userName
-        <*> requiredField "headerImage" "A url to the user's primary image"
-        .= userHeaderImage
-        <*> requiredField "description" "The user's profile description"
-        .= userDescription
-        <*> requiredField "relationshipStatus" "The user's relationship status"
-        .= userRelationshipStatus
-        <*> requiredField "sections" "Different sections of the user's profile"
-        .= userSections
 
 data RelationshipStatus
   = RelationshipStatusSingle
   | RelationshipStatusMarried
   | RelationshipStatusInRelationship
   deriving (Generic, Show, Eq, Enum, Bounded)
-  deriving (ToJSON, FromJSON, ToSchema) via Autodocodec RelationshipStatus
-
-instance HasCodec RelationshipStatus where
-  codec =
-    let allStatuses = minBound NE.:| [succ minBound .. maxBound]
-        encode = \case
-          RelationshipStatusSingle -> "single"
-          RelationshipStatusMarried -> "married"
-          RelationshipStatusInRelationship -> "in-relationship"
-     in stringConstCodec (NE.map (\v -> (v, encode v)) allStatuses)
 
 data UserSection
   = UserSectionGeneric
@@ -106,49 +68,15 @@ data UserSection
         userSectionQuestionAndAnswerAnswer :: Text
       }
   deriving (Generic)
-  deriving (FromJSON, ToJSON, ToSchema) via Autodocodec UserSection
 
-instance HasCodec UserSection where
-  codec = object "UserSection" $ discriminatedUnionCodec "tag" enc dec
-    where
-      enc :: UserSection -> (Discriminator, ObjectCodec UserSection ())
-      enc section =
-        case section of
-          UserSectionGeneric _ _ -> ("generic", mapToEncoder section generic)
-          UserSectionImages _ _ -> ("images", mapToEncoder section images)
-          UserSectionQuestionAndAnswer _ _ -> ("qna", mapToEncoder section questionAndAnswer)
-
-      dec :: HashMap.HashMap Discriminator (Text, ObjectCodec Void UserSection)
-      dec =
-        HashMap.fromList
-          [ ("generic", ("UserSectionGeneric", mapToDecoder id generic)),
-            ("images", ("UserSectionImages", mapToDecoder id images)),
-            ("qna", ("UserSectionQuestionAndAnswer", mapToDecoder id questionAndAnswer))
-          ]
-
-      generic =
-        UserSectionGeneric
-          <$> requiredField "header" "The header for this section"
-          .= userSectionGenericHeader
-          <*> requiredField "content" "The content of this section"
-          .= userSectionGenericContent
-
-      images =
-        UserSectionImages
-          <$> requiredField "images" "A list of image urls"
-          .= userSectionImagesImages
-          <*> requiredField "description" "De description for all images together"
-          .= userSectionImagesDescription
-
-      questionAndAnswer =
-        UserSectionQuestionAndAnswer
-          <$> requiredField "question" "The question"
-          .= userSectionQuestionAndAnswerQuestion
-          <*> requiredField "answer" "The answer"
-          .= userSectionQuestionAndAnswerAnswer
+-- Use the default options from Servant.Elm, they work best for Elm, not those from Elm.Derive nor Aeson.
+deriveBoth Servant.Elm.defaultOptions ''UserID
+deriveBoth Servant.Elm.defaultOptions ''RelationshipStatus
+deriveBoth Servant.Elm.defaultOptions ''UserSection
+deriveBoth Servant.Elm.defaultOptions ''User
 
 data UserRoutes mode = UserRoutes
-  { getUsers :: mode :- "many" :> Capture "id" [UserID] :> Get '[JSON] [User],
+  { getUsers :: mode :- "getMany" :> ReqBody '[JSON] [UserID] :> Post '[JSON] [User],
     getSomeUserIDs :: mode :- "exampleIDs" :> Get '[JSON] [UserID]
   }
   deriving (Generic)

@@ -28,14 +28,11 @@ default-extensions:
 library:
   source-dirs: src
   dependencies:
-    - aeson
-    - autodocodec
-    - autodocodec-openapi3
+    - elm-bridge
     - fakedata
-    - openapi3
+    - servant-elm
     - servant-server
     - text
-    - unordered-containers
     - warp
 
 executables:
@@ -45,16 +42,23 @@ executables:
     dependencies:
       - backend
 
+  elm-gen:
+    main: Main.hs
+    source-dirs: elm-gen
+    dependencies:
+      - backend
+      - servant-elm
+      - servant-foreign
+      - servant-server
+      - text
+
 tests:
   backend-test:
     main: Spec.hs
     source-dirs: test
     dependencies:
-      - aeson-pretty
       - backend
       - QuickCheck
       - servant-client
-      - servant-openapi3
       - sydtest
       - sydtest-servant
-      - text

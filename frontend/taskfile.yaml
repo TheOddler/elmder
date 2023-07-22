@@ -13,12 +13,3 @@ tasks:
   update:
     - npm install
     - elm2nix convert > elm-srcs.nix && elm2nix snapshot
-  
-  gen-api:
-    cmds:
-      - openapi-generator-cli generate -g elm -i ../backend/openapi/openapi.json -o generated
-        # There's currently a bug in openapi-generator so we need to do an ugly manual fix
-        # https://github.com/OpenAPITools/openapi-generator/issues/16104
-      - sed -e "s/, UserSectionTag(..), userSectionTagVariants//g" -i generated/src/Api/Data.elm
-    sources:
-      - ../backend/openapi/openapi.json
