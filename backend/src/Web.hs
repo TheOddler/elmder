@@ -4,6 +4,8 @@
 
 module Web where
 
+import Data.Pool (Pool)
+import Database.PostgreSQL.Simple qualified as DB
 import GHC.Generics (Generic)
 import Servant
 import Servant.Server.Generic (AsServerT)
@@ -23,13 +25,13 @@ data ApiRoutes mode = ApiRoutes
 apiProxy :: Proxy Api
 apiProxy = Proxy
 
-routes :: ApiRoutes (AsServerT Handler)
-routes =
+routes :: Pool DB.Connection -> ApiRoutes (AsServerT Handler)
+routes dbConns =
   ApiRoutes
     { ping = pure "pong",
       pong = pure "ping",
       iAm = greet,
-      userRoutes = User.userRoutes
+      userRoutes = User.userRoutes dbConns
     }
 
 say :: String -> Handler String

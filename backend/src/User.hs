@@ -11,8 +11,10 @@ module User where
 
 import Control.Monad.IO.Class (liftIO)
 import Data.Maybe (catMaybes)
+import Data.Pool (Pool)
 import Data.Text (Text)
 import Data.Text qualified as T
+import Database.PostgreSQL.Simple qualified as DB
 import Elm.Derive (deriveBoth)
 import Faker (Fake, generateNonDeterministic)
 import Faker.Book.Lovecraft qualified
@@ -81,8 +83,8 @@ data UserRoutes mode = UserRoutes
   }
   deriving (Generic)
 
-userRoutes :: UserRoutes (AsServerT Handler)
-userRoutes = UserRoutes {..}
+userRoutes :: Pool DB.Connection -> UserRoutes (AsServerT Handler)
+userRoutes dbConns = UserRoutes {..}
   where
     getUsers = getUsersHandler
     getSomeUserIDs = pure $ UserID . T.pack . show <$> [1 .. 10 :: Int]

@@ -55,4 +55,6 @@ packages:
 
 nix:
   enable: true
-  packages: [zlib]
+  packages:
+    - zlib
+    - postgresql

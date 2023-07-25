@@ -21,6 +21,7 @@
 
           # Stuff for the backend
           stack
+          postgresql
         ];
 
         devPackages = with pkgs; [

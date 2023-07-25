@@ -28,8 +28,11 @@ default-extensions:
 library:
   source-dirs: src
   dependencies:
+    - bytestring
     - elm-bridge
     - fakedata
+    - postgresql-simple
+    - resource-pool
     - servant-elm
     - servant-server
     - text
@@ -58,7 +61,11 @@ tests:
     source-dirs: test
     dependencies:
       - backend
+      - postgresql-simple
       - QuickCheck
+      - resource-pool
       - servant-client
+      - servant-server
       - sydtest
       - sydtest-servant
+      - tmp-postgres

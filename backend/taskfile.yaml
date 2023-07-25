@@ -38,3 +38,7 @@ tasks:
       - *srcFiles
       - *packageYaml
       - 'elm-gen/**/*.hs'
+  
+  start-db:
+    cmds:
+      - pg_ctl -D ./postgres start
