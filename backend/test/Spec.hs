@@ -21,17 +21,22 @@ import Web
 api :: ApiRoutes (AsClientT ClientM)
 api = client apiProxy
 
+dbCacheSetupFunc :: SetupFunc PgTemp.Cache
+dbCacheSetupFunc = SetupFunc $ \test -> PgTemp.withDbCache test
+
 serverSetupFunc :: SetupFunc (ApiRoutes (AsServerT Handler))
-serverSetupFunc = SetupFunc $ \test -> do
-  eitherErrOrA <-
-    PgTemp.with $ \db -> do
-      let connStr = toConnectionString db
-      initDB connStr
-      conns <- initConnectionPool connStr
-      test (routes conns)
-  case eitherErrOrA of
-    Left err -> error $ show err
-    Right a -> pure a
+serverSetupFunc = do
+  dbCache <- dbCacheSetupFunc
+  SetupFunc $ \test -> do
+    eitherErrOrA <-
+      PgTemp.withConfig (PgTemp.cacheConfig dbCache) $ \db -> do
+        let connStr = toConnectionString db
+        initDB connStr
+        conns <- initConnectionPool connStr
+        test (routes conns)
+    case eitherErrOrA of
+      Left err -> error $ show err
+      Right a -> pure a
 
 serverTest :: TestDef '[HTTP.Manager] ClientEnv -> Spec
 serverTest =
