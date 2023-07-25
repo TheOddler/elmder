@@ -5,6 +5,8 @@
 module Main (main) where
 
 import DB (initConnectionPool, initDB)
+import Data.Pool (Pool)
+import Database.PostgreSQL.Simple qualified as DB
 import Database.Postgres.Temp (toConnectionString)
 import Database.Postgres.Temp qualified as PgTemp
 import Network.HTTP.Client qualified as HTTP
@@ -20,21 +22,30 @@ import Web
 api :: ApiRoutes (AsClientT ClientM)
 api = client apiProxy
 
-setupServer :: IO (ApiRoutes (AsServerT Handler))
-setupServer = do
-  eitherErrOrConns <- PgTemp.withDbCache $ \dbCache ->
-    PgTemp.withConfig (PgTemp.cacheConfig dbCache) $ \db -> do
+setupDbCache :: SetupFunc PgTemp.Cache
+setupDbCache = liftIO $ PgTemp.withDbCache pure
+
+setupDb :: PgTemp.Cache -> SetupFunc (Pool DB.Connection)
+setupDb dbCache = do
+  eitherErrOrConns <-
+    liftIO $ PgTemp.withConfig (PgTemp.cacheConfig dbCache) $ \db -> do
       let connStr = toConnectionString db
       conns <- initConnectionPool connStr
       initDB connStr
       pure conns
   case eitherErrOrConns of
     Left err -> error $ show err
-    Right conns -> pure $ routes conns
+    Right conns -> pure conns
+
+setupServer :: SetupFunc (ApiRoutes (AsServerT Handler))
+setupServer = do
+  dbCache <- setupDbCache
+  conns <- setupDb dbCache
+  pure $ routes conns
 
 serverTest :: TestDef '[HTTP.Manager] ClientEnv -> Spec
 serverTest =
-  servantSpecWithSetupFunc apiProxy (liftIO setupServer) . modifyMaxSuccess (`div` 10)
+  servantSpecWithSetupFunc apiProxy setupServer . modifyMaxSuccess (`div` 10)
 
 main :: IO ()
 main = sydTest $ do
