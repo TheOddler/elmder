@@ -61,6 +61,7 @@ tests:
     source-dirs: test
     dependencies:
       - backend
+      - http-client
       - postgresql-simple
       - QuickCheck
       - resource-pool
