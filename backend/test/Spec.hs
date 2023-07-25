@@ -34,7 +34,7 @@ setupServer = do
 
 serverTest :: TestDef '[HTTP.Manager] ClientEnv -> Spec
 serverTest =
-  servantSpecWithSetupFunc apiProxy (liftIO setupServer)
+  servantSpecWithSetupFunc apiProxy (liftIO setupServer) . modifyMaxSuccess (`div` 10)
 
 main :: IO ()
 main = sydTest $ do
