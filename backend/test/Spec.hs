@@ -5,8 +5,6 @@
 module Main (main) where
 
 import DB (initConnectionPool, initDB)
-import Data.Pool (Pool)
-import Database.PostgreSQL.Simple qualified as DB
 import Database.Postgres.Temp (toConnectionString)
 import Database.Postgres.Temp qualified as PgTemp
 import Network.HTTP.Client qualified as HTTP
@@ -14,6 +12,7 @@ import Servant.Client
 import Servant.Server (Handler)
 import Servant.Server.Generic (AsServerT)
 import Test.QuickCheck
+import Test.QuickCheck.Instances.Text ()
 import Test.Syd
 import Test.Syd.Servant
 import User
@@ -22,30 +21,21 @@ import Web
 api :: ApiRoutes (AsClientT ClientM)
 api = client apiProxy
 
-setupDbCache :: SetupFunc PgTemp.Cache
-setupDbCache = liftIO $ PgTemp.withDbCache pure
-
-setupDb :: PgTemp.Cache -> SetupFunc (Pool DB.Connection)
-setupDb dbCache = do
-  eitherErrOrConns <-
-    liftIO $ PgTemp.withConfig (PgTemp.cacheConfig dbCache) $ \db -> do
+serverSetupFunc :: SetupFunc (ApiRoutes (AsServerT Handler))
+serverSetupFunc = SetupFunc $ \test -> do
+  eitherErrOrA <-
+    PgTemp.with $ \db -> do
       let connStr = toConnectionString db
-      conns <- initConnectionPool connStr
       initDB connStr
-      pure conns
-  case eitherErrOrConns of
+      conns <- initConnectionPool connStr
+      test (routes conns)
+  case eitherErrOrA of
     Left err -> error $ show err
-    Right conns -> pure conns
-
-setupServer :: SetupFunc (ApiRoutes (AsServerT Handler))
-setupServer = do
-  dbCache <- setupDbCache
-  conns <- setupDb dbCache
-  pure $ routes conns
+    Right a -> pure a
 
 serverTest :: TestDef '[HTTP.Manager] ClientEnv -> Spec
 serverTest =
-  servantSpecWithSetupFunc apiProxy setupServer . modifyMaxSuccess (`div` 10)
+  servantSpecWithSetupFunc apiProxy serverSetupFunc . modifyMaxSuccess (`div` 10)
 
 main :: IO ()
 main = sydTest $ do
@@ -61,7 +51,7 @@ main = sydTest $ do
     it "says hello" $ \clientEnv ->
       forAll (arbitrary `suchThat` (/= "")) $ \name -> do
         answer <- testClient clientEnv (api // iAm /: name)
-        answer `shouldBe` "Hello " <> name
+        answer `shouldBe` ["Hello " <> name]
 
   userSpec
 

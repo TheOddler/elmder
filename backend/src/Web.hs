@@ -1,10 +1,13 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators #-}
 
 module Web where
 
-import Data.Pool (Pool)
+import Control.Monad.IO.Class (liftIO)
+import Data.Pool (Pool, withResource)
+import Data.Text (Text)
 import Database.PostgreSQL.Simple qualified as DB
 import GHC.Generics (Generic)
 import Servant
@@ -17,7 +20,7 @@ type Api = NamedRoutes ApiRoutes
 data ApiRoutes mode = ApiRoutes
   { ping :: mode :- "ping" :> Get '[JSON] String,
     pong :: mode :- "pong" :> Get '[JSON] String,
-    iAm :: mode :- "iAm" :> Capture "name" String :> Get '[JSON] String,
+    iAm :: mode :- "iAm" :> Capture "name" Text :> Get '[JSON] [Text],
     userRoutes :: mode :- "user" :> NamedRoutes UserRoutes
   }
   deriving (Generic)
@@ -30,12 +33,17 @@ routes dbConns =
   ApiRoutes
     { ping = pure "pong",
       pong = pure "ping",
-      iAm = greet,
+      iAm = greet dbConns,
       userRoutes = User.userRoutes dbConns
     }
 
 say :: String -> Handler String
 say = pure
 
-greet :: String -> Handler String
-greet name = pure $ "Hello " <> name
+greet :: Pool DB.Connection -> Text -> Handler [Text]
+greet dbConns name = do
+  names <- liftIO $ withResource dbConns $ \conn -> do
+    _ <- DB.execute conn "INSERT INTO greeted_people VALUES (?)" (DB.Only name)
+    DB.query_ conn "SELECT name FROM greeted_people"
+
+  pure ((\n -> "Hello " <> DB.fromOnly n) <$> names)

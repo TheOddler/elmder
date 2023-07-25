@@ -64,6 +64,7 @@ tests:
       - http-client
       - postgresql-simple
       - QuickCheck
+      - quickcheck-instances
       - resource-pool
       - servant-client
       - servant-server
