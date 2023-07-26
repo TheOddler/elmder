@@ -5,16 +5,17 @@
 module Main (main) where
 
 import DB (initConnectionPool, initDB)
+import Data.Text qualified as T
 import Database.Postgres.Temp (toConnectionString)
 import Database.Postgres.Temp qualified as PgTemp
 import Network.HTTP.Client qualified as HTTP
+import Servant
 import Servant.Client
-import Servant.Server (Handler)
 import Servant.Server.Generic (AsServerT)
 import Test.QuickCheck
 import Test.QuickCheck.Instances.Text ()
 import Test.Syd
-import Test.Syd.Servant
+import Test.Syd.Wai.Def (applicationSetupFunc, managerSpec)
 import User
 import Web
 
@@ -22,11 +23,10 @@ api :: ApiRoutes (AsClientT ClientM)
 api = client apiProxy
 
 dbCacheSetupFunc :: SetupFunc PgTemp.Cache
-dbCacheSetupFunc = SetupFunc $ \test -> PgTemp.withDbCache test
+dbCacheSetupFunc = SetupFunc PgTemp.withDbCache
 
-serverSetupFunc :: SetupFunc (ApiRoutes (AsServerT Handler))
-serverSetupFunc = do
-  dbCache <- dbCacheSetupFunc
+serverSetupFunc :: PgTemp.Cache -> SetupFunc (ApiRoutes (AsServerT Handler))
+serverSetupFunc dbCache = do
   SetupFunc $ \test -> do
     eitherErrOrA <-
       PgTemp.withConfig (PgTemp.cacheConfig dbCache) $ \db -> do
@@ -38,9 +38,39 @@ serverSetupFunc = do
       Left err -> expectationFailure $ show err
       Right a -> pure a
 
-serverTest :: TestDef '[HTTP.Manager] ClientEnv -> Spec
+serverTest :: TestDef '[(PgTemp.Cache, HTTP.Manager), HTTP.Manager] ClientEnv -> Spec
 serverTest =
-  servantSpecWithSetupFunc apiProxy serverSetupFunc . modifyMaxSuccess (`div` 10)
+  let setupCacheAndManager :: HTTP.Manager -> SetupFunc (PgTemp.Cache, HTTP.Manager)
+      setupCacheAndManager man = do
+        dbCache <- dbCacheSetupFunc
+        pure (dbCache, man)
+   in managerSpec
+        . setupAroundAllWith setupCacheAndManager
+        . setupAroundWith' (\(dbCache, man) () -> serverSetupFunc dbCache >>= clientEnvSetupFunc man)
+
+clientEnvSetupFunc :: HTTP.Manager -> ServerT Web.Api Handler -> SetupFunc ClientEnv
+clientEnvSetupFunc man server = do
+  let application = serve apiProxy server
+  p <- applicationSetupFunc application
+  pure $
+    mkClientEnv
+      man
+      ( BaseUrl
+          Http
+          "127.0.0.1"
+          (fromIntegral p) -- Safe because it is PortNumber -> Int
+          ""
+      )
+
+testClientOrError :: ClientEnv -> ClientM a -> IO (Either ClientError a)
+testClientOrError = flip runClientM
+
+testClient :: ClientEnv -> ClientM a -> IO a
+testClient cEnv func = do
+  errOrRes <- testClientOrError cEnv func
+  case errOrRes of
+    Left err -> expectationFailure $ show err
+    Right r -> pure r
 
 main :: IO ()
 main = sydTest $ do
@@ -54,7 +84,7 @@ main = sydTest $ do
       answer `shouldBe` "ping"
 
     it "says hello" $ \clientEnv ->
-      forAll (arbitrary `suchThat` (/= "")) $ \name -> do
+      forAll (arbitrary `suchThat` (\t -> t /= "" && not (T.elem '\NUL' t))) $ \name -> do
         answer <- testClient clientEnv (api // iAm /: name)
         answer `shouldBe` ["Hello " <> name]
 

@@ -69,5 +69,7 @@ tests:
       - servant-client
       - servant-server
       - sydtest
+      - sydtest-wai
       - sydtest-servant
+      - text
       - tmp-postgres
