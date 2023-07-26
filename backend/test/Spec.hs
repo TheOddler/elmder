@@ -35,7 +35,7 @@ serverSetupFunc = do
         conns <- initConnectionPool connStr
         test (routes conns)
     case eitherErrOrA of
-      Left err -> error $ show err
+      Left err -> expectationFailure $ show err
       Right a -> pure a
 
 serverTest :: TestDef '[HTTP.Manager] ClientEnv -> Spec
