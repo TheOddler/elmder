@@ -9,7 +9,7 @@ import Data.Text qualified as T
 import Database.Postgres.Temp (toConnectionString)
 import Database.Postgres.Temp qualified as PgTemp
 import Network.HTTP.Client qualified as HTTP
-import Servant (Handler, HasServer (ServerT), serve)
+import Servant (Handler)
 import Servant.Client
 import Servant.Server.Generic (AsServerT)
 import SydTestExtra (setupAroundWithAll)
@@ -27,7 +27,8 @@ import Test.Syd
     shouldBe,
     sydTest,
   )
-import Test.Syd.Wai.Def (applicationSetupFunc, managerSpec)
+import Test.Syd.Servant (clientEnvSetupFunc, testClient)
+import Test.Syd.Wai.Def (managerSpec)
 import User
 import Web
 
@@ -52,35 +53,11 @@ serverSetupFunc dbCache = do
 
 serverTest :: TestDef '[PgTemp.Cache, HTTP.Manager] ClientEnv -> Spec
 serverTest =
-  let setupClientHList outers = serverSetupFunc (getElem outers) >>= clientEnvSetupFunc (getElem outers)
+  let setupClientHList outers = serverSetupFunc (getElem outers) >>= clientEnvSetupFunc apiProxy (getElem outers)
    in managerSpec
         . setupAroundAll dbCacheSetupFunc
         . setupAroundWithAll (\outers () -> setupClientHList outers)
         . modifyMaxSuccess (`div` 10)
-
-clientEnvSetupFunc :: HTTP.Manager -> ServerT Web.Api Handler -> SetupFunc ClientEnv
-clientEnvSetupFunc man server = do
-  let application = serve apiProxy server
-  p <- applicationSetupFunc application
-  pure $
-    mkClientEnv
-      man
-      ( BaseUrl
-          Http
-          "127.0.0.1"
-          (fromIntegral p) -- Safe because it is PortNumber -> Int
-          ""
-      )
-
-testClientOrError :: ClientEnv -> ClientM a -> IO (Either ClientError a)
-testClientOrError = flip runClientM
-
-testClient :: ClientEnv -> ClientM a -> IO a
-testClient cEnv func = do
-  errOrRes <- testClientOrError cEnv func
-  case errOrRes of
-    Left err -> expectationFailure $ show err
-    Right r -> pure r
 
 main :: IO ()
 main = sydTest $ do
