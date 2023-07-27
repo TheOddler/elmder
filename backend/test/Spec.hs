@@ -12,15 +12,23 @@ import Network.HTTP.Client qualified as HTTP
 import Servant (Handler, HasServer (ServerT), serve)
 import Servant.Client
 import Servant.Server.Generic (AsServerT)
+import SydTestExtra (setupAroundWithAll)
 import Test.QuickCheck
 import Test.QuickCheck.Instances.Text ()
 import Test.Syd
+  ( HContains (getElem),
+    SetupFunc (SetupFunc),
+    Spec,
+    TestDef,
+    expectationFailure,
+    it,
+    setupAroundAll,
+    shouldBe,
+    sydTest,
+  )
 import Test.Syd.Wai.Def (applicationSetupFunc, managerSpec)
 import User
 import Web
-
-instance (HContains l a, HContains l (HList b)) => HContains l (HList (a ': b)) where
-  getElem l = HCons (getElem l) $ getElem l
 
 api :: ApiRoutes (AsClientT ClientM)
 api = client apiProxy
@@ -43,11 +51,10 @@ serverSetupFunc dbCache = do
 
 serverTest :: TestDef '[PgTemp.Cache, HTTP.Manager] ClientEnv -> Spec
 serverTest =
-  let setupClientHList :: HList '[HTTP.Manager, PgTemp.Cache] -> SetupFunc ClientEnv
-      setupClientHList outers = serverSetupFunc (getElem outers) >>= clientEnvSetupFunc (getElem outers)
+  let setupClientHList outers = serverSetupFunc (getElem outers) >>= clientEnvSetupFunc (getElem outers)
    in managerSpec
         . setupAroundAll dbCacheSetupFunc
-        . setupAroundWith' (\outers () -> setupClientHList outers)
+        . setupAroundWithAll (\outers () -> setupClientHList outers)
 
 clientEnvSetupFunc :: HTTP.Manager -> ServerT Web.Api Handler -> SetupFunc ClientEnv
 clientEnvSetupFunc man server = do
