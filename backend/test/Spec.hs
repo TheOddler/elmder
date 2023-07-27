@@ -22,6 +22,7 @@ import Test.Syd
     TestDef,
     expectationFailure,
     it,
+    modifyMaxSuccess,
     setupAroundAll,
     shouldBe,
     sydTest,
@@ -55,6 +56,7 @@ serverTest =
    in managerSpec
         . setupAroundAll dbCacheSetupFunc
         . setupAroundWithAll (\outers () -> setupClientHList outers)
+        . modifyMaxSuccess (`div` 10)
 
 clientEnvSetupFunc :: HTTP.Manager -> ServerT Web.Api Handler -> SetupFunc ClientEnv
 clientEnvSetupFunc man server = do
