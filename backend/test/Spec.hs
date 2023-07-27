@@ -19,11 +19,8 @@ import Test.Syd.Wai.Def (applicationSetupFunc, managerSpec)
 import User
 import Web
 
-instance (HContains l a, HContains l b) => HContains l (a, b) where
-  getElem l = (getElem l, getElem l)
-
-instance (HContains l a, HContains l b) => HContains l (HList '[a, b]) where
-  getElem l = HCons (getElem l) $ HCons (getElem l) $ HNil
+instance (HContains l a, HContains l (HList b)) => HContains l (HList (a ': b)) where
+  getElem l = HCons (getElem l) $ getElem l
 
 api :: ApiRoutes (AsClientT ClientM)
 api = client apiProxy
@@ -46,10 +43,7 @@ serverSetupFunc dbCache = do
 
 serverTest :: TestDef '[PgTemp.Cache, HTTP.Manager] ClientEnv -> Spec
 serverTest =
-  let setupClient :: (PgTemp.Cache, HTTP.Manager) -> SetupFunc ClientEnv
-      setupClient (dbCache, man) = serverSetupFunc dbCache >>= clientEnvSetupFunc man
-
-      setupClientHList :: HList '[PgTemp.Cache, HTTP.Manager] -> SetupFunc ClientEnv
+  let setupClientHList :: HList '[HTTP.Manager, PgTemp.Cache] -> SetupFunc ClientEnv
       setupClientHList outers = serverSetupFunc (getElem outers) >>= clientEnvSetupFunc (getElem outers)
    in managerSpec
         . setupAroundAll dbCacheSetupFunc
