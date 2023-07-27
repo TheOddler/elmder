@@ -4,64 +4,24 @@
 
 module Main (main) where
 
-import DB (initConnectionPool, initDB)
 import Data.Text qualified as T
-import Database.Postgres.Temp (toConnectionString)
-import Database.Postgres.Temp qualified as PgTemp
-import Network.HTTP.Client qualified as HTTP
-import Servant (Handler)
-import Servant.Client
-import Servant.Server.Generic (AsServerT)
-import SydTestExtra (setupAroundWithAll)
-import Test.QuickCheck
+import Servant.Client ((//), (/:))
+import Test.QuickCheck (Arbitrary (arbitrary), forAll, suchThat)
 import Test.QuickCheck.Instances.Text ()
 import Test.Syd
-  ( HContains (getElem),
-    SetupFunc (SetupFunc),
-    Spec,
-    TestDef,
-    expectationFailure,
+  ( Spec,
     it,
-    modifyMaxSuccess,
-    setupAroundAll,
     shouldBe,
     sydTest,
   )
-import Test.Syd.Servant (clientEnvSetupFunc, testClient)
-import Test.Syd.Wai.Def (managerSpec)
-import User
+import Test.Syd.Servant (testClient)
+import User (UserID (UserID), UserRoutes (getUsers))
+import Util
 import Web
-
-api :: ApiRoutes (AsClientT ClientM)
-api = client apiProxy
-
-dbCacheSetupFunc :: SetupFunc PgTemp.Cache
-dbCacheSetupFunc = SetupFunc PgTemp.withDbCache
-
-serverSetupFunc :: PgTemp.Cache -> SetupFunc (ApiRoutes (AsServerT Handler))
-serverSetupFunc dbCache = do
-  SetupFunc $ \test -> do
-    eitherErrOrA <-
-      PgTemp.withConfig (PgTemp.cacheConfig dbCache) $ \db -> do
-        let connStr = toConnectionString db
-        initDB connStr
-        conns <- initConnectionPool connStr
-        test (routes conns)
-    case eitherErrOrA of
-      Left err -> expectationFailure $ show err
-      Right a -> pure a
-
-serverTest :: TestDef '[PgTemp.Cache, HTTP.Manager] ClientEnv -> Spec
-serverTest =
-  let setupClientHList outers = serverSetupFunc (getElem outers) >>= clientEnvSetupFunc apiProxy (getElem outers)
-   in managerSpec
-        . setupAroundAll dbCacheSetupFunc
-        . setupAroundWithAll (\outers () -> setupClientHList outers)
-        . modifyMaxSuccess (`div` 10)
 
 main :: IO ()
 main = sydTest $ do
-  serverTest $ do
+  clientTest $ do
     it "returns pong" $ \clientEnv -> do
       answer <- testClient clientEnv (api.ping)
       answer `shouldBe` "pong"
@@ -79,7 +39,7 @@ main = sydTest $ do
 
 userSpec :: Spec
 userSpec =
-  serverTest $ do
+  clientTest $ do
     it "returns the requested users" $ \clientEnv -> do
       let requestedUsers = UserID <$> ["a", "b", "c"]
       answer <- testClient clientEnv (api.userRoutes.getUsers requestedUsers)
