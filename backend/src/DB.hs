@@ -13,7 +13,7 @@ type DBConnectionString = ByteString
 initDB :: DBConnectionString -> IO ()
 initDB connStr = bracket (connectPostgreSQL connStr) close $ \conn -> do
   _ <- execute_ conn "CREATE TABLE IF NOT EXISTS greeted_people (name text not null)"
-  return ()
+  pure ()
 
 initConnectionPool :: DBConnectionString -> IO (Pool DB.Connection)
 initConnectionPool connStr =

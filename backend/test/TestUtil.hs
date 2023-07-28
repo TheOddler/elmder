@@ -1,9 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE OverloadedRecordDot #-}
-{-# LANGUAGE OverloadedStrings #-}
 
-module Util where
+module TestUtil where
 
 import DB (initConnectionPool, initDB)
 import Database.Postgres.Temp (toConnectionString)

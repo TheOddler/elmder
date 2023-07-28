@@ -4,10 +4,11 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-23.05";
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
+    pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, flake-utils }:
+  outputs = { self, nixpkgs, nixpkgs-unstable, pre-commit-hooks, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
@@ -35,6 +36,7 @@
           # The ghc version that snapshot is using can be found by going to the stackage page for it, for example: https://www.stackage.org/lts-20.25
           haskell.compiler.ghc92
           (haskell-language-server.override { supportedGhcVersions = [ "928" ]; })
+          hlint
         ];
 
         elmParcelNixFix = {
@@ -60,6 +62,33 @@
       {
         devShells.default = pkgs.mkShell {
           buildInputs = buildPackages ++ devPackages;
+          inherit (self.checks.${system}.pre-commit-check) shellHook;
+        };
+
+        checks = {
+          pre-commit-check = pre-commit-hooks.lib.${system}.run {
+            src = ./.;
+            hooks = {
+              nixpkgs-fmt = {
+                enable = true;
+                excludes = [
+                  "frontend/elm-srcs.nix" # Auto generated
+                ];
+              };
+              ormolu = {
+                enable = true;
+                # entry = "${tools.ormolu}/bin/ormolu --mode inplace";
+              };
+              hlint.enable = true;
+            };
+
+            settings = {
+              hlint.hintFile = backend/hlint.yaml;
+              ormolu.defaultExtensions = [
+                "GHC2021" # Let Ormolu know we're using GHC2021
+              ];
+            };
+          };
         };
 
         packages.frontend = pkgs.buildNpmPackage {

@@ -15,8 +15,8 @@ import Test.Syd
     sydTest,
   )
 import Test.Syd.Servant (testClient)
+import TestUtil
 import User (UserID (UserID), UserRoutes (getUsers))
-import Util
 import Web
 
 main :: IO ()
