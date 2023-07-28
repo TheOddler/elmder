@@ -1,10 +1,6 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DerivingVia #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE StrictData #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module User where
@@ -84,7 +80,7 @@ data UserRoutes mode = UserRoutes
   deriving (Generic)
 
 userRoutes :: Pool DB.Connection -> UserRoutes (AsServerT Handler)
-userRoutes dbConns = UserRoutes {..}
+userRoutes _dbConns = UserRoutes {..}
   where
     getUsers = getUsersHandler
     getSomeUserIDs = pure $ UserID . T.pack . show <$> [1 .. 10 :: Int]
