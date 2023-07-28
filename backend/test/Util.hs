@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -14,8 +15,7 @@ import Servant.Server.Generic (AsServerT)
 import SydTestExtra (setupAroundWithAll)
 import Test.QuickCheck.Instances.Text ()
 import Test.Syd
-  ( HContains (getElem),
-    HList,
+  ( HList (..),
     SetupFunc (SetupFunc),
     Spec,
     TestDef,
@@ -47,9 +47,9 @@ clientTest =
           Right a -> pure a
 
       setupClient :: HList '[PgTemp.Cache, HTTP.Manager] -> SetupFunc ClientEnv
-      setupClient outers = do
-        server <- serverSetupFunc (getElem outers)
-        clientEnvSetupFunc apiProxy (getElem outers) server
+      setupClient (HCons dbCache (HCons man HNil)) = do
+        server <- serverSetupFunc dbCache
+        clientEnvSetupFunc apiProxy man server
    in managerSpec
         . setupAroundAll dbCacheSetupFunc
         . setupAroundWithAll (\outers () -> setupClient outers)
