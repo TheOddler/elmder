@@ -1,6 +1,6 @@
-# Haskell's Dangerous Functions
-# For a how-to-use and the latest version of this file go to:
-# https://github.com/NorfairKing/haskell-dangerous-functions/
+# This file is based on: Haskell's Dangerous Functions
+# For  the latest version of that see https://github.com/NorfairKing/haskell-dangerous-functions/)
+# It was then customized to my needs.
 
 - ignore: { name: "Use unless" } # Don't use unless, it's confusing
 - ignore: { name: "Use tuple-section" }
