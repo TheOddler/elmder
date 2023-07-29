@@ -5,12 +5,11 @@
 
 module User where
 
+import AppM (AppM)
 import Control.Monad.IO.Class (liftIO)
 import Data.Maybe (catMaybes)
-import Data.Pool (Pool)
 import Data.Text (Text)
 import Data.Text qualified as T
-import Database.PostgreSQL.Simple qualified as DB
 import Elm.Derive (deriveBoth)
 import Faker (Fake, generateNonDeterministic)
 import Faker.Book.Lovecraft qualified
@@ -24,7 +23,6 @@ import GHC.Generics (Generic)
 import Servant
   ( GenericMode ((:-)),
     Get,
-    Handler,
     JSON,
     Post,
     ReqBody,
@@ -79,13 +77,13 @@ data UserRoutes mode = UserRoutes
   }
   deriving (Generic)
 
-userRoutes :: Pool DB.Connection -> UserRoutes (AsServerT Handler)
-userRoutes _dbConns = UserRoutes {..}
+userRoutes :: UserRoutes (AsServerT AppM)
+userRoutes = UserRoutes {..}
   where
     getUsers = getUsersHandler
     getSomeUserIDs = pure $ UserID . T.pack . show <$> [1 .. 10 :: Int]
 
-getUsersHandler :: [UserID] -> Handler [User]
+getUsersHandler :: [UserID] -> AppM [User]
 getUsersHandler ids = liftIO $ generateNonDeterministic $ mapM fakeUser ids
   where
     maybeF :: Fake a -> Fake (Maybe a)

@@ -6,6 +6,11 @@
 - ignore: { name: "Use tuple-section" }
 
 - functions:
+  - name: Servant.Handler
+    message: You probably want to use our own handler monad `AppM`
+    within:
+      - AppM # To allow conversion from our own to Servant's Handler we do need to use it here
+
   - {name: unsafeDupablePerformIO, within: []} # Unsafe
   - {name: unsafeInterleaveIO, within: []} # Unsafe
   - {name: unsafeFixIO, within: []} # Unsafe
@@ -113,7 +118,9 @@
   # Does silent truncation:
   # > fromIntegral (300 :: Word) :: Word8
   # 44
-  - {name: fromIntegral, within: []}
+  - name: fromIntegral
+    within:
+      - TestUtil # We use it with a constant that we know is safe
   - {name: fromInteger, within: []}
 
 

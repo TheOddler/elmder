@@ -36,6 +36,7 @@ library:
     - servant-elm
     - servant-server
     - text
+    - transformers
     - warp
 
 executables:

@@ -1,13 +1,20 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module App (main) where
+module App where
 
-import DB (initConnectionPool)
+import AppM (AppState (..), toServantHandler)
+import DB (initConnectionPool, initDB)
 import Network.Wai.Handler.Warp (run)
-import Servant (serve)
-import Web (apiProxy, routes)
+import Servant (Server, hoistServer, serve)
+import Web (Api, apiProxy, routes)
+
+mkServer :: AppState -> Server Api
+mkServer appState = hoistServer apiProxy (toServantHandler appState) routes
 
 main :: IO ()
 main = do
-  dbConns <- initConnectionPool "host=localhost"
-  run 8081 (serve apiProxy $ routes dbConns)
+  let connStr = "host=localhost"
+  initDB connStr -- Until we have a proper migration system
+  dbConns <- initConnectionPool connStr
+  let appState = AppState dbConns
+  run 8081 $ serve apiProxy $ mkServer appState

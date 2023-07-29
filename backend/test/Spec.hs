@@ -8,12 +8,7 @@ import Data.Text qualified as T
 import Servant.Client ((//), (/:))
 import Test.QuickCheck (Arbitrary (arbitrary), forAll, suchThat)
 import Test.QuickCheck.Instances.Text ()
-import Test.Syd
-  ( Spec,
-    it,
-    shouldBe,
-    sydTest,
-  )
+import Test.Syd (Spec, it, shouldBe, sydTest)
 import Test.Syd.Servant (testClient)
 import TestUtil
 import User (UserID (UserID), UserRoutes (getUsers))
