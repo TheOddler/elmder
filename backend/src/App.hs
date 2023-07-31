@@ -3,7 +3,10 @@
 module App where
 
 import AppM (AppState (..), toServantHandler)
-import DB (initConnectionPool, initDB)
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Logger (runStdoutLoggingT)
+import DB (initDB)
+import Database.Persist.Postgresql (withPostgresqlPool)
 import Network.Wai.Handler.Warp (run)
 import Servant (Server, hoistServer, serve)
 import Web (Api, apiProxy, routes)
@@ -14,7 +17,8 @@ mkServer appState = hoistServer apiProxy (toServantHandler appState) routes
 main :: IO ()
 main = do
   let connStr = "host=localhost"
-  initDB connStr -- Until we have a proper migration system
-  dbConns <- initConnectionPool connStr
-  let appState = AppState dbConns
-  run 8081 $ serve apiProxy $ mkServer appState
+  runStdoutLoggingT $ withPostgresqlPool connStr 10 $ \dbConns ->
+    liftIO $ do
+      let appState = AppState dbConns
+      initDB dbConns
+      run 8081 $ serve apiProxy $ mkServer appState

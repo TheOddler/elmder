@@ -1,27 +1,33 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module DB where
 
-import Control.Exception (bracket)
-import Data.ByteString (ByteString)
-import Data.Pool (Pool, createPool)
-import Database.PostgreSQL.Simple (close, connectPostgreSQL, execute_)
-import Database.PostgreSQL.Simple qualified as DB
+import AppM (AppM, AppState (appStateConnectionPool))
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Trans.Reader (asks)
+import Data.Text (Text)
+import Database.Persist.Postgresql
+import Database.Persist.TH
 
-type DBConnectionString = ByteString
+runDb :: SqlPersistT IO a -> AppM a
+runDb query = do
+  pool <- asks appStateConnectionPool
+  liftIO $ runSqlPool query pool
 
-initConnectionPool :: DBConnectionString -> IO (Pool DB.Connection)
-initConnectionPool connStr =
-  createPool
-    (connectPostgreSQL connStr)
-    close
-    2 -- stripes
-    60 -- unused connections are kept open for a minute
-    10 -- max. 10 connections open per stripe
+share
+  [mkPersist sqlSettings, mkMigrate "migrateAll"]
+  [persistLowerCase|
+GreetedPerson
+    name Text
+    somethingElse Int
+    deriving Show
+|]
 
--- | This function should initialize the database in an idempotent way
--- I use this until I have a proper migration setup for the database
-initDB :: DBConnectionString -> IO ()
-initDB connStr = bracket (connectPostgreSQL connStr) close $ \conn -> do
-  _ <- execute_ conn "CREATE TABLE IF NOT EXISTS greeted_people (name text not null)"
-  pure ()
+initDB :: ConnectionPool -> IO ()
+initDB = runSqlPool (runMigration migrateAll)

@@ -5,9 +5,10 @@
 
 module Web where
 
-import AppM (AppM, withDbConn)
+import AppM (AppM)
+import DB (GreetedPerson (..), runDb)
 import Data.Text (Text)
-import Database.PostgreSQL.Simple qualified as DB
+import Database.Persist.Postgresql (Entity (..), insert, selectList)
 import GHC.Generics (Generic)
 import Servant
   ( Capture,
@@ -49,8 +50,7 @@ say = pure
 
 greet :: Text -> AppM [Text]
 greet name = do
-  names <- withDbConn $ \conn -> do
-    _ <- DB.execute conn "INSERT INTO greeted_people VALUES (?)" (DB.Only name)
-    DB.query_ conn "SELECT name FROM greeted_people"
-
-  pure ((\n -> "Hello " <> DB.fromOnly n) <$> names)
+  runDb $ do
+    _ <- insert $ DB.GreetedPerson name 1
+    greetedPeople <- selectList [] []
+    pure $ (\gp -> "Hello " <> greetedPersonName (entityVal gp)) <$> greetedPeople

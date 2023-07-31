@@ -28,11 +28,11 @@ default-extensions:
 library:
   source-dirs: src
   dependencies:
-    - bytestring
     - elm-bridge
     - fakedata
-    - postgresql-simple
-    - resource-pool
+    - monad-logger
+    - persistent
+    - persistent-postgresql
     - servant-elm
     - servant-server
     - text
@@ -63,6 +63,8 @@ tests:
     dependencies:
       - backend
       - http-client
+      - monad-logger
+      - persistent-postgresql
       - QuickCheck
       - quickcheck-instances
       - servant-client

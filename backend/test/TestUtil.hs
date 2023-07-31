@@ -5,7 +5,10 @@ module TestUtil where
 
 import App (mkServer)
 import AppM (AppState (..))
-import DB (initConnectionPool, initDB)
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Logger (runNoLoggingT)
+import DB (initDB)
+import Database.Persist.Postgresql (withPostgresqlPool)
 import Database.Postgres.Temp (toConnectionString)
 import Database.Postgres.Temp qualified as PgTemp
 import Network.HTTP.Client qualified as HTTP
@@ -35,12 +38,12 @@ clientTest =
 
       serverSetupFunc :: PgTemp.Cache -> SetupFunc (Server Api)
       serverSetupFunc dbCache = SetupFunc $ \test -> do
-        eitherErrOrA <- PgTemp.withConfig (PgTemp.cacheConfig dbCache) $ \db -> do
-          let connStr = toConnectionString db
-          initDB connStr
-          dbConns <- initConnectionPool connStr
-          let appState = AppState dbConns
-          test (mkServer appState)
+        eitherErrOrA <- PgTemp.withConfig (PgTemp.cacheConfig dbCache) $ \db ->
+          runNoLoggingT $ withPostgresqlPool (toConnectionString db) 10 $ \dbConns ->
+            liftIO $ do
+              let appState = AppState dbConns
+              initDB dbConns
+              test (mkServer appState)
         case eitherErrOrA of
           Left err -> expectationFailure $ show err
           Right a -> pure a
