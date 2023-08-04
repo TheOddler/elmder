@@ -31,11 +31,16 @@ library:
     - bytestring
     - elm-bridge
     - fakedata
-    - postgresql-simple
+    - hasql
+    - hasql-pool
+    - hasql-th
+    - hasql-transaction
+    - rel8
     - resource-pool
     - servant-elm
     - servant-server
     - text
+    - time
     - transformers
     - warp
 

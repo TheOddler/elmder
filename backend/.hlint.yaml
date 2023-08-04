@@ -134,7 +134,9 @@
   - { name: Control.Lens, within: [] }
 
 - extensions:
-  - { name: DeriveAnyClass, within: [] } # Dangerous
+  - name: DeriveAnyClass # Dangerous
+    within:
+      - DB
 
   - { name: DuplicateRecordFields, within: [] }
 

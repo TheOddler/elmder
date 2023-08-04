@@ -1,27 +1,63 @@
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module DB where
 
-import Control.Exception (bracket)
-import Data.ByteString (ByteString)
-import Data.Pool (Pool, createPool)
-import Database.PostgreSQL.Simple (close, connectPostgreSQL, execute_)
-import Database.PostgreSQL.Simple qualified as DB
+import AppM (AppM, AppState (dbConnectionPool))
+import Control.Exception (throwIO)
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Trans.Reader (asks)
+import Data.Text (Text)
+import GHC.Generics (Generic)
+import Hasql.Connection qualified
+import Hasql.Pool qualified
+import Hasql.Session qualified
+import Hasql.Statement qualified
+import Rel8
 
-type DBConnectionString = ByteString
+initConnectionPool :: Hasql.Connection.Settings -> IO Hasql.Pool.Pool
+initConnectionPool =
+  Hasql.Pool.acquire
+    10 -- Pool size
+    (Just $ 10 * 1_000_000) -- Connection acquisition timeout in microseconds
 
-initConnectionPool :: DBConnectionString -> IO (Pool DB.Connection)
-initConnectionPool connStr =
-  createPool
-    (connectPostgreSQL connStr)
-    close
-    2 -- stripes
-    60 -- unused connections are kept open for a minute
-    10 -- max. 10 connections open per stripe
+runSessionWith :: Hasql.Pool.Pool -> Hasql.Session.Session a -> IO a
+runSessionWith pool session = do
+  errOrResult <- Hasql.Pool.use pool session
+  case errOrResult of
+    Left err -> throwIO err
+    Right a -> pure a
+
+runSession :: Hasql.Session.Session a -> AppM a
+runSession session = do
+  pool <- asks dbConnectionPool
+  liftIO $ runSessionWith pool session
+
+runHasql :: params -> Hasql.Statement.Statement params result -> AppM result
+runHasql params statement = do
+  runSession $ Hasql.Session.statement params statement
 
 -- | This function should initialize the database in an idempotent way
 -- I use this until I have a proper migration setup for the database
-initDB :: DBConnectionString -> IO ()
-initDB connStr = bracket (connectPostgreSQL connStr) close $ \conn -> do
-  _ <- execute_ conn "CREATE TABLE IF NOT EXISTS greeted_people (name text not null)"
-  pure ()
+initDB :: Hasql.Pool.Pool -> IO ()
+initDB pool =
+  runSessionWith pool $
+    Hasql.Session.sql "CREATE TABLE IF NOT EXISTS greeted_people (name text not null)"
+
+newtype GreetedPerson f = GreetedPerson
+  { greetedPersonName :: Column f Text
+  }
+  deriving stock (Generic)
+  deriving anyclass (Rel8able)
+
+greetedPeopleSchema :: TableSchema (GreetedPerson Name)
+greetedPeopleSchema =
+  TableSchema
+    { Rel8.name = "greeted_people",
+      schema = Nothing,
+      columns =
+        GreetedPerson
+          { greetedPersonName = "name"
+          }
+    }

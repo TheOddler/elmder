@@ -4,8 +4,6 @@
 module TestUtil where
 
 import App (mkServer)
-import AppM (AppState (..))
-import DB (initConnectionPool, initDB)
 import Database.Postgres.Temp (toConnectionString)
 import Database.Postgres.Temp qualified as PgTemp
 import Network.HTTP.Client qualified as HTTP
@@ -36,11 +34,8 @@ clientTest =
       serverSetupFunc :: PgTemp.Cache -> SetupFunc (Server Api)
       serverSetupFunc dbCache = SetupFunc $ \test -> do
         eitherErrOrA <- PgTemp.withConfig (PgTemp.cacheConfig dbCache) $ \db -> do
-          let connStr = toConnectionString db
-          initDB connStr
-          dbConns <- initConnectionPool connStr
-          let appState = AppState dbConns
-          test (mkServer appState)
+          server <- mkServer $ toConnectionString db
+          test server
         case eitherErrOrA of
           Left err -> expectationFailure $ show err
           Right a -> pure a

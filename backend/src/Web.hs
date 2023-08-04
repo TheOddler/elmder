@@ -1,14 +1,17 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeOperators #-}
 
 module Web where
 
-import AppM (AppM, withDbConn)
+import AppM (AppM)
+import DB (GreetedPerson (greetedPersonName), greetedPeopleSchema, runHasql)
 import Data.Text (Text)
-import Database.PostgreSQL.Simple qualified as DB
 import GHC.Generics (Generic)
+import Hasql.TH (resultlessStatement)
+import Rel8 qualified
 import Servant
   ( Capture,
     GenericMode (type (:-)),
@@ -49,8 +52,10 @@ say = pure
 
 greet :: Text -> AppM [Text]
 greet name = do
-  names <- withDbConn $ \conn -> do
-    _ <- DB.execute conn "INSERT INTO greeted_people VALUES (?)" (DB.Only name)
-    DB.query_ conn "SELECT name FROM greeted_people"
+  runHasql name [resultlessStatement| INSERT INTO greeted_people (name) VALUES ($1 :: text) |]
+  names <- runHasql () $ Rel8.select (greetedPersonName <$> Rel8.each greetedPeopleSchema)
+  -- names <- withDbConn $ \conn -> do
+  --   _ <- DB.execute conn "INSERT INTO greeted_people VALUES (?)" (DB.Only name)
+  --   DB.query_ conn "SELECT name FROM greeted_people"
 
-  pure ((\n -> "Hello " <> DB.fromOnly n) <$> names)
+  pure (("Hello " <>) <$> names)
