@@ -69,19 +69,13 @@
           pre-commit-check = pre-commit-hooks.lib.${system}.run {
             src = ./.;
             hooks = {
-              nixpkgs-fmt = {
-                enable = true;
-                excludes = [
-                  "frontend/elm-srcs.nix" # Auto generated
-                ];
-              };
-              ormolu = {
-                enable = true;
-                # entry = "${tools.ormolu}/bin/ormolu --mode inplace";
-              };
               hlint.enable = true;
+              ormolu.enable = true;
+              nixpkgs-fmt.enable = true;
+              nixpkgs-fmt.excludes = [
+                "frontend/elm-srcs.nix" # Auto generated
+              ];
             };
-
             settings = {
               hlint.hintFile = backend/.hlint.yaml;
               ormolu.defaultExtensions = [
