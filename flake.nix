@@ -66,6 +66,7 @@
         };
 
         checks = {
+          frontend = self.packages.${system}.frontend;
           pre-commit-check = pre-commit-hooks.lib.${system}.run {
             src = ./.;
             hooks = {
@@ -92,7 +93,7 @@
           npmDepsHash = "sha256-SvlklTgqGSoDyjlHRIjlhBuB4dyYl4Ro1Sc2aBgx76I=";
 
           preBuild = ''
-            task gen-api
+            # task be:elm-gen-test
           '' + elmParcelNixFix.preBuild;
 
           installPhase = ''
