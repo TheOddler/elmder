@@ -41,7 +41,7 @@ tasks:
       - 'elm-gen/**/*.hs'
   
   start-db:
-    description: Starts the database if it's not running, always succeeds.
+    desc: Starts the database if it's not running, always succeeds.
     deps: [setup-db]
     preconditions:
       - '[ -d "./postgres" ]' # folder must exist, and should be created by setup-db
@@ -49,12 +49,12 @@ tasks:
       - pg_ctl start -D ./postgres -l psql_logfile || echo "DB already running, nothing to start."
   
   stop-db:
-    description: Stops the database if it's running, always succeeds.
+    desc: Stops the database if it's running, always succeeds.
     cmds:
       - pg_ctl stop -D ./postgres || echo "No DB running, nothing to stop."
   
   setup-db:
-    description: |
+    desc: |
       Anything needed to make sure the DB can be started locally.
       If the ./postgres folder already exists we assume this command was already successfully run and we can skip.
       If you want to setup a new one, manually delete the `./postgres` folder in backend.
