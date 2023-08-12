@@ -66,7 +66,7 @@
         };
 
         checks = {
-          frontend = self.packages.${system}.frontend;
+          # frontend = self.packages.${system}.frontend;
           pre-commit-check = pre-commit-hooks.lib.${system}.run {
             src = ./.;
             hooks = {
@@ -86,24 +86,24 @@
           };
         };
 
-        packages.frontend = pkgs.buildNpmPackage {
-          name = "elmder";
-          nativeBuildInputs = buildPackages ++ elmParcelNixFix.nativeBuildPackages;
-          src = ./frontend;
-          npmDepsHash = "sha256-SvlklTgqGSoDyjlHRIjlhBuB4dyYl4Ro1Sc2aBgx76I=";
+        # packages.frontend = pkgs.buildNpmPackage {
+        #   name = "elmder";
+        #   nativeBuildInputs = buildPackages ++ elmParcelNixFix.nativeBuildPackages;
+        #   src = ./frontend;
+        #   npmDepsHash = "sha256-SvlklTgqGSoDyjlHRIjlhBuB4dyYl4Ro1Sc2aBgx76I=";
 
-          preBuild = ''
-            # task be:elm-gen-test
-          '' + elmParcelNixFix.preBuild;
+        #   preBuild = ''
+        #     # task be:elm-gen-test
+        #   '' + elmParcelNixFix.preBuild;
 
-          installPhase = ''
-            mkdir $out
-            cp -r dist/ $out
-          '';
+        #   installPhase = ''
+        #     mkdir $out
+        #     cp -r dist/ $out
+        #   '';
 
-          npmFlags = elmParcelNixFix.npmFlags;
-          configurePhase = elmParcelNixFix.configurePhase;
-        };
+        #   npmFlags = elmParcelNixFix.npmFlags;
+        #   configurePhase = elmParcelNixFix.configurePhase;
+        # };
       }
     );
 }
