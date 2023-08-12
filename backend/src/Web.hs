@@ -54,8 +54,5 @@ greet :: Text -> AppM [Text]
 greet name = do
   runHasql name [resultlessStatement| INSERT INTO greeted_people (name) VALUES ($1 :: text) |]
   names <- runHasql () $ Rel8.select (greetedPersonName <$> Rel8.each greetedPeopleSchema)
-  -- names <- withDbConn $ \conn -> do
-  --   _ <- DB.execute conn "INSERT INTO greeted_people VALUES (?)" (DB.Only name)
-  --   DB.query_ conn "SELECT name FROM greeted_people"
 
   pure (("Hello " <>) <$> names)
