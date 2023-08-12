@@ -4,12 +4,12 @@ module App where
 
 import AppM (AppState (..), toServantHandler)
 import DB (initConnectionPool, initDB)
-import Data.ByteString (ByteString)
+import Hasql.Connection (Settings)
 import Network.Wai.Handler.Warp (run)
 import Servant (Server, hoistServer, serve)
 import Web (Api, apiProxy, routes)
 
-mkServer :: ByteString -> IO (Server Api)
+mkServer :: Settings -> IO (Server Api)
 mkServer connStr = do
   pool <- initConnectionPool connStr
   initDB pool -- Until we have a proper migration system
@@ -18,6 +18,6 @@ mkServer connStr = do
 
 main :: IO ()
 main = do
-  let connStr = "host=localhost"
+  let connStr = "host=127.0.0.1"
   server <- mkServer connStr
   run 8081 $ serve apiProxy server
