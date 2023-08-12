@@ -36,11 +36,9 @@ library:
     - hasql-th
     - hasql-transaction
     - rel8
-    - resource-pool
     - servant-elm
     - servant-server
     - text
-    - time
     - transformers
     - warp
 
