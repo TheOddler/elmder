@@ -21,9 +21,12 @@ tasks:
       - 'test/**/*.hs'
   
   run:
+    desc: |
+      Runs the server.
+      This also starts the database, and I haven't found a good way to automatically stop it yet (and can't get Task's defer to work as I want), so you'll have to manually stop the database after using this.
     cmds:
       - task: start-db
-      - pkill backend-exe || true # Kill existing backend if it's still running, Task should already do that, but apparently not: https://github.com/go-task/task/issues/160
+      - pkill backend-exe || true # Kill existing backend if it's still running, Task should already do that, but apparently not always when watching: https://github.com/go-task/task/issues/160
       - stack run backend-exe
     sources: *defaultSources
   
