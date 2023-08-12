@@ -24,7 +24,6 @@ I'm using [Task](https://taskfile.dev/) to run common commands.
 
 ```bash
 task fe # Starts the frontend server, this always watches your code and does live updates
-task be --watch # On some commands you can add `--watch` to automatically rerun when files change, all commands with a `sources` field can be watched
-# ^ With those two commands you have a pretty good setup for developing both backend and frontend
+task be # With those two commands you have a pretty good setup for developing both backend and frontend
 task --list-all # To see all other commands, or check in the `taskfile.yaml`s
 ```
