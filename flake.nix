@@ -89,6 +89,11 @@
 
         packages.backend = pkgs.haskellPackages.developPackage {
           root = ./backend;
+          modifier = drv:
+            pkgs.haskell.lib.addBuildTools drv (with pkgs; [
+              zlib # required for servant
+              postgresql # required for tmp-postgres
+            ]);
         };
 
         # packages.frontend = pkgs.buildNpmPackage {
