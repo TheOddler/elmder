@@ -9,9 +9,9 @@
   };
 
   outputs = { self, nixpkgs, nixpkgs-unstable, pre-commit-hooks, flake-utils }:
-    flake-utils.lib.eachDefaultSystem (system:
+    flake-utils.lib.eachSystem [ flake-utils.lib.system.x86_64-linux ] (system:
       let
-        pkgs = nixpkgs.legacyPackages.${system};
+        pkgs = import nixpkgs { inherit system; config.allowBroken = true; };
         pkgs-unstable = nixpkgs-unstable.legacyPackages.${system};
 
         buildPackages = with pkgs; [
@@ -67,6 +67,7 @@
 
         checks = {
           # frontend = self.packages.${system}.frontend;
+          backend = self.packages.${system}.backend;
           pre-commit-check = pre-commit-hooks.lib.${system}.run {
             src = ./.;
             hooks = {
@@ -84,6 +85,10 @@
               ];
             };
           };
+        };
+
+        packages.backend = pkgs.haskellPackages.developPackage {
+          root = ./backend;
         };
 
         # packages.frontend = pkgs.buildNpmPackage {
