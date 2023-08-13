@@ -28,7 +28,6 @@ default-extensions:
 library:
   source-dirs: src
   dependencies:
-    - bytestring
     - elm-bridge
     - fakedata
     - hasql
