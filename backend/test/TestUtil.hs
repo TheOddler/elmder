@@ -10,6 +10,7 @@ import Network.HTTP.Client qualified as HTTP
 import Servant (Server, serve)
 import Servant.Client
 import SydTestExtra (setupAroundWithAll)
+import System.Environment qualified as Env
 import Test.QuickCheck.Instances.Text ()
 import Test.Syd
   ( HList (..),
@@ -17,6 +18,7 @@ import Test.Syd
     Spec,
     TestDef,
     expectationFailure,
+    liftIO,
     modifyMaxSuccess,
     setupAroundAll,
   )
@@ -58,7 +60,14 @@ clientTest =
       setupClient (HCons dbCache (HCons man HNil)) = do
         server <- serverSetupFunc dbCache
         clientSetupFunc man server
+
+      fixHomeForNix :: TestDef a b -> TestDef a b
+      fixHomeForNix anyTest = do
+        tmpFolder <- liftIO $ Env.getEnv "TMP"
+        liftIO $ Env.setEnv "HOME" tmpFolder
+        anyTest
    in managerSpec
         . setupAroundAll dbCacheSetupFunc
         . setupAroundWithAll (\outers () -> setupClient outers)
         . modifyMaxSuccess (`div` 10)
+        . fixHomeForNix
