@@ -61,6 +61,9 @@ clientTest =
         server <- serverSetupFunc dbCache
         clientSetupFunc man server
 
+      -- This is a fix for running the tests in a pure nix environment, such as `nix flake check` or nix-ci.
+      -- For some reason initdb (called by tmp-postgres) is creating something in the home folder, and that fails without this this.
+      -- It might be possible to set the home folder in nix, but I haven't figured that out yet, once I do this could be moved there. Or there might be a way of calling initdb without it needing a writeable home folder, if so, that would be a better fix. I'll look into both of these options at some point.
       fixHomeForNix :: TestDef a b -> TestDef a b
       fixHomeForNix anyTest = do
         tmpFolder <- liftIO $ Env.getEnv "TMP"
