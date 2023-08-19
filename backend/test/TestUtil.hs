@@ -10,7 +10,6 @@ import Network.HTTP.Client qualified as HTTP
 import Servant (Server, serve)
 import Servant.Client
 import SydTestExtra (setupAroundWithAll)
-import System.Environment qualified as Env
 import Test.QuickCheck.Instances.Text ()
 import Test.Syd
   ( HList (..),
@@ -18,7 +17,6 @@ import Test.Syd
     Spec,
     TestDef,
     expectationFailure,
-    liftIO,
     modifyMaxSuccess,
     setupAroundAll,
   )
@@ -31,7 +29,13 @@ api = client apiProxy
 clientTest :: TestDef '[PgTemp.Cache, HTTP.Manager] ClientEnv -> Spec
 clientTest =
   let dbCacheSetupFunc :: SetupFunc PgTemp.Cache
-      dbCacheSetupFunc = SetupFunc PgTemp.withDbCache
+      dbCacheSetupFunc =
+        let config =
+              PgTemp.defaultCacheConfig
+                { -- We overwrite the cacheDirectory here as the default uses the home folder which is disallowed during nix builds, so that would make the tests fail when using nix to build or test.
+                  PgTemp.cacheDirectoryType = PgTemp.Permanent "/tmp/.tmp-postgres"
+                }
+         in SetupFunc $ PgTemp.withDbCacheConfig config
 
       serverSetupFunc :: PgTemp.Cache -> SetupFunc (Server Api)
       serverSetupFunc dbCache = SetupFunc $ \test -> do
@@ -60,17 +64,7 @@ clientTest =
       setupClient (HCons dbCache (HCons man HNil)) = do
         server <- serverSetupFunc dbCache
         clientSetupFunc man server
-
-      -- This is a fix for running the tests in a pure nix environment, such as `nix flake check` or nix-ci.
-      -- For some reason initdb (called by tmp-postgres) is creating something in the home folder, and that fails without this this.
-      -- It might be possible to set the home folder in nix, but I haven't figured that out yet, once I do this could be moved there. Or there might be a way of calling initdb without it needing a writeable home folder, if so, that would be a better fix. I'll look into both of these options at some point.
-      fixHomeForNix :: TestDef a b -> TestDef a b
-      fixHomeForNix anyTest = do
-        tmpFolder <- liftIO $ Env.getEnv "TMP"
-        liftIO $ Env.setEnv "HOME" tmpFolder
-        anyTest
    in managerSpec
         . setupAroundAll dbCacheSetupFunc
         . setupAroundWithAll (\outers () -> setupClient outers)
         . modifyMaxSuccess (`div` 10)
-        . fixHomeForNix
