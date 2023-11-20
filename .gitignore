@@ -1,8 +1,9 @@
 .direnv
-result
-.task
-postgres
 .pre-commit-config.yaml
+.task
+.vscode
+postgres
+result
 
 # Backend stuff, once I can move the stack files into the backend folder I should remove this
 .stack-work
