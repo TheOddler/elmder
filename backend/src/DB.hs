@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -8,13 +7,10 @@ import AppM (AppM, AppState (dbConnectionPool))
 import Control.Exception (throwIO)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Reader (asks)
-import Data.Text (Text)
-import GHC.Generics (Generic)
 import Hasql.Connection qualified
 import Hasql.Pool qualified
 import Hasql.Session qualified
 import Hasql.Statement qualified
-import Rel8
 
 initConnectionPool :: Hasql.Connection.Settings -> IO Hasql.Pool.Pool
 initConnectionPool =
@@ -44,20 +40,3 @@ initDB :: Hasql.Pool.Pool -> IO ()
 initDB pool =
   runSessionWith pool $
     Hasql.Session.sql "CREATE TABLE IF NOT EXISTS greeted_people (name text not null)"
-
-newtype GreetedPerson f = GreetedPerson
-  { greetedPersonName :: Column f Text
-  }
-  deriving stock (Generic)
-  deriving anyclass (Rel8able)
-
-greetedPeopleSchema :: TableSchema (GreetedPerson Name)
-greetedPeopleSchema =
-  TableSchema
-    { Rel8.name = "greeted_people",
-      schema = Nothing,
-      columns =
-        GreetedPerson
-          { greetedPersonName = "name"
-          }
-    }

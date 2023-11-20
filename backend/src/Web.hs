@@ -7,11 +7,11 @@
 module Web where
 
 import AppM (AppM)
-import DB (GreetedPerson (greetedPersonName), greetedPeopleSchema, runHasql)
+import DB (runHasql)
+import Data.Foldable (toList)
 import Data.Text (Text)
 import GHC.Generics (Generic)
-import Hasql.TH (resultlessStatement)
-import Rel8 qualified
+import Hasql.TH (resultlessStatement, vectorStatement)
 import Servant
   ( Capture,
     GenericMode (type (:-)),
@@ -53,6 +53,6 @@ say = pure
 greet :: Text -> AppM [Text]
 greet name = do
   runHasql name [resultlessStatement| INSERT INTO greeted_people (name) VALUES ($1 :: text) |]
-  names <- runHasql () $ Rel8.select (greetedPersonName <$> Rel8.each greetedPeopleSchema)
+  names <- toList <$> runHasql () [vectorStatement| SELECT name :: text FROM greeted_people |]
 
   pure (("Hello " <>) <$> names)

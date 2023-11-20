@@ -34,7 +34,6 @@ library:
     - hasql-pool
     - hasql-th
     - hasql-transaction
-    - rel8
     - servant-elm
     - servant-server
     - text
