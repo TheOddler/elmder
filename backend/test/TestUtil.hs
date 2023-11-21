@@ -21,6 +21,7 @@ import Test.Syd
     expectationFailure,
     modifyMaxSuccess,
     setupAroundAll,
+    setupAroundWith,
   )
 import Test.Syd.Servant (testClient)
 import Test.Syd.Wai.Def (applicationSetupFunc, managerSpec)
@@ -29,24 +30,46 @@ import Web
 api :: ApiRoutes (AsClientT ClientM)
 api = client apiProxy
 
-clientTest :: TestDef '[PgTemp.Cache, HTTP.Manager] ClientEnv -> Spec
-clientTest =
-  let setupClient :: HList '[PgTemp.Cache, HTTP.Manager] -> SetupFunc ClientEnv
-      setupClient (HCons dbCache (HCons man HNil)) = do
-        serverEnv <- serverEnvSetupFunc dbCache
-        server <- serverSetupFunc serverEnv
-        clientSetupFunc man server
-   in managerSpec
-        . setupAroundAll dbCacheSetupFunc
-        . setupAroundWithAll (\outers () -> setupClient outers)
-        . modifyMaxSuccess (`div` 10)
-
-runOnClient :: ClientEnv -> ClientM a -> IO a
-runOnClient = testClient
-
 serverAndClientTest :: TestDef '[PgTemp.Cache, HTTP.Manager] (ServerEnv, ClientEnv) -> Spec
 serverAndClientTest =
-  let setupClient :: HList '[PgTemp.Cache, HTTP.Manager] -> SetupFunc (ServerEnv, ClientEnv)
+  let dbCacheSetupFunc :: SetupFunc PgTemp.Cache
+      dbCacheSetupFunc =
+        let config =
+              PgTemp.defaultCacheConfig
+                { -- We overwrite the cacheDirectory here as the default uses the home folder which is disallowed during nix builds, so that would make the tests fail when using nix to build or test.
+                  PgTemp.cacheDirectoryType = PgTemp.Permanent "/tmp/.tmp-postgres"
+                }
+         in SetupFunc $ PgTemp.withDbCacheConfig config
+
+      serverEnvSetupFunc :: PgTemp.Cache -> SetupFunc ServerEnv
+      serverEnvSetupFunc dbCache = SetupFunc $ \test -> do
+        eitherErrOrA <- PgTemp.withConfig (PgTemp.cacheConfig dbCache) $ \db -> do
+          serverEnv <- mkServerEnv $ toConnectionString db
+          test serverEnv
+        case eitherErrOrA of
+          Left err -> expectationFailure $ show err
+          Right a -> pure a
+
+      serverSetupFunc :: ServerEnv -> SetupFunc (Server Api)
+      serverSetupFunc serverEnv = SetupFunc $ \test -> do
+        server <- mkServer serverEnv
+        test server
+
+      clientSetupFunc :: HTTP.Manager -> Server Api -> SetupFunc ClientEnv
+      clientSetupFunc man server = do
+        let application = serve apiProxy server
+        p <- applicationSetupFunc application
+        pure $
+          mkClientEnv
+            man
+            ( BaseUrl
+                Http
+                "127.0.0.1"
+                (fromIntegral p) -- Safe because it is PortNumber -> Int
+                ""
+            )
+
+      setupClient :: HList '[PgTemp.Cache, HTTP.Manager] -> SetupFunc (ServerEnv, ClientEnv)
       setupClient (HCons dbCache (HCons man HNil)) = do
         serverEnv <- serverEnvSetupFunc dbCache
         server <- serverSetupFunc serverEnv
@@ -57,6 +80,14 @@ serverAndClientTest =
         . setupAroundWithAll (\outers () -> setupClient outers)
         . modifyMaxSuccess (`div` 10)
 
+serverTest :: TestDef '[PgTemp.Cache, HTTP.Manager] ServerEnv -> Spec
+serverTest testDef =
+  serverAndClientTest $ setupAroundWith (pure . fst) testDef
+
+clientTest :: TestDef '[PgTemp.Cache, HTTP.Manager] ClientEnv -> Spec
+clientTest testDef =
+  serverAndClientTest $ setupAroundWith (pure . snd) testDef
+
 runOnServer :: ServerEnv -> ServerM a -> IO a
 runOnServer serverEnv serverM = do
   eitherErrOrA <- Servant.runHandler $ toServantHandler serverEnv serverM
@@ -64,39 +95,5 @@ runOnServer serverEnv serverM = do
     Left err -> expectationFailure $ show err
     Right a -> pure a
 
-dbCacheSetupFunc :: SetupFunc PgTemp.Cache
-dbCacheSetupFunc =
-  let config =
-        PgTemp.defaultCacheConfig
-          { -- We overwrite the cacheDirectory here as the default uses the home folder which is disallowed during nix builds, so that would make the tests fail when using nix to build or test.
-            PgTemp.cacheDirectoryType = PgTemp.Permanent "/tmp/.tmp-postgres"
-          }
-   in SetupFunc $ PgTemp.withDbCacheConfig config
-
-serverEnvSetupFunc :: PgTemp.Cache -> SetupFunc ServerEnv
-serverEnvSetupFunc dbCache = SetupFunc $ \test -> do
-  eitherErrOrA <- PgTemp.withConfig (PgTemp.cacheConfig dbCache) $ \db -> do
-    serverEnv <- mkServerEnv $ toConnectionString db
-    test serverEnv
-  case eitherErrOrA of
-    Left err -> expectationFailure $ show err
-    Right a -> pure a
-
-serverSetupFunc :: ServerEnv -> SetupFunc (Server Api)
-serverSetupFunc serverEnv = SetupFunc $ \test -> do
-  server <- mkServer serverEnv
-  test server
-
-clientSetupFunc :: HTTP.Manager -> Server Api -> SetupFunc ClientEnv
-clientSetupFunc man server = do
-  let application = serve apiProxy server
-  p <- applicationSetupFunc application
-  pure $
-    mkClientEnv
-      man
-      ( BaseUrl
-          Http
-          "127.0.0.1"
-          (fromIntegral p) -- Safe because it is PortNumber -> Int
-          ""
-      )
+runOnClient :: ClientEnv -> ClientM a -> IO a
+runOnClient = testClient
