@@ -38,6 +38,7 @@ library:
     - servant-server
     - text
     - transformers
+    - vector
     - warp
 
 executables:

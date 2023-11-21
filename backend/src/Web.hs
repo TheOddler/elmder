@@ -6,7 +6,6 @@
 
 module Web where
 
-import AppM (AppM)
 import DB (runHasql)
 import Data.Foldable (toList)
 import Data.Text (Text)
@@ -22,8 +21,9 @@ import Servant
     type (:>),
   )
 import Servant.Server.Generic (AsServerT)
-import User (UserRoutes)
-import User qualified
+import ServerM (ServerM)
+import User.Web (UserRoutes)
+import User.Web qualified as User
 
 type Api = NamedRoutes ApiRoutes
 
@@ -38,7 +38,7 @@ data ApiRoutes mode = ApiRoutes
 apiProxy :: Proxy Api
 apiProxy = Proxy
 
-routes :: ApiRoutes (AsServerT AppM)
+routes :: ApiRoutes (AsServerT ServerM)
 routes =
   ApiRoutes
     { ping = pure "pong",
@@ -47,10 +47,10 @@ routes =
       userRoutes = User.userRoutes
     }
 
-say :: String -> AppM String
+say :: String -> ServerM String
 say = pure
 
-greet :: Text -> AppM [Text]
+greet :: Text -> ServerM [Text]
 greet name = do
   runHasql name [resultlessStatement| INSERT INTO greeted_people (name) VALUES ($1 :: text) |]
   names <- toList <$> runHasql () [vectorStatement| SELECT name :: text FROM greeted_people |]

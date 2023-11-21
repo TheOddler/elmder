@@ -1,37 +1,24 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module User where
 
-import AppM (AppM)
-import Control.Monad.IO.Class (liftIO)
-import Data.Maybe (catMaybes)
+import DB (runHasql)
+import Data.Foldable (toList)
+import Data.Int (Int32)
 import Data.Text (Text)
-import Data.Text qualified as T
+import Data.Vector (fromList)
 import Elm.Derive (deriveBoth)
-import Faker (Fake, generateNonDeterministic)
-import Faker.Book.Lovecraft qualified
-import Faker.Combinators (fakeBoundedEnum, fromRange, listOf, oneof)
-import Faker.Creature.Cat qualified
-import Faker.Food qualified
-import Faker.FunnyName qualified
-import Faker.Name qualified
-import Faker.Superhero qualified
+import Faker (generateNonDeterministic)
 import GHC.Generics (Generic)
-import Servant
-  ( GenericMode ((:-)),
-    Get,
-    JSON,
-    Post,
-    ReqBody,
-    (:>),
-  )
+import Hasql.TH (vectorStatement)
 import Servant.Elm qualified
-import Servant.Server.Generic (AsServerT)
+import ServerM (ServerM)
 
-newtype UserID = UserID {unUserID :: Text}
+newtype UserID = UserID {unUserID :: Int32}
   deriving (Generic)
 
 data User = User
@@ -71,67 +58,28 @@ deriveBoth Servant.Elm.defaultOptions ''RelationshipStatus
 deriveBoth Servant.Elm.defaultOptions ''UserSection
 deriveBoth Servant.Elm.defaultOptions ''User
 
-data UserRoutes mode = UserRoutes
-  { getUsers :: mode :- "getMany" :> ReqBody '[JSON] [UserID] :> Post '[JSON] [User],
-    getSomeUserIDs :: mode :- "exampleIDs" :> Get '[JSON] [UserID]
-  }
-  deriving (Generic)
-
-userRoutes :: UserRoutes (AsServerT AppM)
-userRoutes = UserRoutes {..}
+getUsers :: [UserID] -> ServerM [User]
+getUsers ids = do
+  rows <-
+    runHasql
+      (fromList $ unUserID <$> ids)
+      [vectorStatement|
+        SELECT
+          id :: int,
+          name :: text,
+          header_image_url :: text,
+          description :: text
+        FROM users
+        WHERE id = ANY ($1 :: int[])
+      |]
+  pure $ toUser <$> toList rows
   where
-    getUsers = getUsersHandler
-    getSomeUserIDs = pure $ UserID . T.pack . show <$> [1 .. 10 :: Int]
-
-getUsersHandler :: [UserID] -> AppM [User]
-getUsersHandler ids = liftIO $ generateNonDeterministic $ mapM fakeUser ids
-  where
-    maybeF :: Fake a -> Fake (Maybe a)
-    maybeF f = oneof [pure Nothing, Just <$> f]
-
-    fakeImgUrl :: Fake Text
-    fakeImgUrl = do
-      imgWidth <- fromRange (200, 600 :: Int)
-      imgHeight <- fromRange (200, 600 :: Int)
-      pure $ "https://placekitten.com/" <> T.pack (show imgWidth) <> "/" <> T.pack (show imgHeight)
-
-    fakeUserSection :: Fake UserSection
-    fakeUserSection = do
-      oneof
-        [ do
-            userSectionGenericHeader <- Faker.Food.dish
-            userSectionGenericContent <- Faker.Food.descriptions
-            pure UserSectionGeneric {..},
-          do
-            imageCount <- fromRange (1, 10 :: Int)
-            userSectionImagesImages <- listOf imageCount fakeImgUrl
-            userSectionImagesDescription <- Faker.Superhero.descriptor
-            pure UserSectionImages {..},
-          do
-            userSectionQuestionAndAnswerQuestion <- Faker.Food.dish
-            userSectionQuestionAndAnswerAnswer <- Faker.Food.descriptions
-            pure UserSectionQuestionAndAnswer {..}
-        ]
-
-    fakeUser :: UserID -> Fake User
-    fakeUser userID = do
-      userName <- do
-        T.unwords
-          . catMaybes
-          <$> sequence
-            [ maybeF Faker.Name.prefix,
-              Just <$> Faker.Creature.Cat.name,
-              Just <$> Faker.FunnyName.name
-            ]
-
-      userHeaderImage <- fakeImgUrl
-
-      descriptionLength <- fromRange (4, 15 :: Int)
-      userDescription <- T.unwords <$> listOf descriptionLength Faker.Book.Lovecraft.words
-
-      userRelationshipStatus <- fakeBoundedEnum
-
-      sectionsCount <- fromRange (3, 15 :: Int)
-      userSections <- listOf sectionsCount fakeUserSection
-
-      pure User {..}
+    toUser (userId, name, img, descr) =
+      User
+        { userID = UserID userId,
+          userName = name,
+          userHeaderImage = img,
+          userDescription = descr,
+          userRelationshipStatus = RelationshipStatusSingle,
+          userSections = []
+        }

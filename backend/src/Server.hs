@@ -1,23 +1,27 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module App where
+module Server where
 
-import AppM (AppState (..), toServantHandler)
 import DB (initConnectionPool, initDB)
 import Hasql.Connection (Settings)
 import Network.Wai.Handler.Warp (run)
 import Servant (Server, hoistServer, serve)
+import ServerM (ServerEnv (..), toServantHandler)
 import Web (Api, apiProxy, routes)
 
-mkServer :: Settings -> IO (Server Api)
-mkServer connStr = do
+mkServerEnv :: Settings -> IO ServerEnv
+mkServerEnv connStr = do
   pool <- initConnectionPool connStr
   initDB pool -- Until we have a proper migration system
-  let appState = AppState pool
-  pure $ hoistServer apiProxy (toServantHandler appState) routes
+  pure $ ServerEnv pool
+
+mkServer :: ServerEnv -> IO (Server Api)
+mkServer serverEnv = do
+  pure $ hoistServer apiProxy (toServantHandler serverEnv) routes
 
 main :: IO ()
 main = do
   let connStr = "host=127.0.0.1"
-  server <- mkServer connStr
+  serverEnv <- mkServerEnv connStr
+  server <- mkServer serverEnv
   run 8081 $ serve apiProxy server

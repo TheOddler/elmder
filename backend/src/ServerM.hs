@@ -1,16 +1,16 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
-module AppM where
+module ServerM where
 
 import Control.Monad.Trans.Reader (ReaderT, runReaderT)
 import Hasql.Pool qualified
 import Servant qualified
 
-newtype AppState = AppState
+newtype ServerEnv = ServerEnv
   { dbConnectionPool :: Hasql.Pool.Pool
   }
 
-type AppM = ReaderT AppState Servant.Handler
+type ServerM = ReaderT ServerEnv Servant.Handler
 
-toServantHandler :: AppState -> AppM a -> Servant.Handler a
+toServantHandler :: ServerEnv -> ServerM a -> Servant.Handler a
 toServantHandler = flip runReaderT

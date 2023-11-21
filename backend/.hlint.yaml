@@ -7,9 +7,9 @@
 
 - functions:
   - name: Servant.Handler
-    message: You probably want to use our own handler monad `AppM`
+    message: You probably want to use our own handler monad `ServerM`
     within:
-      - AppM # To allow conversion from our own to Servant's Handler we do need to use it here
+      - ServerM # To allow conversion from our own to Servant's Handler we do need to use it here
 
   - {name: unsafeDupablePerformIO, within: []} # Unsafe
   - {name: unsafeInterleaveIO, within: []} # Unsafe
