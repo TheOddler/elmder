@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -12,7 +13,6 @@ import Data.Int (Int32)
 import Data.Text (Text)
 import Data.Vector (fromList)
 import Elm.Derive (deriveBoth)
-import Faker (generateNonDeterministic)
 import GHC.Generics (Generic)
 import Hasql.TH (vectorStatement)
 import Servant.Elm qualified
@@ -36,6 +36,13 @@ data RelationshipStatus
   | RelationshipStatusMarried
   | RelationshipStatusInRelationship
   deriving (Generic, Show, Eq, Enum, Bounded)
+
+-- | Convert a 'RelationshipStatus' to a SQL name for it.
+relationshipStatusToSQL :: RelationshipStatus -> Text
+relationshipStatusToSQL = \case
+  RelationshipStatusSingle -> "single"
+  RelationshipStatusInRelationship -> "in_relationship"
+  RelationshipStatusMarried -> "married"
 
 data UserSection
   = UserSectionGeneric

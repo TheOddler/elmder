@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -84,13 +85,21 @@ ensureSomeUsersInDB wanted = do
   when (needed > 0) $ do
     someUsers <- liftIO $ generateNonDeterministic $ mapM fakeUser (UserID <$> [1 .. needed]) -- ids are not actually used to insert, so it's fine to use the same ids every time
     runHasql
-      (V.unzip3 $ fromList $ fromUser <$> someUsers)
+      (V.unzip4 $ fromList $ fromUser <$> someUsers)
       [resultlessStatement|
         INSERT INTO users (name, header_image_url, description, relationship_status)
-        SELECT *, 'single' FROM UNNEST ($1 :: text[], $2 :: text[], $3 :: text[])
+        SELECT *
+        FROM UNNEST (
+          $1 :: text[],
+          $2 :: text[],
+          $3 :: text[],
+          $4 :: text[] :: relationship_status[]
+        )
       |]
   where
-    -- TODO: Don't hardcode the relationship status
-
     fromUser user =
-      (user.userName, user.userHeaderImage, user.userDescription)
+      ( user.userName,
+        user.userHeaderImage,
+        user.userDescription,
+        relationshipStatusToSQL user.userRelationshipStatus
+      )
