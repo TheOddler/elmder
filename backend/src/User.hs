@@ -10,6 +10,8 @@ module User where
 import DB (runHasql)
 import Data.Foldable (toList)
 import Data.Int (Int32)
+import Data.List (find)
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.Vector (fromList)
 import Elm.Derive (deriveBoth)
@@ -44,6 +46,11 @@ relationshipStatusToSQL = \case
   RelationshipStatusInRelationship -> "in_relationship"
   RelationshipStatusMarried -> "married"
 
+sqlToRelationshipStatus :: Text -> Maybe RelationshipStatus
+sqlToRelationshipStatus sqlText =
+  flip find [minBound .. maxBound] $ \t ->
+    relationshipStatusToSQL t == sqlText
+
 data UserSection
   = UserSectionGeneric
       { userSectionGenericHeader :: Text,
@@ -75,18 +82,20 @@ getUsers ids = do
           id :: int,
           name :: text,
           header_image_url :: text,
-          description :: text
+          description :: text,
+          relationship_status :: text
         FROM users
         WHERE id = ANY ($1 :: int[])
       |]
   pure $ toUser <$> toList rows
   where
-    toUser (userId, name, img, descr) =
+    toUser (userId, name, img, descr, status) =
       User
         { userID = UserID userId,
           userName = name,
           userHeaderImage = img,
           userDescription = descr,
-          userRelationshipStatus = RelationshipStatusSingle,
+          userRelationshipStatus =
+            fromMaybe RelationshipStatusSingle $ sqlToRelationshipStatus status,
           userSections = []
         }
