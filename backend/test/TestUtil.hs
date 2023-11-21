@@ -6,9 +6,17 @@ module TestUtil where
 import Database.Postgres.Temp (toConnectionString)
 import Database.Postgres.Temp qualified as PgTemp
 import Network.HTTP.Client qualified as HTTP
-import Servant (Server, serve)
-import Servant qualified
+import Servant (Server, ServerError, runHandler, serve)
 import Servant.Client
+  ( AsClientT,
+    BaseUrl (BaseUrl),
+    ClientEnv,
+    ClientError,
+    ClientM,
+    Scheme (Http),
+    client,
+    mkClientEnv,
+  )
 import Server (mkServer, mkServerEnv)
 import ServerM (ServerEnv, ServerM, toServantHandler)
 import SydTestExtra (setupAroundWithAll)
@@ -23,9 +31,9 @@ import Test.Syd
     setupAroundAll,
     setupAroundWith,
   )
-import Test.Syd.Servant (testClient)
+import Test.Syd.Servant (testClientOrError)
 import Test.Syd.Wai.Def (applicationSetupFunc, managerSpec)
-import Web
+import Web (Api, ApiRoutes, apiProxy)
 
 api :: ApiRoutes (AsClientT ClientM)
 api = client apiProxy
@@ -43,10 +51,10 @@ serverAndClientTest =
 
       serverEnvSetupFunc :: PgTemp.Cache -> SetupFunc ServerEnv
       serverEnvSetupFunc dbCache = SetupFunc $ \test -> do
-        eitherErrOrA <- PgTemp.withConfig (PgTemp.cacheConfig dbCache) $ \db -> do
+        errOrA <- PgTemp.withConfig (PgTemp.cacheConfig dbCache) $ \db -> do
           serverEnv <- mkServerEnv $ toConnectionString db
           test serverEnv
-        case eitherErrOrA of
+        case errOrA of
           Left err -> expectationFailure $ show err
           Right a -> pure a
 
@@ -88,12 +96,22 @@ clientTest :: TestDef '[PgTemp.Cache, HTTP.Manager] ClientEnv -> Spec
 clientTest testDef =
   serverAndClientTest $ setupAroundWith (pure . snd) testDef
 
+runOnServerOrError :: ServerEnv -> ServerM a -> IO (Either ServerError a)
+runOnServerOrError serverEnv = runHandler . toServantHandler serverEnv
+
 runOnServer :: ServerEnv -> ServerM a -> IO a
 runOnServer serverEnv serverM = do
-  eitherErrOrA <- Servant.runHandler $ toServantHandler serverEnv serverM
-  case eitherErrOrA of
+  errOrA <- runOnServerOrError serverEnv serverM
+  case errOrA of
     Left err -> expectationFailure $ show err
     Right a -> pure a
 
+runOnClientOrError :: ClientEnv -> ClientM a -> IO (Either ClientError a)
+runOnClientOrError = testClientOrError
+
 runOnClient :: ClientEnv -> ClientM a -> IO a
-runOnClient = testClient
+runOnClient clientEnv clientM = do
+  errOrA <- runOnClientOrError clientEnv clientM
+  case errOrA of
+    Left err -> expectationFailure $ show err
+    Right a -> pure a
