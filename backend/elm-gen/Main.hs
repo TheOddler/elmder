@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -8,6 +9,8 @@ module Main where
 
 import Data.Text (Text)
 import Data.Text qualified as T
+import Elm.Module (recAlterType)
+import Elm.TyRep (ETCon (..))
 import Servant
 import Servant.Elm
 import Servant.Foreign (Foreign, HasForeign (..))
@@ -26,7 +29,17 @@ main :: IO ()
 main = do
   putStrLn "Generating elm..."
   generateElmModuleWith
-    defElmOptions {urlPrefix = Dynamic}
+    ( let myTypeAlterations = \case
+            ETyCon (ETCon "Int32") -> ETyCon (ETCon "Int")
+            ETyCon (ETCon "Day") -> ETyCon (ETCon "String") -- TODO: Convert days to something better than string
+            other -> defaultTypeAlterations other
+       in defElmOptions
+            { urlPrefix = Dynamic,
+              elmAlterations =
+                recAlterType myTypeAlterations,
+              elmTypeAlterations = myTypeAlterations
+            }
+    )
     [ "Generated",
       "Backend"
     ]
@@ -35,6 +48,8 @@ main = do
     [ DefineElm (Proxy :: Proxy User.UserID),
       DefineElm (Proxy :: Proxy User.User),
       DefineElm (Proxy :: Proxy User.RelationshipStatus),
+      DefineElm (Proxy :: Proxy User.GenderIdentity),
+      DefineElm (Proxy :: Proxy User.Location),
       DefineElm (Proxy :: Proxy User.UserSection)
     ]
     (Proxy :: Proxy (ToServantApi Web.ApiRoutes))

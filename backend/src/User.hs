@@ -329,3 +329,16 @@ getUsers ids = do
             fromMaybe RelationshipStatusSingle $ sqlToRelationshipStatus status,
           userSections = []
         }
+
+getSomeUserIDs :: Int32 -> ServerM [UserID]
+getSomeUserIDs amount = do
+  rows <-
+    runHasql
+      amount
+      [vectorStatement|
+        SELECT
+          id :: int
+        FROM users
+        LIMIT $1 :: int
+      |]
+  pure $ UserID <$> toList rows

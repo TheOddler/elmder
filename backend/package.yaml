@@ -55,10 +55,12 @@ executables:
     source-dirs: elm-gen
     dependencies:
       - backend
+      - elm-bridge
       - servant-elm
       - servant-foreign
       - servant-server
       - text
+      - time
 
 tests:
   backend-test:

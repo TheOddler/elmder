@@ -81,7 +81,7 @@ init () =
     let
         store : Store UserID User
         store =
-            Store.init (\(UserID { unUserID }) -> unUserID) .userID
+            Store.init (\(UserID { unUserID }) -> String.fromInt unUserID) .userID
     in
     ( { userStore = store
       , currentScreen = Main ScreenMatches

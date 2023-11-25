@@ -23,15 +23,8 @@ cssColor (UserID { unUserID }) =
             , "#d23be7" -- Purple
             ]
 
-        random : Int
-        random =
-            -- Random enough assuming the id is random
-            String.toList unUserID
-                |> List.map Char.toCode
-                |> List.sum
-
         index =
-            modBy (List.length colors) random
+            modBy (List.length colors) unUserID
     in
     List.getAt index colors
         |> Maybe.withDefault "#000000"
