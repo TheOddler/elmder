@@ -4,6 +4,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 module User.Fake where
 
@@ -11,6 +12,7 @@ import Control.Monad (when)
 import Control.Monad.IO.Class (liftIO)
 import DB (runHasql)
 import Data.Int (Int32)
+import Data.List (genericTake)
 import Data.Maybe (catMaybes)
 import Data.Text (Text)
 import Data.Text qualified as T
@@ -27,6 +29,7 @@ import Faker.FunnyName qualified
 import Faker.Name qualified
 import Faker.Superhero qualified
 import Hasql.TH (resultlessStatement, singletonStatement)
+import Hasql.Transaction (statement)
 import ServerM (ServerM)
 import User
 
@@ -89,37 +92,40 @@ fakeUser userID = do
 
 ensureSomeUsersInDB :: Int32 -> ServerM ()
 ensureSomeUsersInDB wanted = do
-  currentCount <- runHasql () [singletonStatement| SELECT COUNT(*) :: int FROM users |]
-  let needed = wanted - currentCount
-  when (needed > 0) $ do
-    someUsers <- liftIO $ generateNonDeterministic $ mapM fakeUser (UserID <$> [1 .. needed]) -- ids are not actually used to insert, so it's fine to use the same ids every time
-    runHasql
-      (unzip9 . V.fromList $ fromUser <$> someUsers)
-      [resultlessStatement|
-        INSERT INTO users (
-          name,
-          header_image_url,
-          last_location_lat,
-          last_location_long,
-          join_day,
-          birthday,
-          gender_identity,
-          description,
-          relationship_status
-        )
-        SELECT *
-        FROM UNNEST (
-          $1 :: text[],
-          $2 :: text[],
-          $3 :: float4[],
-          $4 :: float4[],
-          $5 :: date[],
-          $6 :: date[],
-          $7 :: text[] :: gender_identity[],
-          $8 :: text[],
-          $9 :: text[] :: relationship_status[]
-        )
-      |]
+  -- We generate definitely enough users, but might not insert all
+  -- We generate these here first, so we can do the check and insert queries as a single transaction
+  fakeUsers <- liftIO $ generateNonDeterministic $ mapM fakeUser (UserID <$> [1 .. wanted]) -- ids are not actually used to insert, so it's fine to use the same ids every time
+  runHasql $ do
+    currentCount <- statement () [singletonStatement| SELECT COUNT(*) :: int FROM users |]
+    let usersToAdd = genericTake (wanted - currentCount) fakeUsers
+    when (not $ null usersToAdd) $ do
+      statement
+        (unzip9 . V.fromList $ fromUser <$> usersToAdd)
+        [resultlessStatement|
+          INSERT INTO users (
+            name,
+            header_image_url,
+            last_location_lat,
+            last_location_long,
+            join_day,
+            birthday,
+            gender_identity,
+            description,
+            relationship_status
+          )
+          SELECT *
+          FROM UNNEST (
+            $1 :: text[],
+            $2 :: text[],
+            $3 :: float4[],
+            $4 :: float4[],
+            $5 :: date[],
+            $6 :: date[],
+            $7 :: text[] :: gender_identity[],
+            $8 :: text[],
+            $9 :: text[] :: relationship_status[]
+          )
+        |]
   where
     fromUser :: User -> (Text, Text, Float, Float, Day, Day, Text, Text, Text)
     fromUser user =

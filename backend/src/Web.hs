@@ -11,6 +11,7 @@ import Data.Foldable (toList)
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import Hasql.TH (resultlessStatement, vectorStatement)
+import Hasql.Transaction (statement)
 import Servant
   ( Capture,
     GenericMode (type (:-)),
@@ -52,7 +53,8 @@ say = pure
 
 greet :: Text -> ServerM [Text]
 greet name = do
-  runHasql name [resultlessStatement| INSERT INTO greeted_people (name) VALUES ($1 :: text) |]
-  names <- toList <$> runHasql () [vectorStatement| SELECT name :: text FROM greeted_people |]
+  names <- runHasql $ do
+    statement name [resultlessStatement| INSERT INTO greeted_people (name) VALUES ($1 :: text) |]
+    toList <$> statement () [vectorStatement| SELECT name :: text FROM greeted_people |]
 
   pure (("Hello " <>) <$> names)

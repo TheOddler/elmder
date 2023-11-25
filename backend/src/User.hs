@@ -7,7 +7,6 @@
 
 module User where
 
-import DB (runHasql)
 import Data.Foldable (toList)
 import Data.Int (Int32)
 import Data.Maybe (fromMaybe)
@@ -17,8 +16,8 @@ import Data.Vector (fromList)
 import Elm.Derive (deriveBoth)
 import GHC.Generics (Generic)
 import Hasql.TH (vectorStatement)
+import Hasql.Transaction (Transaction, statement)
 import Servant.Elm qualified
-import ServerM (ServerM)
 import Util (reverseEnumToText)
 
 newtype UserID = UserID {unUserID :: Int32}
@@ -291,10 +290,10 @@ deriveBoth Servant.Elm.defaultOptions ''Location
 deriveBoth Servant.Elm.defaultOptions ''UserSection
 deriveBoth Servant.Elm.defaultOptions ''User
 
-getUsers :: [UserID] -> ServerM [User]
+getUsers :: [UserID] -> Transaction [User]
 getUsers ids = do
   rows <-
-    runHasql
+    statement
       (fromList $ unUserID <$> ids)
       [vectorStatement|
         SELECT
@@ -330,10 +329,10 @@ getUsers ids = do
           userSections = []
         }
 
-getSomeUserIDs :: Int32 -> ServerM [UserID]
+getSomeUserIDs :: Int32 -> Transaction [UserID]
 getSomeUserIDs amount = do
   rows <-
-    runHasql
+    statement
       amount
       [vectorStatement|
         SELECT
