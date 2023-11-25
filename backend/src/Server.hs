@@ -2,7 +2,8 @@
 
 module Server where
 
-import DB (initConnectionPool, initDB)
+import DB (initConnectionPool)
+import DB.Init (initDB)
 import Hasql.Connection (Settings)
 import Network.Wai.Handler.Warp (run)
 import Servant (Server, hoistServer, serve)
