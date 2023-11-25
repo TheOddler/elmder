@@ -3,7 +3,7 @@
 
 module User.Web where
 
-import DB (readHasql)
+import DB (runHasql)
 import GHC.Generics (Generic)
 import Servant
   ( GenericMode ((:-)),
@@ -28,9 +28,9 @@ data UserRoutes mode = UserRoutes
 userRoutes :: UserRoutes (AsServerT ServerM)
 userRoutes =
   UserRoutes
-    { getUsers = readHasql . User.getUsers,
+    { getUsers = runHasql . User.getUsers,
       getSomeUserIDs = do
         let wanted = 10
         ensureSomeUsersInDB wanted
-        readHasql $ User.getSomeUserIDs wanted
+        runHasql $ User.getSomeUserIDs wanted
     }
