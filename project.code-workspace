@@ -1,0 +1,20 @@
+{
+  "folders": [
+    {
+      "path": "backend"
+    },
+    {
+      "path": "frontend"
+    },
+    {
+      "path": ".",
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      // Exclude the folders that are included as workspaces
+      "backend": true,
+      "frontend": true,
+    }
+  },
+}
