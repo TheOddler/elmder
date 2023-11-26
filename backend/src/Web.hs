@@ -12,6 +12,8 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 import Hasql.TH (resultlessStatement, vectorStatement)
 import Hasql.Transaction (statement)
+import Search (SearchRoutes)
+import Search qualified
 import Servant
   ( Capture,
     GenericMode (type (:-)),
@@ -32,7 +34,8 @@ data ApiRoutes mode = ApiRoutes
   { ping :: mode :- "ping" :> Get '[JSON] String,
     pong :: mode :- "pong" :> Get '[JSON] String,
     iAm :: mode :- "iAm" :> Capture "name" Text :> Get '[JSON] [Text],
-    userRoutes :: mode :- "user" :> NamedRoutes UserRoutes
+    userRoutes :: mode :- "user" :> NamedRoutes UserRoutes,
+    searchRoutes :: mode :- "search" :> NamedRoutes SearchRoutes
   }
   deriving (Generic)
 
@@ -45,7 +48,8 @@ routes =
     { ping = pure "pong",
       pong = pure "ping",
       iAm = greet,
-      userRoutes = User.userRoutes
+      userRoutes = User.userRoutes,
+      searchRoutes = Search.searchRoutes
     }
 
 say :: String -> ServerM String

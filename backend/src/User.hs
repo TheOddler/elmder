@@ -21,7 +21,7 @@ import Servant.Elm qualified
 import Util (reverseEnumToText)
 
 newtype UserID = UserID {unUserID :: Int32}
-  deriving (Generic)
+  deriving (Generic, Show, Eq)
 
 data User = User
   { userID :: UserID,
@@ -35,13 +35,13 @@ data User = User
     userRelationshipStatus :: RelationshipStatus,
     userSections :: [UserSection]
   }
-  deriving (Generic)
+  deriving (Generic, Show, Eq)
 
 data Location = Location
   { locationLatitude :: Float,
     locationLongitude :: Float
   }
-  deriving (Generic)
+  deriving (Generic, Show, Eq)
 
 data RelationshipStatus
   = RelationshipStatusSingle
@@ -280,7 +280,7 @@ data UserSection
       { userSectionQuestionAndAnswerQuestion :: Text,
         userSectionQuestionAndAnswerAnswer :: Text
       }
-  deriving (Generic)
+  deriving (Generic, Show, Eq)
 
 -- Use the default options from Servant.Elm, they work best for Elm, not those from Elm.Derive nor Aeson.
 deriveBoth Servant.Elm.defaultOptions ''UserID

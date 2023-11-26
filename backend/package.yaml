@@ -60,7 +60,6 @@ executables:
       - servant-foreign
       - servant-server
       - text
-      - time
 
 tests:
   backend-test:

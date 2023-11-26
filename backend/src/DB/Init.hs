@@ -37,6 +37,11 @@ initDB pool =
                   description text NOT NULL,
                   relationship_status relationship_status NOT NULL
                 );
+                CREATE INDEX ON users (last_location_lat);
+                CREATE INDEX ON users (last_location_long);
+                CREATE INDEX ON users (birthday);
+                CREATE INDEX ON users (gender_identity);
+                CREATE INDEX ON users (relationship_status);
             |]
   where
     createDBEnum :: (Bounded a, Enum a) => ByteString -> (a -> Text) -> ByteString
