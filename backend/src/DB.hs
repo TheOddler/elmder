@@ -1,11 +1,11 @@
 {-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module DB where
 
 import Control.Exception (throwIO)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Reader (asks)
+import Data.Time (secondsToDiffTime)
 import Hasql.Connection qualified
 import Hasql.Pool qualified
 import Hasql.Session qualified
@@ -17,7 +17,8 @@ initConnectionPool :: Hasql.Connection.Settings -> IO Hasql.Pool.Pool
 initConnectionPool =
   Hasql.Pool.acquire
     10 -- Pool size
-    (Just $ 10 * 1_000_000) -- Connection acquisition timeout in microseconds
+    (secondsToDiffTime 10) -- Connection acquisition timeout
+    (secondsToDiffTime 10) -- Maximal connection lifetime
 
 runSessionWith :: Hasql.Pool.Pool -> Hasql.Session.Session a -> IO a
 runSessionWith pool session = do
