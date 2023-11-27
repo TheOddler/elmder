@@ -1,7 +1,7 @@
 # At the moment this file lives in the root as VSCode doesn't seem to support haskell projects in sub-directories.
 # Since I use VSCode and HLS extensively this is an acceptable workaround for now, but preferably this file (and the other stack files) should live in the backend folder.
 
-resolver: lts-21.21
+resolver: lts-20.25
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.

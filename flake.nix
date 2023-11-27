@@ -33,9 +33,9 @@
 
           # Stuff for the backend development, make sure the haskell stuff matches the stackage snapshot we're using
           # The snapshot can be found in `stack.yaml` under the field `resolver`
-          # The ghc version that snapshot is using can be found by going to the stackage page for it, for example: https://www.stackage.org/lts-21.21
-          haskell.compiler.native-bignum.ghc947
-          (haskell-language-server.override { supportedGhcVersions = [ "947" ]; })
+          # The ghc version that snapshot is using can be found by going to the stackage page for it, for example: https://www.stackage.org/lts-20.25
+          haskell.compiler.native-bignum.ghc928
+          (haskell-language-server.override { supportedGhcVersions = [ "928" ]; })
           hlint
         ];
 
