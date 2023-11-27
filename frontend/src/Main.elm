@@ -43,11 +43,13 @@ getMain screen =
             m
 
 
-type alias Model =
-    { userStore : Store UserID User
-    , currentScreen : Screen
-    , requestedUsers : List (Requested UserID)
-    }
+type Model
+    = AllGood
+        { userStore : Store UserID User
+        , currentScreen : Screen
+        , requestedUsers : List (Requested UserID)
+        }
+    | UnrecoverableError String
 
 
 type Msg
@@ -83,10 +85,11 @@ init () =
         store =
             Store.init (\(UserID { unUserID }) -> String.fromInt unUserID) .userID
     in
-    ( { userStore = store
-      , currentScreen = Main ScreenMatches
-      , requestedUsers = []
-      }
+    ( AllGood
+        { userStore = store
+        , currentScreen = Main ScreenMatches
+        , requestedUsers = []
+        }
     , Backend.getUserExampleIDs baseUrl GotUserExamples
     )
 
@@ -107,112 +110,145 @@ subscriptions _ =
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update message model =
-    case message of
-        OpenScreen screen ->
-            ( { model | currentScreen = screen }
-            , Cmd.none
-            )
+update message modelOrError =
+    case modelOrError of
+        UnrecoverableError _ ->
+            ( modelOrError, Cmd.none )
 
-        ViewUser userID ->
-            let
-                ( requestedUsers, storeCmd ) =
-                    requestUsers model.userStore [ userID ]
-            in
-            case requestedUsers of
-                [ requestedUserID ] ->
-                    ( { model | currentScreen = Sub (getMain model.currentScreen) (ScreenUser requestedUserID) }
-                    , storeCmd
+        AllGood model ->
+            case message of
+                OpenScreen screen ->
+                    ( AllGood { model | currentScreen = screen }
+                    , Cmd.none
                     )
 
-                _ ->
-                    -- This should never happen, we request one userID so we should get one back.
-                    ( model
-                    , storeCmd
+                ViewUser userID ->
+                    let
+                        ( requestedUsers, storeCmd ) =
+                            requestUsers model.userStore [ userID ]
+                    in
+                    case requestedUsers of
+                        [ requestedUserID ] ->
+                            ( AllGood { model | currentScreen = Sub (getMain model.currentScreen) (ScreenUser requestedUserID) }
+                            , storeCmd
+                            )
+
+                        [] ->
+                            ( UnrecoverableError <| "We requested one user but got none back. This should never happen."
+                            , Cmd.none
+                            )
+
+                        _ ->
+                            ( UnrecoverableError <| "We requested one user but got multiple back. This should never happen."
+                            , Cmd.none
+                            )
+
+                GotUserExamples (Ok exampleIDs) ->
+                    let
+                        ( requestedUsers, cmd ) =
+                            requestUsers model.userStore exampleIDs
+                    in
+                    ( AllGood { model | requestedUsers = requestedUsers }
+                    , cmd
                     )
 
-        GotUserExamples (Ok exampleIDs) ->
-            let
-                ( requestedUsers, cmd ) =
-                    requestUsers model.userStore exampleIDs
-            in
-            ( { model | requestedUsers = requestedUsers }
-            , cmd
-            )
+                GotUserExamples (Err error) ->
+                    ( UnrecoverableError <| "GotUserExamples returned an error:\n" ++ httpErrorToString error, Cmd.none )
 
-        GotUserExamples (Err error) ->
-            Debug.todo <| "We can't handle errors yet, but got one: " ++ Debug.toString error
+                AddUserToStore (Ok newUsers) ->
+                    ( AllGood { model | userStore = Store.update model.userStore newUsers }
+                    , Cmd.none
+                    )
 
-        AddUserToStore (Ok newUsers) ->
-            ( { model | userStore = Store.update model.userStore newUsers }
-            , Cmd.none
-            )
+                AddUserToStore (Err error) ->
+                    ( UnrecoverableError <| "AddUserToStore returned an error:\n" ++ httpErrorToString error, Cmd.none )
 
-        AddUserToStore (Err error) ->
-            Debug.todo <| "We can't handle errors yet, but got one: " ++ Debug.toString error
+
+httpErrorToString : Http.Error -> String
+httpErrorToString error =
+    case error of
+        Http.BadUrl url ->
+            "BadUrl: " ++ url
+
+        Http.Timeout ->
+            "Timeout"
+
+        Http.NetworkError ->
+            "NetworkError"
+
+        Http.BadStatus code ->
+            "BadStatus: " ++ String.fromInt code
+
+        Http.BadBody body ->
+            "BadBody: " ++ body
 
 
 view : Model -> Html Msg
-view model =
-    div [ class "root" ]
-        [ case model.currentScreen of
-            Main ScreenMatches ->
-                let
-                    viewUserOrID : Either (Requested UserID) User -> Html Msg
-                    viewUserOrID userOrID =
-                        case userOrID of
-                            Right u ->
-                                User.viewCard [ onClick <| ViewUser u.userID ] u
+view modelOrError =
+    case modelOrError of
+        UnrecoverableError error ->
+            div [] [ text error ]
 
-                            Left uID ->
-                                User.Loading.viewCardLoading [ onClick <| ViewUser (unRequest uID) ] uID
-                in
-                div []
-                    [ div
-                        [ class "masonry" ]
-                        (List.map
-                            viewUserOrID
-                            (Store.getEithers model.userStore model.requestedUsers)
-                        )
-                    ]
+        AllGood model ->
+            div [ class "root" ]
+                [ case model.currentScreen of
+                    Main ScreenMatches ->
+                        let
+                            viewUserOrID : Either (Requested UserID) User -> Html Msg
+                            viewUserOrID userOrID =
+                                case userOrID of
+                                    Right u ->
+                                        User.viewCard [ onClick <| ViewUser u.userID ] u
 
-            Main ScreenSettings ->
-                div [ class "center-content fill-screen" ] [ text "placeholder for settings screen" ]
-
-            Main Attributions ->
-                div [ class "center-content fill-screen" ] <|
-                    h1 [] [ text "We use:" ]
-                        :: List.map (\( label, url ) -> a [ href url ] [ text label ])
-                            [ ( "loading.io", "https://loading.io/" )
-                            , ( "Font Awesome", "https://fontawesome.com/" )
+                                    Left uID ->
+                                        User.Loading.viewCardLoading [ onClick <| ViewUser (unRequest uID) ] uID
+                        in
+                        div []
+                            [ div
+                                [ class "masonry" ]
+                                (List.map
+                                    viewUserOrID
+                                    (Store.getEithers model.userStore model.requestedUsers)
+                                )
                             ]
 
-            Sub _ (ScreenUser userID) ->
-                case Store.getOne model.userStore userID of
-                    Just u ->
-                        User.viewProfile u
+                    Main ScreenSettings ->
+                        div [ class "center-content fill-screen" ] [ text "placeholder for settings screen" ]
 
-                    Nothing ->
-                        div [ class "center-content fill-screen" ] [ text "Loading User..." ]
-        , let
-            icon mainScreen =
-                case mainScreen of
-                    ScreenMatches ->
-                        "fa-solid fa-heart"
+                    Main Attributions ->
+                        div [ class "center-content fill-screen" ] <|
+                            h1 [] [ text "We use:" ]
+                                :: List.map (\( label, url ) -> a [ href url ] [ text label ])
+                                    [ ( "loading.io", "https://loading.io/" )
+                                    , ( "Font Awesome", "https://fontawesome.com/" )
+                                    ]
 
-                    ScreenSettings ->
-                        "fa-solid fa-gear"
+                    Sub _ (ScreenUser userID) ->
+                        case Store.getOne model.userStore userID of
+                            Just u ->
+                                User.viewProfile u
 
-                    Attributions ->
-                        "fa-solid fa-hippo"
-          in
-          navbar <|
-            List.map
-                (\ms ->
-                    { icon = icon ms
-                    , onSelect = OpenScreen (Main ms)
-                    , isSelected = ms == getMain model.currentScreen
-                    }
-                )
-                allMainScreens
-        ]
+                            Nothing ->
+                                div [ class "center-content fill-screen" ] [ text "Loading User..." ]
+                , let
+                    icon mainScreen =
+                        case mainScreen of
+                            ScreenMatches ->
+                                "fa-solid fa-heart"
+
+                            ScreenSettings ->
+                                "fa-solid fa-gear"
+
+                            Attributions ->
+                                "fa-solid fa-hippo"
+                  in
+                  navbar <|
+                    List.map
+                        (\ms ->
+                            { icon = icon ms
+                            , onSelect = OpenScreen (Main ms)
+                            , isSelected = ms == getMain model.currentScreen
+                            }
+                        )
+                        allMainScreens
+                ]

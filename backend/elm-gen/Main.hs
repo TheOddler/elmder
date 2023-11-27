@@ -11,6 +11,7 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import Elm.Module (recAlterType)
 import Elm.TyRep (ETCon (..))
+import Search (SearchParameters)
 import Servant
 import Servant.Elm
 import Servant.Foreign (Foreign, HasForeign (..))
@@ -50,7 +51,8 @@ main = do
       DefineElm (Proxy :: Proxy User.RelationshipStatus),
       DefineElm (Proxy :: Proxy User.GenderIdentity),
       DefineElm (Proxy :: Proxy User.Location),
-      DefineElm (Proxy :: Proxy User.UserSection)
+      DefineElm (Proxy :: Proxy User.UserSection),
+      DefineElm (Proxy :: Proxy SearchParameters)
     ]
     (Proxy :: Proxy (ToServantApi Web.ApiRoutes))
   putStrLn "Done!"
