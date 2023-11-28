@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -13,15 +14,17 @@ import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.Time (Day)
 import Data.Vector (fromList)
-import Elm.Derive (deriveBoth)
+import Elm.Derive (Options (..), deriveBoth)
 import GHC.Generics (Generic)
 import Hasql.TH (vectorStatement)
 import Hasql.Transaction (Transaction, statement)
+import Servant (FromHttpApiData, ToHttpApiData)
 import Servant.Elm qualified
 import Util (reverseEnumToText)
 
 newtype UserID = UserID {unUserID :: Int32}
   deriving (Generic, Show, Eq)
+  deriving newtype (FromHttpApiData, ToHttpApiData)
 
 data User = User
   { userID :: UserID,
@@ -32,8 +35,7 @@ data User = User
     userBirthday :: Day,
     userGenderIdentity :: GenderIdentity,
     userDescription :: Text,
-    userRelationshipStatus :: RelationshipStatus,
-    userSections :: [UserSection]
+    userRelationshipStatus :: RelationshipStatus
   }
   deriving (Generic, Show, Eq)
 
@@ -267,7 +269,7 @@ genderIdentityToSQL = \case
 sqlToGenderIdentity :: Text -> Maybe GenderIdentity
 sqlToGenderIdentity = reverseEnumToText genderIdentityToSQL
 
-data UserSection
+data ProfileSection
   = UserSectionGeneric
       { userSectionGenericHeader :: Text,
         userSectionGenericContent :: Text
@@ -282,12 +284,20 @@ data UserSection
       }
   deriving (Generic, Show, Eq)
 
+data SearchParameters = SearchParameters
+  { ageMin :: Int,
+    ageMax :: Int,
+    distanceKm :: Float,
+    genderIdentity :: [GenderIdentity]
+  }
+  deriving (Generic)
+
 -- Use the default options from Servant.Elm, they work best for Elm, not those from Elm.Derive nor Aeson.
-deriveBoth Servant.Elm.defaultOptions ''UserID
+deriveBoth Servant.Elm.defaultOptions {unwrapUnaryRecords = True} ''UserID
 deriveBoth Servant.Elm.defaultOptions ''RelationshipStatus
 deriveBoth Servant.Elm.defaultOptions ''GenderIdentity
 deriveBoth Servant.Elm.defaultOptions ''Location
-deriveBoth Servant.Elm.defaultOptions ''UserSection
+deriveBoth Servant.Elm.defaultOptions ''ProfileSection
 deriveBoth Servant.Elm.defaultOptions ''User
 
 getUsers :: [UserID] -> Transaction [User]
@@ -325,15 +335,17 @@ getUsers ids = do
               sqlToGenderIdentity genderIdentity,
           userDescription = descr,
           userRelationshipStatus =
-            fromMaybe RelationshipStatusSingle $ sqlToRelationshipStatus status,
-          userSections = []
+            fromMaybe RelationshipStatusSingle $ sqlToRelationshipStatus status
         }
 
-getSomeUserIDs :: Int32 -> Transaction [UserID]
-getSomeUserIDs amount = do
+getProfileSections :: UserID -> Transaction [ProfileSection]
+getProfileSections _ = pure [] -- TODO
+
+findPotentialLoveFor :: UserID -> Int32 -> Transaction [UserID]
+findPotentialLoveFor userID maxResults = do
   rows <-
     statement
-      amount
+      maxResults
       [vectorStatement|
         SELECT
           id :: int

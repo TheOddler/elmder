@@ -2,7 +2,7 @@ module Main exposing (..)
 
 import Browser
 import Either exposing (Either(..))
-import Generated.Backend as Backend exposing (User, UserID(..))
+import Generated.Backend as Backend exposing (User, UserID)
 import Html exposing (Html, a, div, h1, text)
 import Html.Attributes exposing (class, href)
 import Html.Components exposing (navbar)
@@ -83,14 +83,14 @@ init () =
     let
         store : Store UserID User
         store =
-            Store.init (\(UserID { unUserID }) -> String.fromInt unUserID) .userID
+            Store.init String.fromInt .userID
     in
     ( AllGood
         { userStore = store
         , currentScreen = Main ScreenMatches
         , requestedUsers = []
         }
-    , Backend.getUserExampleIDs baseUrl GotUserExamples
+    , Backend.getUserMeFindLove baseUrl GotUserExamples
     )
 
 
@@ -99,7 +99,7 @@ requestUsers store =
     let
         getMissing : List UserID -> Cmd Msg
         getMissing ids =
-            Backend.postUserGetMany baseUrl ids AddUserToStore
+            Backend.postUserByIds baseUrl ids AddUserToStore
     in
     Store.mkRequestCommand getMissing store
 

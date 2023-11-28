@@ -1,6 +1,6 @@
 module User.Loading exposing (..)
 
-import Generated.Backend exposing (UserID(..))
+import Generated.Backend exposing (UserID)
 import Html exposing (Attribute, Html)
 import Html.Components exposing (card)
 import Images
@@ -9,7 +9,7 @@ import Store exposing (Requested, unRequest)
 
 
 cssColor : UserID -> String
-cssColor (UserID { unUserID }) =
+cssColor userID =
     let
         colors : List String
         colors =
@@ -24,7 +24,7 @@ cssColor (UserID { unUserID }) =
             ]
 
         index =
-            modBy (List.length colors) unUserID
+            modBy (List.length colors) userID
     in
     List.getAt index colors
         |> Maybe.withDefault "#000000"

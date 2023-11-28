@@ -42,7 +42,7 @@ fakeImgUrl = do
   imgHeight <- fromRange (200, 600 :: Int)
   pure $ "https://placekitten.com/" <> T.pack (show imgWidth) <> "/" <> T.pack (show imgHeight)
 
-fakeUserSection :: Fake UserSection
+fakeUserSection :: Fake ProfileSection
 fakeUserSection = do
   oneof
     [ do
@@ -84,9 +84,6 @@ fakeUser userID = do
   userBirthday <- Faker.DateTime.day
 
   userGenderIdentity <- fakeBoundedEnum
-
-  sectionsCount <- fromRange (3, 15 :: Int)
-  userSections <- listOf sectionsCount fakeUserSection
 
   pure User {..}
 
