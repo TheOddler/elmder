@@ -9,7 +9,7 @@ import Hasql.Connection qualified
 import Hasql.Pool qualified
 import Hasql.Session qualified
 import Hasql.Transaction (Transaction)
-import Hasql.Transaction.Sessions (IsolationLevel (RepeatableRead), Mode (..), transaction)
+import Hasql.Transaction.Sessions (IsolationLevel (..), Mode (..), transaction)
 import ServerM (ServerEnv (dbConnectionPool), ServerM)
 
 initConnectionPool :: Hasql.Connection.Settings -> IO Hasql.Pool.Pool
@@ -31,14 +31,13 @@ runSession session = do
   liftIO $ runSessionWith pool session
 
 runHasql :: Transaction result -> ServerM result
-runHasql sql = do
-  -- Isolation level: RepeatableRead seems like a good default isolation level.
-  -- I'm basing this on not that much knowledge though, so I might be wrong.
-  -- It's supposedly the fastest one, and I don't think we need serializable anywhere.
-  -- If we do, I'll add it at that point.
+runHasql =
+  -- ReadCommitted is the default of Postgres, so we make it the default for us too
+  runHasqlWithIsolationLevel ReadCommitted
 
+runHasqlWithIsolationLevel :: IsolationLevel -> Transaction result -> ServerM result
+runHasqlWithIsolationLevel isolationLevel sql =
   -- Read/Write mode: Postgres doesn't actually do any optimisations for read-only
-  -- it's only as a safety check, disallowing any updates. But for now I'm not
-  -- going to bother with read-only transactions.
-
-  runSession $ transaction RepeatableRead Write sql
+  -- it's only as a safety check, disallowing any updates. So it doesn't really matter
+  -- to make all queries write queries, and that's one less thing to think about for now.
+  runSession $ transaction isolationLevel Write sql
