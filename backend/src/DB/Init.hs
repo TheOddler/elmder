@@ -22,10 +22,10 @@ initDB pool =
         createDBEnum "gender_identity" genderIdentityToSQL
           <> createDBEnum "relationship_status" relationshipStatusToSQL
           <> [uncheckedSql|
-                DROP TABLE IF EXISTS greeted_people;
+                DROP TABLE IF EXISTS greeted_people CASCADE;
                 CREATE TABLE greeted_people (name text NOT NULL);
                 
-                DROP TABLE IF EXISTS users;
+                DROP TABLE IF EXISTS users CASCADE;
                 CREATE TABLE users (
                   id SERIAL PRIMARY KEY,
                   name text NOT NULL,
@@ -47,7 +47,7 @@ initDB pool =
                 CREATE INDEX ON users (gender_identity);
                 CREATE INDEX ON users (relationship_status);
                 
-                DROP TABLE IF EXISTS user_search_gender_identity;
+                DROP TABLE IF EXISTS user_search_gender_identities CASCADE;
                 CREATE TABLE user_search_gender_identities (
                   user_id SERIAL NOT NULL REFERENCES users(id),
                   search_gender_identity gender_identity NOT NULL,
