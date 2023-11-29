@@ -28,7 +28,7 @@ import Faker.Food qualified
 import Faker.FunnyName qualified
 import Faker.Name qualified
 import Faker.Superhero qualified
-import Hasql.TH (resultlessStatement, singletonStatement)
+import Hasql.TH (resultlessStatement, singletonStatement, vectorStatement)
 import Hasql.Transaction (statement)
 import ServerM (ServerM)
 import User
@@ -78,10 +78,12 @@ fakeUser userID = do
 
   userRelationshipStatus <- fakeBoundedEnum
 
-  userLastKnownLocation <- Location <$> Faker.Combinators.fromRange (0.0, 90.0) <*> Faker.Combinators.fromRange (0.0, 180.0)
+  -- Place users close to each other so they can find each other
+  -- Belgium: lat 50.503887 and long 4.469936
+  userLastKnownLocation <- Location <$> Faker.Combinators.fromRange (49.0, 51.0) <*> Faker.Combinators.fromRange (3.0, 5.0)
 
-  userJoinDay <- Faker.DateTime.day
-  userBirthday <- Faker.DateTime.day
+  userBirthday <- Faker.DateTime.dayBetweenYears 1950 2000
+  userJoinDay <- Faker.DateTime.dayBetweenYears 2020 2025
 
   userGenderIdentity <- fakeBoundedEnum
 
@@ -96,32 +98,48 @@ ensureSomeUsersInDB wanted = do
     currentCount <- statement () [singletonStatement| SELECT COUNT(*) :: int FROM users |]
     let usersToAdd = genericTake (wanted - currentCount) fakeUsers
     when (not $ null usersToAdd) $ do
+      ids <-
+        statement
+          (unzip9 . V.fromList $ fromUser <$> usersToAdd)
+          [vectorStatement|
+            INSERT INTO users (
+              name,
+              header_image_url,
+              last_location_lat,
+              last_location_long,
+              join_day,
+              birthday,
+              gender_identity,
+              description,
+              relationship_status,
+              search_age_min,
+              search_age_max,
+              search_distance_km
+            )
+            SELECT *, 18, 99, 1000
+            FROM UNNEST (
+              $1 :: text[],
+              $2 :: text[],
+              $3 :: float4[],
+              $4 :: float4[],
+              $5 :: date[],
+              $6 :: date[],
+              $7 :: text[] :: gender_identity[],
+              $8 :: text[],
+              $9 :: text[] :: relationship_status[]
+            )
+            RETURNING id :: int
+          |]
       statement
-        (unzip9 . V.fromList $ fromUser <$> usersToAdd)
+        (ids, V.fromList $ genderIdentityToSQL <$> [minBound .. maxBound])
         [resultlessStatement|
-          INSERT INTO users (
-            name,
-            header_image_url,
-            last_location_lat,
-            last_location_long,
-            join_day,
-            birthday,
-            gender_identity,
-            description,
-            relationship_status
+          INSERT INTO user_search_gender_identities (
+            user_id,
+            search_gender_identity
           )
-          SELECT *
-          FROM UNNEST (
-            $1 :: text[],
-            $2 :: text[],
-            $3 :: float4[],
-            $4 :: float4[],
-            $5 :: date[],
-            $6 :: date[],
-            $7 :: text[] :: gender_identity[],
-            $8 :: text[],
-            $9 :: text[] :: relationship_status[]
-          )
+          SELECT ids.*, gi.*
+          FROM UNNEST ($1 :: int[]) ids
+          CROSS JOIN UNNEST ($2 :: text[] :: gender_identity[]) gi
         |]
   where
     fromUser :: User -> (Text, Text, Float, Float, Day, Day, Text, Text, Text)

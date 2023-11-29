@@ -24,6 +24,7 @@ initDB pool =
           <> [uncheckedSql|
                 DROP TABLE IF EXISTS greeted_people;
                 CREATE TABLE greeted_people (name text NOT NULL);
+                
                 DROP TABLE IF EXISTS users;
                 CREATE TABLE users (
                   id SERIAL PRIMARY KEY,
@@ -35,13 +36,24 @@ initDB pool =
                   birthday date NOT NULL,
                   gender_identity gender_identity NOT NULL,
                   description text NOT NULL,
-                  relationship_status relationship_status NOT NULL
+                  relationship_status relationship_status NOT NULL,
+                  search_age_min int2 NOT NULL,
+                  search_age_max int2 NOT NULL,
+                  search_distance_km int2 NOT NULL
                 );
                 CREATE INDEX ON users (last_location_lat);
                 CREATE INDEX ON users (last_location_long);
                 CREATE INDEX ON users (birthday);
                 CREATE INDEX ON users (gender_identity);
                 CREATE INDEX ON users (relationship_status);
+                
+                DROP TABLE IF EXISTS user_search_gender_identity;
+                CREATE TABLE user_search_gender_identities (
+                  user_id SERIAL NOT NULL REFERENCES users(id),
+                  search_gender_identity gender_identity NOT NULL,
+                  UNIQUE (user_id, search_gender_identity)
+                );
+                CREATE INDEX ON user_search_gender_identities (user_id);
             |]
   where
     createDBEnum :: (Bounded a, Enum a) => ByteString -> (a -> Text) -> ByteString

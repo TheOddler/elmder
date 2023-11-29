@@ -345,11 +345,41 @@ findPotentialLoveFor :: UserID -> Int32 -> Transaction [UserID]
 findPotentialLoveFor userID maxResults = do
   rows <-
     statement
-      maxResults
+      (unUserID userID, maxResults)
+      -- We can't do comments in the SQL here, because the parser doesn't support it.
+      -- But essentially, we first just get all the tables we need (all the joins)
+      -- then a block of queries to search people for me (the first block of `AND`'s),
+      -- then the same but in reverse for reverse search (so the other person also likes me)
       [vectorStatement|
-        SELECT
-          id :: int
-        FROM users
-        LIMIT $1 :: int
+        SELECT other.id :: int
+        FROM users me
+        JOIN users other ON other.id <> me.id
+        JOIN user_search_gender_identities my_gi ON me.id = my_gi.user_id
+        JOIN user_search_gender_identities other_gi ON other.id = other_gi.user_id
+        WHERE me.id = $1 :: int
+
+        AND other.birthday
+          BETWEEN CURRENT_DATE - concat(me.search_age_max::text,' years')::interval
+          AND CURRENT_DATE - concat(me.search_age_min::text,' years')::interval
+        AND other.last_location_lat
+          BETWEEN me.last_location_lat - (me.search_distance_km / 110.574)
+          AND me.last_location_lat + (me.search_distance_km / 110.574)
+        AND other.last_location_long
+          BETWEEN me.last_location_long - (me.search_distance_km / (111.320 * cos(me.last_location_lat * pi() / 180)))
+          AND me.last_location_long + (me.search_distance_km / (111.320 * cos(me.last_location_lat * pi() / 180)))
+        AND other.gender_identity = my_gi.search_gender_identity
+
+        AND me.birthday
+          BETWEEN CURRENT_DATE - concat(other.search_age_max::text,' years')::interval
+          AND CURRENT_DATE - concat(other.search_age_min::text,' years')::interval
+        AND me.last_location_lat
+          BETWEEN other.last_location_lat - (other.search_distance_km / 110.574)
+          AND other.last_location_lat + (other.search_distance_km / 110.574)
+        AND me.last_location_long
+          BETWEEN other.last_location_long - (other.search_distance_km / (111.320 * cos(other.last_location_lat * pi() / 180)))
+          AND other.last_location_long + (other.search_distance_km / (111.320 * cos(other.last_location_lat * pi() / 180)))
+        AND me.gender_identity = other_gi.search_gender_identity
+
+        LIMIT $2 :: int
       |]
   pure $ UserID <$> toList rows

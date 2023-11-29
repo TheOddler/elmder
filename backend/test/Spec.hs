@@ -9,7 +9,7 @@ import Data.Text qualified as T
 import Servant.Client ((//), (/:))
 import Test.QuickCheck (Arbitrary (arbitrary), forAll, suchThat)
 import Test.QuickCheck.Instances.Text ()
-import Test.Syd (Spec, it, shouldBe, sydTest)
+import Test.Syd (Spec, it, shouldBe, shouldSatisfy, sydTest)
 import TestUtil
 import User (UserID (..))
 import User.Fake (ensureSomeUsersInDB)
@@ -44,10 +44,17 @@ main = sydTest $ do
   userSpec
 
 userSpec :: Spec
-userSpec =
+userSpec = do
   serverAndClientTest $ do
     it "returns the requested users" $ \(server, clientEnv) -> do
       runOnServer server $ ensureSomeUsersInDB 10
       let requestedUsers = UserID <$> [1, 2, 3]
       answer <- runOnClient clientEnv (api.userRoutes.getOthers requestedUsers)
       length answer `shouldBe` length requestedUsers
+
+    it "can search for users" $ \(server, clientEnv) -> do
+      -- The users that are randomly generated have very broad search criteria,
+      -- so they should be able to find each other
+      runOnServer server $ ensureSomeUsersInDB 10
+      answer <- runOnClient clientEnv (api.userRoutes.findLoveForMe)
+      length answer `shouldSatisfy` (> 0)
