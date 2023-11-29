@@ -341,8 +341,8 @@ getUsers ids = do
 getProfileSections :: UserID -> Transaction [ProfileSection]
 getProfileSections _ = pure [] -- TODO
 
-findPotentialLoveFor :: UserID -> Int32 -> Transaction [UserID]
-findPotentialLoveFor userID maxResults = do
+searchFor :: UserID -> Int32 -> Transaction [UserID]
+searchFor userID maxResults = do
   rows <-
     statement
       (unUserID userID, maxResults)

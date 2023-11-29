@@ -90,7 +90,7 @@ init () =
         , currentScreen = Main ScreenMatches
         , requestedUsers = []
         }
-    , Backend.getUserMeFindLove baseUrl GotUserExamples
+    , Backend.getUserSearch baseUrl GotUserExamples
     )
 
 

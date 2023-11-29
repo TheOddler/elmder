@@ -49,12 +49,12 @@ userSpec = do
     it "returns the requested users" $ \(server, clientEnv) -> do
       runOnServer server $ ensureSomeUsersInDB 10
       let requestedUsers = UserID <$> [1, 2, 3]
-      answer <- runOnClient clientEnv (api.userRoutes.getOthers requestedUsers)
+      answer <- runOnClient clientEnv (api.userRoutes.getByIds requestedUsers)
       length answer `shouldBe` length requestedUsers
 
     it "can search for users" $ \(server, clientEnv) -> do
       -- The users that are randomly generated have very broad search criteria,
       -- so they should be able to find each other
       runOnServer server $ ensureSomeUsersInDB 10
-      answer <- runOnClient clientEnv (api.userRoutes.findLoveForMe)
+      answer <- runOnClient clientEnv (api.userRoutes.getSearch)
       length answer `shouldSatisfy` (> 0)
