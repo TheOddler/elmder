@@ -2,7 +2,7 @@ module Main exposing (..)
 
 import Browser
 import Either exposing (Either(..))
-import Generated.Backend as Backend exposing (UserOverviewInfo)
+import Generated.Backend as Backend exposing (UserExtendedInfo, UserOverviewInfo)
 import Html exposing (Html, a, div, h1, text)
 import Html.Attributes exposing (class, href)
 import Html.Components exposing (navbar)
@@ -23,7 +23,7 @@ allMainScreens =
 
 
 type SubScreen
-    = ScreenUser UserOverviewInfo
+    = ScreenUser UserOverviewInfo UserExtendedInfo
 
 
 type Screen
@@ -53,6 +53,7 @@ type Msg
     = OpenScreen Screen
     | ViewUser UserOverviewInfo
     | GotUsersForOverview (Result Http.Error (List UserOverviewInfo))
+    | GotUnrecoverableErrror String
 
 
 type alias Flags =
@@ -97,15 +98,26 @@ update message modelOrError =
 
         AllGood model ->
             case message of
+                GotUnrecoverableErrror error ->
+                    ( UnrecoverableError error, Cmd.none )
+
                 OpenScreen screen ->
                     ( AllGood { model | currentScreen = screen }
                     , Cmd.none
                     )
 
                 ViewUser info ->
-                    ( AllGood { model | currentScreen = Sub (getMain model.currentScreen) (ScreenUser info) }
-                    , Cmd.none
-                      -- TODO: Request more user info here
+                    let
+                        handleExtInfoLoaded errOrExtInfo =
+                            case errOrExtInfo of
+                                Err error ->
+                                    GotUnrecoverableErrror <| "GotUserExamples returned an error:\n" ++ httpErrorToString error
+
+                                Ok extInfo ->
+                                    OpenScreen <| Sub (getMain model.currentScreen) (ScreenUser info extInfo)
+                    in
+                    ( AllGood model
+                    , Backend.getUserByUserIDProfile baseUrl info.userId handleExtInfoLoaded
                     )
 
                 GotUsersForOverview (Ok userInfos) ->
@@ -171,8 +183,8 @@ view modelOrError =
                                     , ( "Font Awesome", "https://fontawesome.com/" )
                                     ]
 
-                    Sub _ (ScreenUser userInfo) ->
-                        User.viewProfile userInfo
+                    Sub _ (ScreenUser userInfo extInfo) ->
+                        User.viewProfile userInfo extInfo
                 , let
                     icon mainScreen =
                         case mainScreen of

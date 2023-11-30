@@ -16,7 +16,6 @@ import Data.Text (Text)
 import Data.Time (CalendarDiffDays (..), Day, diffGregorianDurationClip)
 import Data.Vector qualified as V
 import Elm.Derive (Options (..), deriveBoth)
-import GHC.Base (divInt)
 import GHC.Generics (Generic)
 import Hasql.TH (resultlessStatement, singletonStatement, vectorStatement)
 import Hasql.Transaction (Transaction, statement)
@@ -343,7 +342,18 @@ getUserExtendedInfo _ =
     UserExtendedInfo
       { -- TODO: Implement actually getting this stuff from the DB
         userExtProfileAge = 0,
-        userExtProfileSections = [],
+        userExtProfileSections =
+          [ UserSectionGeneric "Generic header" "Generic content",
+            UserSectionImages
+              [ "https://via.placeholder.com/110",
+                "https://via.placeholder.com/120",
+                "https://via.placeholder.com/130",
+                "https://via.placeholder.com/140",
+                "https://via.placeholder.com/150"
+              ]
+              "Image description",
+            UserSectionQuestionAndAnswer "Question?" "Answer!"
+          ],
         userExtRelationshipStatus = RelationshipStatusSingle
       }
 
