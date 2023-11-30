@@ -29,9 +29,3 @@ task be # With those two commands you have a pretty good setup for developing bo
 task be:test --watch # you can add `--watch` to any task that has `sources` defines, many do, but the two tasks above always watch for changes
 task --list-all # To see all other commands, or check in the `taskfile.yaml`s
 ```
-
-## VSCode
-
-If you're using VS Code, it's best to open the workspace, that way the HLS will work properly.
-You can do this by either opening code as `code project.code-workspace`
-or by using `code .` and it'll ask to open the workspace.

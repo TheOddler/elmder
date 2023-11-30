@@ -77,7 +77,7 @@
               ];
             };
             settings = {
-              hlint.hintFile = ./backend/.hlint.yaml;
+              hlint.hintFile = ./.hlint.yaml;
               ormolu.defaultExtensions = [
                 "GHC2021" # Let Ormolu know we're using GHC2021
               ];
