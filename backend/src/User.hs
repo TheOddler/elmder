@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -12,12 +13,14 @@ import Data.Foldable (toList)
 import Data.Int (Int32)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
-import Data.Time (Day)
-import Data.Vector (fromList)
+import Data.Time (CalendarDiffDays (..), Day, diffGregorianDurationClip)
+import Data.Vector qualified as V
 import Elm.Derive (Options (..), deriveBoth)
+import GHC.Base (divInt)
 import GHC.Generics (Generic)
-import Hasql.TH (vectorStatement)
+import Hasql.TH (resultlessStatement, singletonStatement, vectorStatement)
 import Hasql.Transaction (Transaction, statement)
+import SafeNumberConversion (monthsToYears)
 import Servant (FromHttpApiData, ToHttpApiData)
 import Servant.Elm qualified
 import Util (reverseEnumToText)
@@ -26,16 +29,29 @@ newtype UserID = UserID {unUserID :: Int32}
   deriving (Generic, Show, Eq)
   deriving newtype (FromHttpApiData, ToHttpApiData)
 
-data User = User
-  { userID :: UserID,
+-- | This is the info about a user that we show on the overview.
+-- Any additional information is only visible when looking at the full profile
+-- See 'UserExtendedInfo' for more information about a user.
+data UserOverviewInfo = UserOverviewInfo
+  { userId :: UserID,
     userName :: Text,
-    userHeaderImage :: Text,
-    userLastKnownLocation :: Location,
-    userJoinDay :: Day,
-    userBirthday :: Day,
-    userGenderIdentity :: GenderIdentity,
+    userHeaderImageUrl :: Text,
     userDescription :: Text,
-    userRelationshipStatus :: RelationshipStatus
+    -- | For privacy we never tell someone the exact location of someone else, even though we do store it in the database.
+    userDistanceKm :: Int,
+    -- | For privacy we send the age as a number to the frontend. Of course we do store the birthday as a data in the database.
+    userAge :: Integer,
+    userGenderIdentity :: GenderIdentity
+  }
+  deriving (Generic, Show, Eq)
+
+-- | Additional information about a user
+-- This should not include information already in 'UserOverviewInfo' as the
+-- frontend might already know this when it requests this information.
+data UserExtendedInfo = UserExtendedInfo
+  { userExtProfileAge :: Int,
+    userExtProfileSections :: [ProfileSection],
+    userExtRelationshipStatus :: RelationshipStatus -- TODO: Rework this to a web of relationships
   }
   deriving (Generic, Show, Eq)
 
@@ -44,6 +60,26 @@ data Location = Location
     locationLongitude :: Float
   }
   deriving (Generic, Show, Eq)
+
+distanceInKmBetween :: Location -> Location -> Int
+distanceInKmBetween l1 l2 =
+  let r = 6371.0 -- Radius of the earth in km
+      deg2rad deg = (deg * pi) / 180
+      lat1 = l1.locationLatitude
+      lon1 = l1.locationLongitude
+      lat2 = l2.locationLatitude
+      lon2 = l2.locationLongitude
+      dLat = deg2rad (lat2 - lat1)
+      dLon = deg2rad (lon2 - lon1)
+      a =
+        sin (dLat / 2) * sin (dLat / 2)
+          + cos (deg2rad lat1)
+            * cos (deg2rad lat2)
+            * sin (dLon / 2)
+            * sin (dLon / 2)
+
+      c = 2 * atan2 (sqrt a) (sqrt (1 - a))
+   in round $ r * c
 
 data RelationshipStatus
   = RelationshipStatusSingle
@@ -285,10 +321,10 @@ data ProfileSection
   deriving (Generic, Show, Eq)
 
 data SearchParameters = SearchParameters
-  { ageMin :: Int,
-    ageMax :: Int,
-    distanceKm :: Float,
-    genderIdentity :: [GenderIdentity]
+  { searchAgeMin :: Int,
+    searchAgeMax :: Int,
+    searchDistanceKm :: Float,
+    searchGenderIdentity :: [GenderIdentity]
   }
   deriving (Generic)
 
@@ -298,50 +334,84 @@ deriveBoth Servant.Elm.defaultOptions ''RelationshipStatus
 deriveBoth Servant.Elm.defaultOptions ''GenderIdentity
 deriveBoth Servant.Elm.defaultOptions ''Location
 deriveBoth Servant.Elm.defaultOptions ''ProfileSection
-deriveBoth Servant.Elm.defaultOptions ''User
+deriveBoth Servant.Elm.defaultOptions ''UserOverviewInfo
+deriveBoth Servant.Elm.defaultOptions ''UserExtendedInfo
 
-getUsers :: [UserID] -> Transaction [User]
-getUsers ids = do
-  rows <-
+getUserExtendedInfo :: UserID -> Transaction UserExtendedInfo
+getUserExtendedInfo _ =
+  pure
+    UserExtendedInfo
+      { -- TODO: Implement actually getting this stuff from the DB
+        userExtProfileAge = 0,
+        userExtProfileSections = [],
+        userExtRelationshipStatus = RelationshipStatusSingle
+      }
+
+data NewUserInfo = NewUserInfo
+  { newUserName :: Text,
+    newUserDescription :: Text,
+    newUserHeaderImageUrl :: Text,
+    newUserLocation :: Location,
+    newUserBirthday :: Day,
+    newUserGenderIdentity :: GenderIdentity
+  }
+
+createNewUser :: NewUserInfo -> Transaction UserID
+createNewUser u = do
+  newID <-
     statement
-      (fromList $ unUserID <$> ids)
-      [vectorStatement|
-        SELECT
-          id :: int,
-          name :: text,
-          header_image_url :: text,
-          last_location_lat :: float4,
-          last_location_long :: float4,
-          join_day :: date,
-          birthday :: date,
-          gender_identity :: text,
-          description :: text,
-          relationship_status :: text
-        FROM users
-        WHERE id = ANY ($1 :: int[])
-      |]
-  pure $ toUser <$> toList rows
-  where
-    toUser (userId, name, img, lat, long, joinDay, birthday, genderIdentity, descr, status) =
-      User
-        { userID = UserID userId,
-          userName = name,
-          userHeaderImage = img,
-          userLastKnownLocation = Location lat long,
-          userJoinDay = joinDay,
-          userBirthday = birthday,
-          userGenderIdentity =
-            fromMaybe Other $
-              sqlToGenderIdentity genderIdentity,
-          userDescription = descr,
-          userRelationshipStatus =
-            fromMaybe RelationshipStatusSingle $ sqlToRelationshipStatus status
-        }
+      ( u.newUserName,
+        u.newUserHeaderImageUrl,
+        u.newUserDescription,
+        u.newUserLocation.locationLatitude,
+        u.newUserLocation.locationLongitude,
+        u.newUserBirthday,
+        genderIdentityToSQL u.newUserGenderIdentity
+      )
+      [singletonStatement|
+            INSERT INTO users (
+              name,
+              header_image_url,
+              description,
+              last_location_lat,
+              last_location_long,
+              join_day,
+              birthday,
+              gender_identity,
+              relationship_status,
+              search_age_min,
+              search_age_max,
+              search_distance_km
+            )
+            VALUES (
+              $1 :: text,
+              $2 :: text,
+              $3 :: text,
+              $4 :: float4,
+              $5 :: float4,
+              CURRENT_DATE,
+              $6 :: date,
+              $7 :: text :: gender_identity,
+              'single',
+              18,
+              99,
+              100
+            )
+            RETURNING id :: int
+          |]
+  statement
+    (newID, V.fromList $ genderIdentityToSQL <$> [minBound .. maxBound])
+    [resultlessStatement|
+          INSERT INTO user_search_gender_identities (
+            user_id,
+            search_gender_identity
+          )
+          SELECT $1 :: int, *
+          FROM UNNEST ($2 :: text[] :: gender_identity[])
+        |]
+  pure $ UserID newID
 
-getProfileSections :: UserID -> Transaction [ProfileSection]
-getProfileSections _ = pure [] -- TODO
-
-searchFor :: UserID -> Int32 -> Transaction [UserID]
+searchFor :: UserID -> Int32 -> Transaction [UserOverviewInfo]
 searchFor userID maxResults = do
   rows <-
     statement
@@ -351,7 +421,18 @@ searchFor userID maxResults = do
       -- then a block of queries to search people for me (the first block of `AND`'s),
       -- then the same but in reverse for reverse search (so the other person also likes me)
       [vectorStatement|
-        SELECT other.id :: int
+        SELECT 
+          other.id :: int,
+          other.name :: text,
+          other.header_image_url :: text,
+          other.description :: text,
+          me.last_location_lat :: float,
+          me.last_location_long :: float,
+          other.last_location_lat :: float,
+          other.last_location_long :: float,
+          CURRENT_DATE :: date,
+          other.birthday :: date,
+          other.gender_identity :: text
         FROM users me
         JOIN users other ON other.id <> me.id
         JOIN user_search_gender_identities my_gi ON me.id = my_gi.user_id
@@ -382,4 +463,15 @@ searchFor userID maxResults = do
 
         LIMIT $2 :: int
       |]
-  pure $ UserID <$> toList rows
+  pure $ toUserInfo <$> toList rows
+  where
+    toUserInfo (uid, name, img, descr, myLat, myLong, otherLat, otherLong, curDate, birthday, genderId) =
+      UserOverviewInfo
+        { userId = UserID uid,
+          userName = name,
+          userHeaderImageUrl = img,
+          userDescription = descr,
+          userDistanceKm = distanceInKmBetween (Location myLat myLong) (Location otherLat otherLong),
+          userAge = monthsToYears $ cdMonths (diffGregorianDurationClip curDate birthday),
+          userGenderIdentity = fromMaybe Other $ sqlToGenderIdentity genderId
+        }

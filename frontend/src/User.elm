@@ -1,17 +1,17 @@
 module User exposing (..)
 
-import Generated.Backend exposing (ProfileSection(..), User)
+import Generated.Backend exposing (ProfileSection(..), UserOverviewInfo)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Components exposing (..)
 import Swiper
 
 
-viewCard : List (Attribute msg) -> User -> Html msg
+viewCard : List (Attribute msg) -> UserOverviewInfo -> Html msg
 viewCard attributes user =
     card
         attributes
-        [ img [ src user.userHeaderImage, class "full-width standard-height" ] []
+        [ img [ src user.userHeaderImageUrl, class "full-width standard-height" ] []
             |> withOverlay
                 [ class "full-width" ]
                 [ class "match-content text-on-image" ]
@@ -21,7 +21,9 @@ viewCard attributes user =
         ]
 
 
-viewProfile : User -> Html msg
+viewProfile :
+    UserOverviewInfo -- TODO: Add extended user info
+    -> Html msg
 viewProfile user =
     div
         [ class "masonry" ]

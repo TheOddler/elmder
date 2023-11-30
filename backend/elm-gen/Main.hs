@@ -46,7 +46,8 @@ main = do
     elmImports
     "../frontend/src"
     [ DefineElm (Proxy :: Proxy User.UserID),
-      DefineElm (Proxy :: Proxy User.User),
+      DefineElm (Proxy :: Proxy User.UserOverviewInfo),
+      DefineElm (Proxy :: Proxy User.UserExtendedInfo),
       DefineElm (Proxy :: Proxy User.RelationshipStatus),
       DefineElm (Proxy :: Proxy User.GenderIdentity),
       DefineElm (Proxy :: Proxy User.Location),

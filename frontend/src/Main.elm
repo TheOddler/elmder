@@ -2,15 +2,13 @@ module Main exposing (..)
 
 import Browser
 import Either exposing (Either(..))
-import Generated.Backend as Backend exposing (User, UserID)
+import Generated.Backend as Backend exposing (UserOverviewInfo)
 import Html exposing (Html, a, div, h1, text)
 import Html.Attributes exposing (class, href)
 import Html.Components exposing (navbar)
 import Html.Events exposing (onClick)
 import Http
-import Store exposing (Requested, Store, unRequest)
 import User
-import User.Loading
 
 
 type MainScreen
@@ -25,7 +23,7 @@ allMainScreens =
 
 
 type SubScreen
-    = ScreenUser (Requested UserID)
+    = ScreenUser UserOverviewInfo
 
 
 type Screen
@@ -45,18 +43,16 @@ getMain screen =
 
 type Model
     = AllGood
-        { userStore : Store UserID User
+        { overviewUsers : List UserOverviewInfo
         , currentScreen : Screen
-        , requestedUsers : List (Requested UserID)
         }
     | UnrecoverableError String
 
 
 type Msg
     = OpenScreen Screen
-    | ViewUser UserID
-    | GotUserExamples (Result Http.Error (List UserID))
-    | AddUserToStore (Result Http.Error (List User))
+    | ViewUser UserOverviewInfo
+    | GotUsersForOverview (Result Http.Error (List UserOverviewInfo))
 
 
 type alias Flags =
@@ -80,28 +76,12 @@ baseUrl =
 
 init : Flags -> ( Model, Cmd Msg )
 init () =
-    let
-        store : Store UserID User
-        store =
-            Store.init String.fromInt .userID
-    in
     ( AllGood
-        { userStore = store
-        , currentScreen = Main ScreenMatches
-        , requestedUsers = []
+        { currentScreen = Main ScreenMatches
+        , overviewUsers = []
         }
-    , Backend.getUserSearch baseUrl GotUserExamples
+    , Backend.getUserSearch baseUrl GotUsersForOverview
     )
-
-
-requestUsers : Store UserID User -> List UserID -> ( List (Requested UserID), Cmd Msg )
-requestUsers store =
-    let
-        getMissing : List UserID -> Cmd Msg
-        getMissing ids =
-            Backend.postUserByIds baseUrl ids AddUserToStore
-    in
-    Store.mkRequestCommand getMissing store
 
 
 subscriptions : Model -> Sub Msg
@@ -122,46 +102,19 @@ update message modelOrError =
                     , Cmd.none
                     )
 
-                ViewUser userID ->
-                    let
-                        ( requestedUsers, storeCmd ) =
-                            requestUsers model.userStore [ userID ]
-                    in
-                    case requestedUsers of
-                        [ requestedUserID ] ->
-                            ( AllGood { model | currentScreen = Sub (getMain model.currentScreen) (ScreenUser requestedUserID) }
-                            , storeCmd
-                            )
-
-                        [] ->
-                            ( UnrecoverableError <| "We requested one user but got none back. This should never happen."
-                            , Cmd.none
-                            )
-
-                        _ ->
-                            ( UnrecoverableError <| "We requested one user but got multiple back. This should never happen."
-                            , Cmd.none
-                            )
-
-                GotUserExamples (Ok exampleIDs) ->
-                    let
-                        ( requestedUsers, cmd ) =
-                            requestUsers model.userStore exampleIDs
-                    in
-                    ( AllGood { model | requestedUsers = requestedUsers }
-                    , cmd
+                ViewUser info ->
+                    ( AllGood { model | currentScreen = Sub (getMain model.currentScreen) (ScreenUser info) }
+                    , Cmd.none
+                      -- TODO: Request more user info here
                     )
 
-                GotUserExamples (Err error) ->
-                    ( UnrecoverableError <| "GotUserExamples returned an error:\n" ++ httpErrorToString error, Cmd.none )
-
-                AddUserToStore (Ok newUsers) ->
-                    ( AllGood { model | userStore = Store.update model.userStore newUsers }
+                GotUsersForOverview (Ok userInfos) ->
+                    ( AllGood { model | overviewUsers = userInfos }
                     , Cmd.none
                     )
 
-                AddUserToStore (Err error) ->
-                    ( UnrecoverableError <| "AddUserToStore returned an error:\n" ++ httpErrorToString error, Cmd.none )
+                GotUsersForOverview (Err error) ->
+                    ( UnrecoverableError <| "GotUserExamples returned an error:\n" ++ httpErrorToString error, Cmd.none )
 
 
 httpErrorToString : Http.Error -> String
@@ -194,21 +147,16 @@ view modelOrError =
                 [ case model.currentScreen of
                     Main ScreenMatches ->
                         let
-                            viewUserOrID : Either (Requested UserID) User -> Html Msg
-                            viewUserOrID userOrID =
-                                case userOrID of
-                                    Right u ->
-                                        User.viewCard [ onClick <| ViewUser u.userID ] u
-
-                                    Left uID ->
-                                        User.Loading.viewCardLoading [ onClick <| ViewUser (unRequest uID) ] uID
+                            viewUser : UserOverviewInfo -> Html Msg
+                            viewUser userInfo =
+                                User.viewCard [ onClick <| ViewUser userInfo ] userInfo
                         in
                         div []
                             [ div
                                 [ class "masonry" ]
                                 (List.map
-                                    viewUserOrID
-                                    (Store.getEithers model.userStore model.requestedUsers)
+                                    viewUser
+                                    model.overviewUsers
                                 )
                             ]
 
@@ -223,13 +171,8 @@ view modelOrError =
                                     , ( "Font Awesome", "https://fontawesome.com/" )
                                     ]
 
-                    Sub _ (ScreenUser userID) ->
-                        case Store.getOne model.userStore userID of
-                            Just u ->
-                                User.viewProfile u
-
-                            Nothing ->
-                                div [ class "center-content fill-screen" ] [ text "Loading User..." ]
+                    Sub _ (ScreenUser userInfo) ->
+                        User.viewProfile userInfo
                 , let
                     icon mainScreen =
                         case mainScreen of

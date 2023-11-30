@@ -73,6 +73,7 @@
   - {name: Prelude.quot, within: []} # Partial, see https://github.com/NorfairKing/haskell-WAT#num-int
   - name: Prelude.div
     within:
+      - SafeNumberConversion
       - TestUtil
   - {name: Prelude.rem, within: []}
   - {name: Prelude.mod, within: []}
@@ -120,6 +121,7 @@
   # 44
   - name: fromIntegral
     within:
+      - SafeNumberConversion # Here we put all our safe number conversion functions
       - TestUtil # We use it with a constant that we know is safe
   - {name: fromInteger, within: []}
 
