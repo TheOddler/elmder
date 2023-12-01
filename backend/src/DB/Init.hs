@@ -51,6 +51,15 @@ initDB pool =
                   UNIQUE (user_id, search_gender_identity)
                 );
                 CREATE INDEX ON user_search_gender_identities (user_id);
+
+                DROP TABLE IF EXISTS likes CASCADE;
+                CREATE TABLE likes (
+                  user_id SERIAL NOT NULL REFERENCES users(id),
+                  liked_user_id SERIAL NOT NULL REFERENCES users(id),
+                  timestamp TIMESTAMPTZ NOT NULL,
+                  UNIQUE (user_id, liked_user_id)
+                );
+                CREATE INDEX ON likes (user_id);
             |]
   where
     createDBEnum :: (Bounded a, Enum a) => ByteString -> (a -> Text) -> ByteString
