@@ -22,9 +22,6 @@ initDB pool =
         createDBEnum "gender_identity" genderIdentityToSQL
           <> createDBEnum "relationship_status" relationshipStatusToSQL
           <> [uncheckedSql|
-                DROP TABLE IF EXISTS greeted_people CASCADE;
-                CREATE TABLE greeted_people (name text NOT NULL);
-                
                 DROP TABLE IF EXISTS users CASCADE;
                 CREATE TABLE users (
                   id SERIAL PRIMARY KEY,
