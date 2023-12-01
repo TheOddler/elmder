@@ -22,7 +22,7 @@ import User.Fake (ensureSomeUsersInDB)
 data UserRoutes mode = UserRoutes
   { getSearch :: mode :- "search" :> Get '[JSON] [UserOverviewInfo],
     getUserExtendedInfo :: mode :- Capture "userID" UserID :> "profile" :> Get '[JSON] UserExtendedInfo,
-    getLikedUsers :: mode :- "liked" :> Get '[JSON] [UserOverviewInfo],
+    getLikes :: mode :- "likes" :> Get '[JSON] [UserOverviewInfo],
     postLikeUser :: mode :- Capture "likedUserID" UserID :> "like" :> Post '[JSON] ()
   }
   deriving (Generic)
@@ -38,6 +38,6 @@ userRoutes =
         ensureSomeUsersInDB 10
         runHasql $ User.searchFor pretendMyID 10,
       getUserExtendedInfo = runHasql . User.getUserExtendedInfo,
-      getLikedUsers = runHasql $ User.getLikedUsersFor pretendMyID,
+      getLikes = runHasql $ User.getLikedUsersFor pretendMyID,
       postLikeUser = runHasql . User.likeUserBy pretendMyID
     }

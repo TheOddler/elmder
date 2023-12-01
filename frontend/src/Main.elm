@@ -2,7 +2,7 @@ module Main exposing (..)
 
 import Browser
 import Either exposing (Either(..))
-import Generated.Backend as Backend exposing (UserExtendedInfo, UserOverviewInfo)
+import Generated.Backend as Backend exposing (UserExtendedInfo, UserID, UserOverviewInfo)
 import Html exposing (Html, a, div, h1, text)
 import Html.Attributes exposing (class, href)
 import Html.Components exposing (navbar)
@@ -11,49 +11,43 @@ import Http
 import User
 
 
-type MainScreen
-    = ScreenMatches
-    | ScreenSettings
-    | Attributions
+type NavButton
+    = NavButtonSearch
+    | NavButtonLikes
+    | NavButtonMyProfile
 
 
-allMainScreens : List MainScreen
-allMainScreens =
-    [ ScreenMatches, ScreenSettings, Attributions ]
-
-
-type SubScreen
-    = ScreenUser UserOverviewInfo UserExtendedInfo
+allNavButtons : List NavButton
+allNavButtons =
+    [ NavButtonSearch
+    , NavButtonLikes
+    , NavButtonMyProfile
+    ]
 
 
 type Screen
-    = Main MainScreen
-    | Sub MainScreen SubScreen
+    = ScreenSearch
+    | ScreenLikes (List UserOverviewInfo)
+    | ScreenMyProfile
+    | ScreenOtherUser UserOverviewInfo UserExtendedInfo
 
 
-getMain : Screen -> MainScreen
-getMain screen =
-    case screen of
-        Main m ->
-            m
-
-        Sub m _ ->
-            m
-
-
-type Model
-    = AllGood
-        { overviewUsers : List UserOverviewInfo
-        , currentScreen : Screen
-        }
-    | UnrecoverableError String
+type alias Model =
+    { overviewUsers : List UserOverviewInfo
+    , currentScreen : Screen
+    , lastClickedNavButton : NavButton
+    , unrecoverableError : Maybe String
+    }
 
 
 type Msg
-    = OpenScreen Screen
+    = ClickedNavButton NavButton
+    | OpenScreen Screen
     | ViewUser UserOverviewInfo
     | GotUsersForOverview (Result Http.Error (List UserOverviewInfo))
     | GotUnrecoverableErrror String
+    | LikeUser UserID
+    | LikedUserResult (Result Http.Error ())
 
 
 type alias Flags =
@@ -77,10 +71,11 @@ baseUrl =
 
 init : Flags -> ( Model, Cmd Msg )
 init () =
-    ( AllGood
-        { currentScreen = Main ScreenMatches
-        , overviewUsers = []
-        }
+    ( { currentScreen = ScreenSearch
+      , overviewUsers = []
+      , lastClickedNavButton = NavButtonSearch
+      , unrecoverableError = Nothing
+      }
     , Backend.getUserSearch baseUrl GotUsersForOverview
     )
 
@@ -91,42 +86,81 @@ subscriptions _ =
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update message modelOrError =
-    case modelOrError of
-        UnrecoverableError _ ->
-            ( modelOrError, Cmd.none )
+update message model =
+    case message of
+        GotUnrecoverableErrror error ->
+            ( { model | unrecoverableError = Just error }, Cmd.none )
 
-        AllGood model ->
-            case message of
-                GotUnrecoverableErrror error ->
-                    ( UnrecoverableError error, Cmd.none )
+        ClickedNavButton button ->
+            let
+                ( newScreen, cmds ) =
+                    case button of
+                        NavButtonSearch ->
+                            ( ScreenSearch
+                            , Cmd.none
+                            )
 
-                OpenScreen screen ->
-                    ( AllGood { model | currentScreen = screen }
-                    , Cmd.none
-                    )
+                        NavButtonLikes ->
+                            ( ScreenLikes []
+                            , Backend.getUserLikes baseUrl
+                                (\errorOrUsers ->
+                                    case errorOrUsers of
+                                        Err err ->
+                                            GotUnrecoverableErrror <| httpErrorToString err
 
-                ViewUser info ->
-                    let
-                        handleExtInfoLoaded errOrExtInfo =
-                            case errOrExtInfo of
-                                Err error ->
-                                    GotUnrecoverableErrror <| "GotUserExamples returned an error:\n" ++ httpErrorToString error
+                                        Ok users ->
+                                            OpenScreen <| ScreenLikes users
+                                )
+                            )
 
-                                Ok extInfo ->
-                                    OpenScreen <| Sub (getMain model.currentScreen) (ScreenUser info extInfo)
-                    in
-                    ( AllGood model
-                    , Backend.getUserByUserIDProfile baseUrl info.userId handleExtInfoLoaded
-                    )
+                        NavButtonMyProfile ->
+                            ( ScreenMyProfile
+                            , Cmd.none
+                            )
+            in
+            ( { model | currentScreen = newScreen, lastClickedNavButton = button }
+            , cmds
+            )
 
-                GotUsersForOverview (Ok userInfos) ->
-                    ( AllGood { model | overviewUsers = userInfos }
-                    , Cmd.none
-                    )
+        OpenScreen screen ->
+            ( { model | currentScreen = screen }
+            , Cmd.none
+            )
 
-                GotUsersForOverview (Err error) ->
-                    ( UnrecoverableError <| "GotUserExamples returned an error:\n" ++ httpErrorToString error, Cmd.none )
+        ViewUser info ->
+            let
+                handleExtInfoLoaded errOrExtInfo =
+                    case errOrExtInfo of
+                        Err error ->
+                            GotUnrecoverableErrror <| "GotUserExamples returned an error:\n" ++ httpErrorToString error
+
+                        Ok extInfo ->
+                            OpenScreen <| ScreenOtherUser info extInfo
+            in
+            ( model
+            , Backend.getUserByUserIDProfile baseUrl info.userId handleExtInfoLoaded
+            )
+
+        GotUsersForOverview (Ok userInfos) ->
+            ( { model | overviewUsers = userInfos }
+            , Cmd.none
+            )
+
+        GotUsersForOverview (Err error) ->
+            ( { model | unrecoverableError = Just <| "GotUserExamples returned an error:\n" ++ httpErrorToString error }, Cmd.none )
+
+        LikeUser userID ->
+            ( model
+            , Backend.postUserByLikedUserIDLike baseUrl userID LikedUserResult
+            )
+
+        LikedUserResult (Ok ()) ->
+            ( model
+            , Cmd.none
+            )
+
+        LikedUserResult (Err error) ->
+            ( { model | unrecoverableError = Just <| "Liking a user failed:\n" ++ httpErrorToString error }, Cmd.none )
 
 
 httpErrorToString : Http.Error -> String
@@ -149,61 +183,69 @@ httpErrorToString error =
 
 
 view : Model -> Html Msg
-view modelOrError =
-    case modelOrError of
-        UnrecoverableError error ->
+view model =
+    case model.unrecoverableError of
+        Just error ->
             div [] [ text error ]
 
-        AllGood model ->
+        Nothing ->
             div [ class "root" ]
-                [ case model.currentScreen of
-                    Main ScreenMatches ->
-                        let
-                            viewUser : UserOverviewInfo -> Html Msg
-                            viewUser userInfo =
-                                User.viewCard [ onClick <| ViewUser userInfo ] userInfo
-                        in
+                [ let
+                    viewUserCard : UserOverviewInfo -> Html Msg
+                    viewUserCard userInfo =
+                        User.viewCard [ onClick <| ViewUser userInfo ] userInfo
+                  in
+                  case model.currentScreen of
+                    ScreenSearch ->
                         div []
                             [ div
                                 [ class "masonry" ]
                                 (List.map
-                                    viewUser
+                                    viewUserCard
                                     model.overviewUsers
                                 )
                             ]
 
-                    Main ScreenSettings ->
-                        div [ class "center-content fill-screen" ] [ text "placeholder for settings screen" ]
+                    ScreenLikes likedUsers ->
+                        div []
+                            [ div
+                                [ class "masonry" ]
+                                (List.map
+                                    viewUserCard
+                                    likedUsers
+                                )
+                            ]
 
-                    Main Attributions ->
+                    ScreenMyProfile ->
                         div [ class "center-content fill-screen" ] <|
-                            h1 [] [ text "We use:" ]
+                            text "Your profile will come here. But for now there's just this palceholder and the attributions."
+                                :: h1 [] [ text "We use:" ]
                                 :: List.map (\( label, url ) -> a [ href url ] [ text label ])
                                     [ ( "loading.io", "https://loading.io/" )
                                     , ( "Font Awesome", "https://fontawesome.com/" )
                                     ]
 
-                    Sub _ (ScreenUser userInfo extInfo) ->
-                        User.viewProfile userInfo extInfo
+                    ScreenOtherUser userInfo extInfo ->
+                        User.viewProfile LikeUser userInfo extInfo
                 , let
-                    icon mainScreen =
-                        case mainScreen of
-                            ScreenMatches ->
+                    icon navButton =
+                        case navButton of
+                            NavButtonSearch ->
+                                "fa-solid fa-magnifying-glass"
+
+                            NavButtonLikes ->
                                 "fa-solid fa-heart"
 
-                            ScreenSettings ->
-                                "fa-solid fa-gear"
-
-                            Attributions ->
-                                "fa-solid fa-hippo"
+                            NavButtonMyProfile ->
+                                "fa-solid fa-user"
                   in
                   navbar <|
                     List.map
-                        (\ms ->
-                            { icon = icon ms
-                            , onSelect = OpenScreen (Main ms)
-                            , isSelected = ms == getMain model.currentScreen
+                        (\navButton ->
+                            { icon = icon navButton
+                            , onSelect = ClickedNavButton navButton
+                            , isSelected = navButton == model.lastClickedNavButton
                             }
                         )
-                        allMainScreens
+                        allNavButtons
                 ]

@@ -1,9 +1,10 @@
 module User exposing (..)
 
-import Generated.Backend exposing (ProfileSection(..), UserExtendedInfo, UserOverviewInfo)
+import Generated.Backend exposing (ProfileSection(..), UserExtendedInfo, UserID, UserOverviewInfo)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Components exposing (..)
+import Html.Events exposing (onClick)
 import Swiper
 
 
@@ -22,14 +23,19 @@ viewCard attributes user =
 
 
 viewProfile :
-    UserOverviewInfo
+    (UserID -> msg)
+    -> UserOverviewInfo
     -> UserExtendedInfo
     -> Html msg
-viewProfile userInfo extendedInfo =
+viewProfile likeUser userInfo extendedInfo =
     div
         [ class "masonry" ]
     <|
         viewCard [] userInfo
+            :: button [ onClick <| likeUser userInfo.userId ]
+                [ text "Like this person! "
+                , i [ class "fa-solid fa-heart" ] []
+                ]
             :: List.map viewUserSection extendedInfo.userExtProfileSections
 
 
