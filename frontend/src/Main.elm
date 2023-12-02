@@ -26,15 +26,14 @@ allNavButtons =
 
 
 type Screen
-    = ScreenSearch
+    = ScreenSearch (List UserOverviewInfo)
     | ScreenLikes (List UserOverviewInfo)
     | ScreenMyProfile
     | ScreenOtherUser UserOverviewInfo UserExtendedInfo
 
 
 type alias Model =
-    { overviewUsers : List UserOverviewInfo
-    , currentScreen : Screen
+    { currentScreen : Screen
     , lastClickedNavButton : NavButton
     , unrecoverableError : Maybe String
     }
@@ -44,7 +43,6 @@ type Msg
     = ClickedNavButton NavButton
     | OpenScreen Screen
     | ViewUser UserOverviewInfo
-    | GotUsersForOverview (Result Http.Error (List UserOverviewInfo))
     | GotUnrecoverableErrror String
     | LikeUser UserID
     | LikedUserResult (Result Http.Error ())
@@ -71,18 +69,29 @@ baseUrl =
 
 init : Flags -> ( Model, Cmd Msg )
 init () =
-    ( { currentScreen = ScreenSearch
-      , overviewUsers = []
+    ( { currentScreen = ScreenSearch []
       , lastClickedNavButton = NavButtonSearch
       , unrecoverableError = Nothing
       }
-    , Backend.getUserSearch baseUrl GotUsersForOverview
+    , openScreenSearch
     )
 
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.none
+
+
+openScreenSearch =
+    Backend.getUserSearch baseUrl
+        (\errorOrUsers ->
+            case errorOrUsers of
+                Err err ->
+                    GotUnrecoverableErrror <| httpErrorToString err
+
+                Ok users ->
+                    OpenScreen <| ScreenSearch users
+        )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -96,8 +105,8 @@ update message model =
                 ( newScreen, cmds ) =
                     case button of
                         NavButtonSearch ->
-                            ( ScreenSearch
-                            , Cmd.none
+                            ( ScreenSearch []
+                            , openScreenSearch
                             )
 
                         NavButtonLikes ->
@@ -140,14 +149,6 @@ update message model =
             ( model
             , Backend.getUserByUserIDProfile baseUrl info.userId handleExtInfoLoaded
             )
-
-        GotUsersForOverview (Ok userInfos) ->
-            ( { model | overviewUsers = userInfos }
-            , Cmd.none
-            )
-
-        GotUsersForOverview (Err error) ->
-            ( { model | unrecoverableError = Just <| "GotUserExamples returned an error:\n" ++ httpErrorToString error }, Cmd.none )
 
         LikeUser userID ->
             ( model
@@ -196,13 +197,13 @@ view model =
                         User.viewCard [ onClick <| ViewUser userInfo ] userInfo
                   in
                   case model.currentScreen of
-                    ScreenSearch ->
+                    ScreenSearch foundUsers ->
                         div []
                             [ div
                                 [ class "masonry" ]
                                 (List.map
                                     viewUserCard
-                                    model.overviewUsers
+                                    foundUsers
                                 )
                             ]
 
