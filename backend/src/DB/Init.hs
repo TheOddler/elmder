@@ -11,6 +11,7 @@ import Hasql.Pool qualified
 import Hasql.TH (uncheckedSql)
 import Hasql.Transaction (sql)
 import Hasql.Transaction.Sessions (IsolationLevel (..), Mode (Write), transaction)
+import Impressions (impressionToSQL)
 import User (genderIdentityToSQL, relationshipStatusToSQL)
 
 -- | Initialise the database until we have a proper way of doing migrations
@@ -21,6 +22,7 @@ initDB pool =
       sql $
         createDBEnum "gender_identity" genderIdentityToSQL
           <> createDBEnum "relationship_status" relationshipStatusToSQL
+          <> createDBEnum "impression" impressionToSQL
           <> [uncheckedSql|
                 DROP TABLE IF EXISTS users CASCADE;
                 CREATE TABLE users (
@@ -52,14 +54,15 @@ initDB pool =
                 );
                 CREATE INDEX ON user_search_gender_identities (user_id);
 
-                DROP TABLE IF EXISTS likes CASCADE;
-                CREATE TABLE likes (
+                DROP TABLE IF EXISTS impressions CASCADE;
+                CREATE TABLE impressions (
                   user_id SERIAL NOT NULL REFERENCES users(id),
-                  liked_user_id SERIAL NOT NULL REFERENCES users(id),
+                  impression impression NOT NULL,
+                  other_user_id SERIAL NOT NULL REFERENCES users(id),
                   timestamp TIMESTAMPTZ NOT NULL,
-                  UNIQUE (user_id, liked_user_id)
+                  UNIQUE (user_id, other_user_id)
                 );
-                CREATE INDEX ON likes (user_id);
+                CREATE INDEX ON impressions (user_id);
             |]
   where
     createDBEnum :: (Bounded a, Enum a) => ByteString -> (a -> Text) -> ByteString

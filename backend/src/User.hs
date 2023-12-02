@@ -429,7 +429,8 @@ searchFor userID maxResults = do
       -- We can't do comments in the SQL here, because the parser doesn't support it.
       -- But essentially, we first just get all the tables we need (all the joins)
       -- then a block of queries to search people for me (the first block of `AND`'s),
-      -- then the same but in reverse for reverse search (so the other person also likes me)
+      -- then the same but in reverse for reverse search
+      -- and then lastly we filter out any users that you've already judged
       [vectorStatement|
         SELECT 
           other.id :: int,
@@ -448,13 +449,6 @@ searchFor userID maxResults = do
         JOIN user_search_gender_identities my_gi ON me.id = my_gi.user_id
         JOIN user_search_gender_identities other_gi ON other.id = other_gi.user_id
         WHERE me.id = $1 :: int
-
-        AND NOT EXISTS (
-          SELECT 1
-          FROM likes
-          WHERE user_id = me.id
-          AND liked_user_id = other.id
-        )
 
         AND other.birthday
           BETWEEN CURRENT_DATE - concat(me.search_age_max::text,' years')::interval
@@ -478,6 +472,21 @@ searchFor userID maxResults = do
           AND other.last_location_long + (other.search_distance_km / (111.320 * cos(other.last_location_lat * pi() / 180)))
         AND me.gender_identity = other_gi.search_gender_identity
 
+        AND NOT EXISTS (
+          SELECT 1
+          FROM impressions
+          WHERE user_id = me.id
+          AND other_user_id = other.id
+        )
+
+        AND NOT EXISTS (
+          SELECT 1
+          FROM impressions
+          WHERE user_id = other.id
+          AND other_user_id = me.id
+          AND impression = 'dislike'
+        )
+
         LIMIT $2 :: int
       |]
   pure $ toUserInfo <$> toList rows
@@ -492,58 +501,3 @@ searchFor userID maxResults = do
           userAge = monthsToYears $ cdMonths (diffGregorianDurationClip curDate birthday),
           userGenderIdentity = fromMaybe Other $ sqlToGenderIdentity genderId
         }
-
-getLikedUsersFor :: UserID -> Transaction [UserOverviewInfo]
-getLikedUsersFor userID = do
-  rows <-
-    statement
-      (unUserID userID)
-      [vectorStatement|
-        SELECT 
-          other.id :: int,
-          other.name :: text,
-          other.header_image_url :: text,
-          other.description :: text,
-          me.last_location_lat :: float,
-          me.last_location_long :: float,
-          other.last_location_lat :: float,
-          other.last_location_long :: float,
-          CURRENT_DATE :: date,
-          other.birthday :: date,
-          other.gender_identity :: text
-        FROM users me
-        JOIN users other ON other.id <> me.id
-        JOIN likes ON likes.user_id = me.id AND likes.liked_user_id = other.id
-        WHERE me.id = $1 :: int
-        ORDER BY likes.timestamp DESC
-      |]
-  pure $ toUserInfo <$> toList rows
-  where
-    toUserInfo (uid, name, img, descr, myLat, myLong, otherLat, otherLong, curDate, birthday, genderId) =
-      UserOverviewInfo
-        { userId = UserID uid,
-          userName = name,
-          userHeaderImageUrl = img,
-          userDescription = descr,
-          userDistanceKm = distanceInKmBetween (Location myLat myLong) (Location otherLat otherLong),
-          userAge = monthsToYears $ cdMonths (diffGregorianDurationClip curDate birthday),
-          userGenderIdentity = fromMaybe Other $ sqlToGenderIdentity genderId
-        }
-
-likeUserBy :: UserID -> UserID -> Transaction ()
-likeUserBy userID likedUserID =
-  statement
-    (unUserID userID, unUserID likedUserID)
-    [resultlessStatement|
-      INSERT INTO likes (
-        user_id,
-        liked_user_id,
-        timestamp
-      )
-      VALUES (
-        $1 :: int,
-        $2 :: int,
-        CURRENT_TIMESTAMP
-      )
-      ON CONFLICT DO NOTHING
-    |]

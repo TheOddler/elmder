@@ -5,9 +5,8 @@
 module Main (main) where
 
 import Servant.Client ((//))
-import Test.Syd (Spec, it, shouldBe, shouldSatisfy, sydTest, xit)
+import Test.Syd (Spec, it, shouldBe, shouldSatisfy, sydTest)
 import TestUtil
-import User (UserID (..))
 import User.Fake (ensureSomeUsersInDB)
 import User.Web
 import Web
@@ -28,14 +27,13 @@ main = sydTest $ do
 userSpec :: Spec
 userSpec = do
   serverAndClientTest $ do
-    xit "returns the requested user's info" $ \(server, clientEnv) -> do
-      runOnServer server $ ensureSomeUsersInDB 10
-      _ <- runOnClient clientEnv (api.userRoutes.getUserExtendedInfo $ UserID 1)
-      pure ()
+    it "returns the requested user's info" $ \(server, clientEnv) -> do
+      ids <- runOnServer server $ ensureSomeUsersInDB 10
+      mapM_ (runOnClient clientEnv . api.userRoutes.getUserExtendedInfo) ids
 
     it "can search for users" $ \(server, clientEnv) -> do
       -- The users that are randomly generated have very broad search criteria,
       -- so they should be able to find each other
-      runOnServer server $ ensureSomeUsersInDB 10
+      _ <- runOnServer server $ ensureSomeUsersInDB 10
       answer <- runOnClient clientEnv (api.userRoutes.getSearch)
       length answer `shouldSatisfy` (> 0)

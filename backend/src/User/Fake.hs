@@ -82,7 +82,7 @@ fakeNewUser = do
 
   pure NewUserInfo {..}
 
-ensureSomeUsersInDB :: Int -> ServerM ()
+ensureSomeUsersInDB :: Int -> ServerM [UserID]
 ensureSomeUsersInDB wanted = do
   -- We generate definitely enough users, but might not insert all
   -- We generate these here first, so we can do the check and insert queries as a single transaction
@@ -90,4 +90,4 @@ ensureSomeUsersInDB wanted = do
   runHasql $ do
     currentCount <- statement () [singletonStatement| SELECT COUNT(*) :: int FROM users |]
     let usersToAdd = genericTake (wanted - int32ToInt currentCount) fakeUsers
-    mapM_ createNewUser usersToAdd
+    mapM createNewUser usersToAdd

@@ -7,10 +7,11 @@
 
 module Main where
 
-import Data.Text (Text)
+import Data.Text (Text, pack)
 import Data.Text qualified as T
 import Elm.Module (recAlterType)
 import Elm.TyRep (ETCon (..))
+import Impressions (Impression)
 import Servant
 import Servant.Elm
 import Servant.Foreign (Foreign, HasForeign (..))
@@ -33,11 +34,18 @@ main = do
             ETyCon (ETCon "Int32") -> ETyCon (ETCon "Int")
             ETyCon (ETCon "Day") -> ETyCon (ETCon "String") -- TODO: Convert days to something better than string
             other -> defaultTypeAlterations other
+
+          myElmToString :: EType -> Text
+          myElmToString argType =
+            case argType of
+              ETyCon (ETCon "Impression") -> "urlPieceFromImpression"
+              _ -> defaultElmToString argType
        in defElmOptions
             { urlPrefix = Dynamic,
               elmAlterations =
                 recAlterType myTypeAlterations,
-              elmTypeAlterations = myTypeAlterations
+              elmTypeAlterations = myTypeAlterations,
+              elmToString = myElmToString
             }
     )
     [ "Generated",
@@ -51,7 +59,8 @@ main = do
       DefineElm (Proxy :: Proxy User.RelationshipStatus),
       DefineElm (Proxy :: Proxy User.GenderIdentity),
       DefineElm (Proxy :: Proxy User.Location),
-      DefineElm (Proxy :: Proxy User.ProfileSection)
+      DefineElm (Proxy :: Proxy User.ProfileSection),
+      DefineElm (Proxy :: Proxy Impression)
     ]
     (Proxy :: Proxy (ToServantApi Web.ApiRoutes))
   putStrLn "Done!"
@@ -67,5 +76,29 @@ elmImports =
       -- "import Set",
       "import Http",
       -- "import String",
-      "import Url.Builder"
+      "import Url.Builder",
+      "",
+      mkUrlPieceFromEnum "Impression" (Proxy :: Proxy Impression)
     ]
+
+mkUrlPieceFromEnum ::
+  forall a.
+  (Enum a, Bounded a, Show a, ToHttpApiData a) =>
+  Text ->
+  Proxy a ->
+  Text
+mkUrlPieceFromEnum elmTypeName _ =
+  T.unlines $
+    [ funcName <> " : " <> elmTypeName <> " -> String",
+      funcName <> " enumVal =",
+      "  case enumVal of"
+    ]
+      ++ map renderCase [minBound .. maxBound]
+  where
+    funcName = "urlPieceFrom" <> elmTypeName
+    renderCase :: a -> Text
+    renderCase x =
+      T.unlines
+        [ "    " <> pack (show x) <> " -> ",
+          "      \"" <> toUrlPiece x <> "\""
+        ]

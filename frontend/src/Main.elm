@@ -2,7 +2,7 @@ module Main exposing (..)
 
 import Browser
 import Either exposing (Either(..))
-import Generated.Backend as Backend exposing (UserExtendedInfo, UserID, UserOverviewInfo)
+import Generated.Backend as Backend exposing (Impression(..), UserExtendedInfo, UserID, UserOverviewInfo)
 import Html exposing (Html, a, div, h1, text)
 import Html.Attributes exposing (class, href)
 import Html.Components exposing (navbar)
@@ -111,7 +111,8 @@ update message model =
 
                         NavButtonLikes ->
                             ( ScreenLikes []
-                            , Backend.getUserLikes baseUrl
+                            , Backend.getUserImpressionsByImpression baseUrl
+                                ImpressionLike
                                 (\errorOrUsers ->
                                     case errorOrUsers of
                                         Err err ->
@@ -152,7 +153,7 @@ update message model =
 
         LikeUser userID ->
             ( model
-            , Backend.postUserByLikedUserIDLike baseUrl userID LikedUserResult
+            , Backend.postUserByImpressionByOtherUserID baseUrl ImpressionLike userID LikedUserResult
             )
 
         LikedUserResult (Ok ()) ->

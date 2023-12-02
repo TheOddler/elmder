@@ -5,6 +5,8 @@ module User.Web where
 
 import DB (runHasql)
 import GHC.Generics (Generic)
+import Impressions (Impression)
+import Impressions qualified
 import Servant
   ( Capture,
     GenericMode ((:-)),
@@ -22,8 +24,8 @@ import User.Fake (ensureSomeUsersInDB)
 data UserRoutes mode = UserRoutes
   { getSearch :: mode :- "search" :> Get '[JSON] [UserOverviewInfo],
     getUserExtendedInfo :: mode :- Capture "userID" UserID :> "profile" :> Get '[JSON] UserExtendedInfo,
-    getLikes :: mode :- "likes" :> Get '[JSON] [UserOverviewInfo],
-    postLikeUser :: mode :- Capture "likedUserID" UserID :> "like" :> Post '[JSON] ()
+    getImpressions :: mode :- "impressions" :> Capture "impression" Impression :> Get '[JSON] [UserOverviewInfo],
+    postSetImpression :: mode :- Capture "impression" Impression :> Capture "otherUserID" UserID :> Post '[JSON] ()
   }
   deriving (Generic)
 
@@ -35,9 +37,9 @@ userRoutes :: UserRoutes (AsServerT ServerM)
 userRoutes =
   UserRoutes
     { getSearch = do
-        ensureSomeUsersInDB 10
+        _ <- ensureSomeUsersInDB 10
         runHasql $ User.searchFor pretendMyID 10,
       getUserExtendedInfo = runHasql . User.getUserExtendedInfo,
-      getLikes = runHasql $ User.getLikedUsersFor pretendMyID,
-      postLikeUser = runHasql . User.likeUserBy pretendMyID
+      getImpressions = runHasql . Impressions.getImpressionBy pretendMyID,
+      postSetImpression = \u -> runHasql . Impressions.setImpressionBy pretendMyID u
     }
