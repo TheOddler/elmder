@@ -82,12 +82,13 @@ subscriptions _ =
     Sub.none
 
 
+openScreenSearch : Cmd Msg
 openScreenSearch =
     Backend.getUserSearch baseUrl
         (\errorOrUsers ->
             case errorOrUsers of
                 Err err ->
-                    GotUnrecoverableErrror <| httpErrorToString err
+                    GotUnrecoverableErrror <| "Failed searching for users: " ++ httpErrorToString err
 
                 Ok users ->
                     OpenScreen <| ScreenSearch users
@@ -116,7 +117,7 @@ update message model =
                                 (\errorOrUsers ->
                                     case errorOrUsers of
                                         Err err ->
-                                            GotUnrecoverableErrror <| httpErrorToString err
+                                            GotUnrecoverableErrror <| "Failed getting liked users: " ++ httpErrorToString err
 
                                         Ok users ->
                                             OpenScreen <| ScreenLikes users
