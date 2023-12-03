@@ -1,6 +1,6 @@
 module User exposing (..)
 
-import Generated.Backend exposing (ProfileSection(..), UserExtendedInfo, UserID, UserOverviewInfo)
+import Generated.Backend exposing (Impression(..), ProfileSection(..), UserExtendedInfo, UserID, UserOverviewInfo)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Components exposing (..)
@@ -23,7 +23,7 @@ viewCard attributes user =
 
 
 viewProfile :
-    (UserID -> msg)
+    (UserID -> Impression -> msg)
     -> UserOverviewInfo
     -> UserExtendedInfo
     -> Html msg
@@ -32,9 +32,17 @@ viewProfile likeUser userInfo extendedInfo =
         [ class "masonry" ]
     <|
         viewCard [] userInfo
-            :: button [ onClick <| likeUser userInfo.userId ]
-                [ text "Like this person! "
+            :: button [ onClick <| likeUser userInfo.userId ImpressionLike ]
+                [ text "Like "
                 , i [ class "fa-solid fa-heart" ] []
+                ]
+            :: button [ onClick <| likeUser userInfo.userId ImpressionDislike ]
+                [ text "Dislike "
+                , i [ class "fa-solid fa-heart-crack" ] []
+                ]
+            :: button [ onClick <| likeUser userInfo.userId ImpressionDecideLater ]
+                [ text "Decide later "
+                , i [ class "fa-solid fa-clock" ] []
                 ]
             :: List.map viewUserSection extendedInfo.userExtProfileSections
 

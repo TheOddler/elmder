@@ -13,14 +13,14 @@ import User
 
 type NavButton
     = NavButtonSearch
-    | NavButtonLikes
+    | NavButtonImpressions
     | NavButtonMyProfile
 
 
 allNavButtons : List NavButton
 allNavButtons =
     [ NavButtonSearch
-    , NavButtonLikes
+    , NavButtonImpressions
     , NavButtonMyProfile
     ]
 
@@ -45,8 +45,8 @@ type Msg
     | OpenScreen Screen
     | ViewUser UserOverviewInfo
     | GotUnrecoverableErrror String
-    | LikeUser UserID
-    | LikedUserResult (Result Http.Error ())
+    | SetUserImpression UserID Impression
+    | GotSetUserImpressionResult (Result Http.Error ())
 
 
 type alias AppSettings =
@@ -108,7 +108,7 @@ update message model =
                             , openScreenSearch model.settings
                             )
 
-                        NavButtonLikes ->
+                        NavButtonImpressions ->
                             ( ScreenLikes []
                             , Backend.getUserImpressionsByImpression model.settings.backendUrl
                                 ImpressionLike
@@ -150,17 +150,17 @@ update message model =
             , Backend.getUserByUserIDProfile model.settings.backendUrl info.userId handleExtInfoLoaded
             )
 
-        LikeUser userID ->
+        SetUserImpression userID impression ->
             ( model
-            , Backend.postUserByImpressionByOtherUserID model.settings.backendUrl ImpressionLike userID LikedUserResult
+            , Backend.postUserByImpressionByOtherUserID model.settings.backendUrl impression userID GotSetUserImpressionResult
             )
 
-        LikedUserResult (Ok ()) ->
+        GotSetUserImpressionResult (Ok ()) ->
             ( model
             , Cmd.none
             )
 
-        LikedUserResult (Err error) ->
+        GotSetUserImpressionResult (Err error) ->
             ( { model | unrecoverableError = Just <| "Liking a user failed:\n" ++ httpErrorToString error }, Cmd.none )
 
 
@@ -227,15 +227,15 @@ view model =
                                     ]
 
                     ScreenOtherUser userInfo extInfo ->
-                        User.viewProfile LikeUser userInfo extInfo
+                        User.viewProfile SetUserImpression userInfo extInfo
                 , let
                     icon navButton =
                         case navButton of
                             NavButtonSearch ->
                                 "fa-solid fa-magnifying-glass"
 
-                            NavButtonLikes ->
-                                "fa-solid fa-heart"
+                            NavButtonImpressions ->
+                                "fa-solid fa-heart-pulse"
 
                             NavButtonMyProfile ->
                                 "fa-solid fa-user"
