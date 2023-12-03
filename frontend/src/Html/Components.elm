@@ -30,10 +30,16 @@ type alias NavbarButton msg =
     }
 
 
+type NavbarType
+    = NavbarMain
+    | NavbarSub
+
+
 navbar :
-    List (NavbarButton msg)
+    NavbarType
+    -> List (NavbarButton msg)
     -> Html msg
-navbar buttons =
+navbar navbarType buttons =
     let
         viewButton : NavbarButton msg -> Html msg
         viewButton btn =
@@ -49,4 +55,14 @@ navbar buttons =
                 [ i [ class <| btn.icon ] []
                 ]
     in
-    div [ class "navbar" ] <| List.map viewButton buttons
+    div
+        [ class <|
+            case navbarType of
+                NavbarMain ->
+                    "navbar"
+
+                NavbarSub ->
+                    "navbar sub"
+        ]
+    <|
+        List.map viewButton buttons

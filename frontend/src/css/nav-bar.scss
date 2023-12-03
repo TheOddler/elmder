@@ -4,7 +4,7 @@
 $height: 3em !default;
 
 body {
-  padding-bottom: $height;
+  padding-bottom: $height * 2; // We support up to 2 stacked navbars
 }
 
 .navbar {
@@ -35,5 +35,9 @@ body {
     &.selected {
       color: white;
     }
+  }
+
+  &.sub {
+    bottom: $height;
   }
 }

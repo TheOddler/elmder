@@ -2,12 +2,13 @@ module Main exposing (..)
 
 import Browser
 import Either exposing (Either(..))
-import Generated.Backend as Backend exposing (Impression(..), UserExtendedInfo, UserID, UserOverviewInfo)
+import Generated.Backend as Backend exposing (Impression(..), UserExtendedInfo, UserID, UserOverviewInfo, jsonEncImpression)
 import Html exposing (Html, a, div, h1, text)
 import Html.Attributes exposing (class, href)
-import Html.Components exposing (navbar)
+import Html.Components exposing (NavbarType(..), navbar)
 import Html.Events exposing (onClick)
 import Http
+import Json.Encode exposing (encode)
 import User
 
 
@@ -25,9 +26,14 @@ allNavButtons =
     ]
 
 
+allImpressions : List Impression
+allImpressions =
+    [ ImpressionLike, ImpressionDislike, ImpressionDecideLater, ImpressionSuperLike ]
+
+
 type Screen
     = ScreenSearch (List UserOverviewInfo)
-    | ScreenLikes (List UserOverviewInfo)
+    | ScreenImpression Impression (List UserOverviewInfo)
     | ScreenMyProfile
     | ScreenOtherUser UserOverviewInfo UserExtendedInfo
 
@@ -43,6 +49,7 @@ type alias Model =
 type Msg
     = ClickedNavButton NavButton
     | OpenScreen Screen
+    | OpenScreenImpression Impression
     | ViewUser UserOverviewInfo
     | GotUnrecoverableErrror String
     | SetUserImpression UserID Impression
@@ -109,7 +116,7 @@ update message model =
                             )
 
                         NavButtonImpressions ->
-                            ( ScreenLikes []
+                            ( ScreenImpression ImpressionLike []
                             , Backend.getUserImpressionsByImpression model.settings.backendUrl
                                 ImpressionLike
                                 (\errorOrUsers ->
@@ -118,7 +125,7 @@ update message model =
                                             GotUnrecoverableErrror <| "Failed getting liked users: " ++ httpErrorToString err
 
                                         Ok users ->
-                                            OpenScreen <| ScreenLikes users
+                                            OpenScreen <| ScreenImpression ImpressionLike users
                                 )
                             )
 
@@ -134,6 +141,26 @@ update message model =
         OpenScreen screen ->
             ( { model | currentScreen = screen }
             , Cmd.none
+            )
+
+        OpenScreenImpression impression ->
+            let
+                ( newScreen, cmds ) =
+                    ( ScreenImpression impression []
+                    , Backend.getUserImpressionsByImpression model.settings.backendUrl
+                        impression
+                        (\errorOrUsers ->
+                            case errorOrUsers of
+                                Err err ->
+                                    GotUnrecoverableErrror <| "Failed getting users for impression " ++ encode 0 (jsonEncImpression impression) ++ ": " ++ httpErrorToString err
+
+                                Ok users ->
+                                    OpenScreen <| ScreenImpression impression users
+                        )
+                    )
+            in
+            ( { model | currentScreen = newScreen }
+            , cmds
             )
 
         ViewUser info ->
@@ -191,12 +218,7 @@ view model =
 
         Nothing ->
             div [ class "root" ]
-                [ let
-                    viewUserCard : UserOverviewInfo -> Html Msg
-                    viewUserCard userInfo =
-                        User.viewCard [ onClick <| ViewUser userInfo ] userInfo
-                  in
-                  case model.currentScreen of
+                [ case model.currentScreen of
                     ScreenSearch foundUsers ->
                         div []
                             [ div
@@ -207,15 +229,8 @@ view model =
                                 )
                             ]
 
-                    ScreenLikes likedUsers ->
-                        div []
-                            [ div
-                                [ class "masonry" ]
-                                (List.map
-                                    viewUserCard
-                                    likedUsers
-                                )
-                            ]
+                    ScreenImpression impression users ->
+                        viewScreenImpression impression users
 
                     ScreenMyProfile ->
                         div [ class "center-content fill-screen" ] <|
@@ -240,7 +255,7 @@ view model =
                             NavButtonMyProfile ->
                                 "fa-solid fa-user"
                   in
-                  navbar <|
+                  navbar NavbarMain <|
                     List.map
                         (\navButton ->
                             { icon = icon navButton
@@ -250,3 +265,46 @@ view model =
                         )
                         allNavButtons
                 ]
+
+
+viewUserCard : UserOverviewInfo -> Html Msg
+viewUserCard userInfo =
+    User.viewCard [ onClick <| ViewUser userInfo ] userInfo
+
+
+viewScreenImpression : Impression -> List UserOverviewInfo -> Html Msg
+viewScreenImpression impression users =
+    let
+        icon impr =
+            case impr of
+                ImpressionLike ->
+                    "fa-solid fa-heart"
+
+                ImpressionDislike ->
+                    "fa-solid fa-heart-broken"
+
+                ImpressionDecideLater ->
+                    "fa-solid fa-clock"
+
+                Backend.ImpressionSuperLike ->
+                    "fa-solid fa-hand-holding-heart"
+    in
+    div []
+        [ div []
+            [ div
+                [ class "masonry" ]
+                (List.map
+                    viewUserCard
+                    users
+                )
+            ]
+        , navbar NavbarSub <|
+            List.map
+                (\impr ->
+                    { icon = icon impr
+                    , onSelect = OpenScreenImpression impr
+                    , isSelected = impr == impression
+                    }
+                )
+                allImpressions
+        ]
