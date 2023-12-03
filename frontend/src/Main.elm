@@ -33,7 +33,8 @@ type Screen
 
 
 type alias Model =
-    { currentScreen : Screen
+    { settings : AppSettings
+    , currentScreen : Screen
     , lastClickedNavButton : NavButton
     , unrecoverableError : Maybe String
     }
@@ -48,11 +49,12 @@ type Msg
     | LikedUserResult (Result Http.Error ())
 
 
-type alias Flags =
-    ()
+type alias AppSettings =
+    { backendUrl : String
+    }
 
 
-main : Program Flags Model Msg
+main : Program AppSettings Model Msg
 main =
     Browser.element
         { init = init
@@ -62,18 +64,14 @@ main =
         }
 
 
-baseUrl : String
-baseUrl =
-    "http://localhost:8081"
-
-
-init : Flags -> ( Model, Cmd Msg )
-init () =
+init : AppSettings -> ( Model, Cmd Msg )
+init settings =
     ( { currentScreen = ScreenSearch []
       , lastClickedNavButton = NavButtonSearch
       , unrecoverableError = Nothing
+      , settings = settings
       }
-    , openScreenSearch
+    , openScreenSearch settings
     )
 
 
@@ -82,9 +80,9 @@ subscriptions _ =
     Sub.none
 
 
-openScreenSearch : Cmd Msg
-openScreenSearch =
-    Backend.getUserSearch baseUrl
+openScreenSearch : AppSettings -> Cmd Msg
+openScreenSearch settings =
+    Backend.getUserSearch settings.backendUrl
         (\errorOrUsers ->
             case errorOrUsers of
                 Err err ->
@@ -107,12 +105,12 @@ update message model =
                     case button of
                         NavButtonSearch ->
                             ( ScreenSearch []
-                            , openScreenSearch
+                            , openScreenSearch model.settings
                             )
 
                         NavButtonLikes ->
                             ( ScreenLikes []
-                            , Backend.getUserImpressionsByImpression baseUrl
+                            , Backend.getUserImpressionsByImpression model.settings.backendUrl
                                 ImpressionLike
                                 (\errorOrUsers ->
                                     case errorOrUsers of
@@ -149,12 +147,12 @@ update message model =
                             OpenScreen <| ScreenOtherUser info extInfo
             in
             ( model
-            , Backend.getUserByUserIDProfile baseUrl info.userId handleExtInfoLoaded
+            , Backend.getUserByUserIDProfile model.settings.backendUrl info.userId handleExtInfoLoaded
             )
 
         LikeUser userID ->
             ( model
-            , Backend.postUserByImpressionByOtherUserID baseUrl ImpressionLike userID LikedUserResult
+            , Backend.postUserByImpressionByOtherUserID model.settings.backendUrl ImpressionLike userID LikedUserResult
             )
 
         LikedUserResult (Ok ()) ->
