@@ -41,6 +41,7 @@ library:
     - time
     - transformers
     - vector
+    - wai-cors
     - warp
 
 executables:

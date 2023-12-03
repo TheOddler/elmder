@@ -6,6 +6,7 @@ import DB (initConnectionPool)
 import DB.Init (initDB)
 import Hasql.Connection (Settings)
 import Network.Wai.Handler.Warp (run)
+import Network.Wai.Middleware.Cors (simpleCors)
 import Servant (Server, hoistServer, serve)
 import ServerM (ServerEnv (..), toServantHandler)
 import Web (Api, apiProxy, routes)
@@ -25,4 +26,4 @@ main = do
   let connStr = "host=127.0.0.1"
   serverEnv <- mkServerEnv connStr
   server <- mkServer serverEnv
-  run 8081 $ serve apiProxy server
+  run 8081 $ simpleCors $ serve apiProxy server
