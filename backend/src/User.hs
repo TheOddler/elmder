@@ -61,41 +61,18 @@ data Location = Location
   }
   deriving (Generic, Show, Eq)
 
-exactDistanceKm :: Location -> Location -> Float
-exactDistanceKm l1 l2 =
-  let r = 6371.0 -- Radius of the earth in km
-      deg2rad deg = (deg * pi) / 180
-      lat1 = l1.locationLatitude
-      lon1 = l1.locationLongitude
-      lat2 = l2.locationLatitude
-      lon2 = l2.locationLongitude
-      dLat = deg2rad (lat2 - lat1)
-      dLon = deg2rad (lon2 - lon1)
-      a =
-        sin (dLat / 2) * sin (dLat / 2)
-          + cos (deg2rad lat1)
-            * cos (deg2rad lat2)
-            * sin (dLon / 2)
-            * sin (dLon / 2)
-
-      c = 2 * atan2 (sqrt a) (sqrt (1 - a))
-   in r * c
-
-smartRoundDistanceKm :: Float -> Float -> Int
-smartRoundDistanceKm distKm searchDistKm =
+smartRoundDistanceM :: Float -> Float -> Int
+smartRoundDistanceM distM searchDistM =
   let distanceM :: Int
-      distanceM = round (distKm * 1000)
+      distanceM = round distM
       searchDistanceM :: Int
-      searchDistanceM = round (searchDistKm * 1000)
+      searchDistanceM = round searchDistM
    in case distanceM of
         m | m < 150 && searchDistanceM <= 1000 -> 100
         m | m <= 1000 && searchDistanceM <= 1000 -> roundToNearest 100 m
         m | m <= 1000 -> 1000
         m | m <= 3000 -> roundToNearest 500 m
         m -> roundToNearest 1000 m
-
-distanceInMBetween :: Location -> Location -> Float -> Int
-distanceInMBetween l1 l2 = smartRoundDistanceKm $ exactDistanceKm l1 l2
 
 data RelationshipStatus
   = RelationshipStatusSingle
@@ -400,8 +377,7 @@ createNewUser u = do
               name,
               header_image_url,
               description,
-              last_location_lat,
-              last_location_long,
+              location,
               join_day,
               birthday,
               gender_identity,
@@ -414,8 +390,7 @@ createNewUser u = do
               $1 :: text,
               $2 :: text,
               $3 :: text,
-              $4 :: float4,
-              $5 :: float4,
+              ll_to_earth($4 :: float4, $5 :: float4),
               CURRENT_DATE,
               $6 :: date,
               $7 :: text :: gender_identity,
@@ -454,14 +429,11 @@ searchFor userID maxResults = do
           other.name :: text,
           other.header_image_url :: text,
           other.description :: text,
-          me.last_location_lat :: float,
-          me.last_location_long :: float,
-          other.last_location_lat :: float,
-          other.last_location_long :: float,
+          earth_distance(me.location, other.location) :: float,
           CURRENT_DATE :: date,
           other.birthday :: date,
           other.gender_identity :: text,
-          other.search_distance_km :: float
+          (other.search_distance_km * 1000) :: float
         FROM users me
         JOIN users other ON other.id <> me.id
         JOIN user_search_gender_identities my_gi ON me.id = my_gi.user_id
@@ -471,24 +443,16 @@ searchFor userID maxResults = do
         AND other.birthday
           BETWEEN CURRENT_DATE - concat(me.search_age_max::text,' years')::interval
           AND CURRENT_DATE - concat(me.search_age_min::text,' years')::interval
-        AND other.last_location_lat
-          BETWEEN me.last_location_lat - (me.search_distance_km / 110.574)
-          AND me.last_location_lat + (me.search_distance_km / 110.574)
-        AND other.last_location_long
-          BETWEEN me.last_location_long - (me.search_distance_km / (111.320 * cos(me.last_location_lat * pi() / 180)))
-          AND me.last_location_long + (me.search_distance_km / (111.320 * cos(me.last_location_lat * pi() / 180)))
         AND other.gender_identity = my_gi.search_gender_identity
+        AND earth_box(me.location, me.search_distance_km * 1000) @> other.location
+        AND earth_distance(me.location, other.location) <= me.search_distance_km * 1000
 
         AND me.birthday
           BETWEEN CURRENT_DATE - concat(other.search_age_max::text,' years')::interval
           AND CURRENT_DATE - concat(other.search_age_min::text,' years')::interval
-        AND me.last_location_lat
-          BETWEEN other.last_location_lat - (other.search_distance_km / 110.574)
-          AND other.last_location_lat + (other.search_distance_km / 110.574)
-        AND me.last_location_long
-          BETWEEN other.last_location_long - (other.search_distance_km / (111.320 * cos(other.last_location_lat * pi() / 180)))
-          AND other.last_location_long + (other.search_distance_km / (111.320 * cos(other.last_location_lat * pi() / 180)))
         AND me.gender_identity = other_gi.search_gender_identity
+        AND earth_box(other.location, other.search_distance_km * 1000) @> me.location
+        AND earth_distance(other.location, me.location) <= other.search_distance_km * 1000
 
         AND NOT EXISTS (
           SELECT 1
@@ -509,13 +473,13 @@ searchFor userID maxResults = do
       |]
   pure $ toUserInfo <$> toList rows
   where
-    toUserInfo (uid, name, img, descr, myLat, myLong, otherLat, otherLong, curDate, birthday, genderId, searchDistanceKm) =
+    toUserInfo (uid, name, img, descr, distanceM, curDate, birthday, genderId, searchDistanceM) =
       UserOverviewInfo
         { userId = UserID uid,
           userName = name,
           userHeaderImageUrl = img,
           userDescription = descr,
-          userDistanceM = distanceInMBetween (Location myLat myLong) (Location otherLat otherLong) searchDistanceKm,
+          userDistanceM = smartRoundDistanceM distanceM searchDistanceM,
           userAge = monthsToYears $ cdMonths (diffGregorianDurationClip curDate birthday),
           userGenderIdentity = fromMaybe Other $ sqlToGenderIdentity genderId
         }

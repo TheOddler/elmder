@@ -20,7 +20,8 @@ initDB pool =
   runSessionWith pool $
     transaction ReadCommitted Write $
       sql $
-        createDBEnum "gender_identity" genderIdentityToSQL
+        "CREATE EXTENSION earthdistance CASCADE;\n\n"
+          <> createDBEnum "gender_identity" genderIdentityToSQL
           <> createDBEnum "relationship_status" relationshipStatusToSQL
           <> createDBEnum "impression" impressionToSQL
           <> [uncheckedSql|
@@ -29,8 +30,7 @@ initDB pool =
                   id SERIAL PRIMARY KEY,
                   name text NOT NULL,
                   header_image_url text NOT NULL,
-                  last_location_lat float4 NOT NULL,
-                  last_location_long float4 NOT NULL,
+                  location earth NOT NULL,
                   join_day date NOT NULL,
                   birthday date NOT NULL,
                   gender_identity gender_identity NOT NULL,
@@ -40,8 +40,7 @@ initDB pool =
                   search_age_max int2 NOT NULL,
                   search_distance_km int2 NOT NULL
                 );
-                CREATE INDEX ON users (last_location_lat);
-                CREATE INDEX ON users (last_location_long);
+                CREATE INDEX ON users (location);
                 CREATE INDEX ON users (birthday);
                 CREATE INDEX ON users (gender_identity);
                 CREATE INDEX ON users (relationship_status);

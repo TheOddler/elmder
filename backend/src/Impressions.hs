@@ -15,7 +15,7 @@ import Hasql.Transaction (Transaction, statement)
 import SafeMath (monthsToYears)
 import Servant (FromHttpApiData (..), ToHttpApiData (..))
 import Servant.Elm qualified
-import User (GenderIdentity (..), Location (..), UserID (..), UserOverviewInfo (..), distanceInMBetween, sqlToGenderIdentity)
+import User (GenderIdentity (..), UserID (..), UserOverviewInfo (..), smartRoundDistanceM, sqlToGenderIdentity)
 import Util (reverseEnumToText)
 
 -- | Note that the below descriptions are just ideas, not all of it is implemented yet
@@ -62,14 +62,11 @@ getImpressionBy userID impression = do
           other.name :: text,
           other.header_image_url :: text,
           other.description :: text,
-          me.last_location_lat :: float,
-          me.last_location_long :: float,
-          other.last_location_lat :: float,
-          other.last_location_long :: float,
+          earth_distance(me.location, other.location) :: float,
           CURRENT_DATE :: date,
           other.birthday :: date,
           other.gender_identity :: text,
-          other.search_distance_km :: float
+          (other.search_distance_km * 1000) :: float
         FROM users me
         JOIN users other ON other.id <> me.id
         JOIN impressions ON impressions.user_id = me.id AND impressions.other_user_id = other.id
@@ -79,13 +76,13 @@ getImpressionBy userID impression = do
       |]
   pure $ toUserInfo <$> toList rows
   where
-    toUserInfo (uid, name, img, descr, myLat, myLong, otherLat, otherLong, curDate, birthday, genderId, search_distance) =
+    toUserInfo (uid, name, img, descr, distanceM, curDate, birthday, genderId, searchDistanceM) =
       UserOverviewInfo
         { userId = UserID uid,
           userName = name,
           userHeaderImageUrl = img,
           userDescription = descr,
-          userDistanceM = distanceInMBetween (Location myLat myLong) (Location otherLat otherLong) search_distance,
+          userDistanceM = smartRoundDistanceM distanceM searchDistanceM,
           userAge = monthsToYears $ cdMonths (diffGregorianDurationClip curDate birthday),
           userGenderIdentity = fromMaybe Other $ sqlToGenderIdentity genderId
         }
