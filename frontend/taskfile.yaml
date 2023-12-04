@@ -12,4 +12,3 @@ tasks:
   
   update:
     - npm install
-    - elm2nix convert > elm-srcs.nix && elm2nix snapshot

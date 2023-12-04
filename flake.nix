@@ -6,12 +6,17 @@
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
     pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
     flake-utils.url = "github:numtide/flake-utils";
+    mkElmDerivation.url = github:jeslie0/mkElmDerivation;
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, pre-commit-hooks, flake-utils }:
+  outputs = { self, nixpkgs, nixpkgs-unstable, pre-commit-hooks, flake-utils, mkElmDerivation }:
     flake-utils.lib.eachSystem [ flake-utils.lib.system.x86_64-linux ] (system:
       let
-        pkgs = import nixpkgs { inherit system; config.allowBroken = true; };
+        pkgs = import nixpkgs {
+          overlays = [ mkElmDerivation.overlays.mkDotElmDirectoryCmd ];
+          config.allowBroken = true; # For servant-elm
+          inherit system;
+        };
         pkgs-unstable = nixpkgs-unstable.legacyPackages.${system};
 
         buildPackages = with pkgs; [
@@ -29,7 +34,6 @@
           # Stuff for the frontend development
           elmPackages.elm-format # Formatter for Elm
           elmPackages.elm-json # elm.json management
-          elm2nix # needed to build elm with nix
 
           # Stuff for the backend development, make sure the haskell stuff matches the stackage snapshot we're using
           # The snapshot can be found in `stack.yaml` under the field `resolver`
@@ -51,12 +55,7 @@
           '';
 
           # 2. Manage the Elm dependencies through nix too, otherwise Parcel will try to download them and that is again not allowed in Nix's sandbox.
-          # For this we had to use `elm2nix`, see README on how to generate the required files when updating dependencies.
-          configurePhase = pkgs.elmPackages.fetchElmDeps {
-            elmPackages = import ./frontend/elm-srcs.nix;
-            elmVersion = "0.19.1";
-            registryDat = ./frontend/registry.dat;
-          };
+          generateElmJsonFiles = pkgs.mkDotElmDirectoryCmd ./frontend/elm.json;
         };
       in
       {
@@ -112,7 +111,7 @@
           '';
 
           npmFlags = elmParcelNixFix.npmFlags;
-          configurePhase = elmParcelNixFix.configurePhase;
+          prePatch = elmParcelNixFix.generateElmJsonFiles;
         };
       }
     );
