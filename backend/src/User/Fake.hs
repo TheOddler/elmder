@@ -25,7 +25,7 @@ import Faker.Name qualified
 import Faker.Superhero qualified
 import Hasql.TH (singletonStatement)
 import Hasql.Transaction (statement)
-import SafeNumberConversion (int32ToInt)
+import SafeMath (int32ToInt)
 import ServerM (ServerM)
 import User
 

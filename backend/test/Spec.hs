@@ -5,6 +5,7 @@
 module Main (main) where
 
 import Servant.Client ((//))
+import SmartRoundingSpec qualified
 import Test.Syd (Spec, it, shouldBe, shouldSatisfy, sydTest)
 import TestUtil
 import User.Fake (ensureSomeUsersInDB)
@@ -23,6 +24,8 @@ main = sydTest $ do
       answer `shouldBe` "ping"
 
   userSpec
+
+  SmartRoundingSpec.spec
 
 userSpec :: Spec
 userSpec = do

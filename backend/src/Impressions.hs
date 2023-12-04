@@ -12,10 +12,10 @@ import Data.Vector (toList)
 import Elm.Derive (deriveBoth)
 import Hasql.TH (resultlessStatement, vectorStatement)
 import Hasql.Transaction (Transaction, statement)
-import SafeNumberConversion (monthsToYears)
+import SafeMath (monthsToYears)
 import Servant (FromHttpApiData (..), ToHttpApiData (..))
 import Servant.Elm qualified
-import User (GenderIdentity (..), Location (..), UserID (..), UserOverviewInfo (..), distanceInKmBetween, sqlToGenderIdentity)
+import User (GenderIdentity (..), Location (..), UserID (..), UserOverviewInfo (..), distanceInMBetween, sqlToGenderIdentity)
 import Util (reverseEnumToText)
 
 -- | Note that the below descriptions are just ideas, not all of it is implemented yet
@@ -68,7 +68,8 @@ getImpressionBy userID impression = do
           other.last_location_long :: float,
           CURRENT_DATE :: date,
           other.birthday :: date,
-          other.gender_identity :: text
+          other.gender_identity :: text,
+          other.search_distance_km :: float
         FROM users me
         JOIN users other ON other.id <> me.id
         JOIN impressions ON impressions.user_id = me.id AND impressions.other_user_id = other.id
@@ -78,13 +79,13 @@ getImpressionBy userID impression = do
       |]
   pure $ toUserInfo <$> toList rows
   where
-    toUserInfo (uid, name, img, descr, myLat, myLong, otherLat, otherLong, curDate, birthday, genderId) =
+    toUserInfo (uid, name, img, descr, myLat, myLong, otherLat, otherLong, curDate, birthday, genderId, search_distance) =
       UserOverviewInfo
         { userId = UserID uid,
           userName = name,
           userHeaderImageUrl = img,
           userDescription = descr,
-          userDistanceKm = distanceInKmBetween (Location myLat myLong) (Location otherLat otherLong),
+          userDistanceM = distanceInMBetween (Location myLat myLong) (Location otherLat otherLong) search_distance,
           userAge = monthsToYears $ cdMonths (diffGregorianDurationClip curDate birthday),
           userGenderIdentity = fromMaybe Other $ sqlToGenderIdentity genderId
         }

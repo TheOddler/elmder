@@ -115,3 +115,7 @@ runOnClient clientEnv clientM = do
   case errOrA of
     Left err -> expectationFailure $ show err
     Right a -> pure a
+
+testThoroughly :: Spec -> Spec
+testThoroughly =
+  modifyMaxSuccess (* 10)

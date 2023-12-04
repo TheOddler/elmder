@@ -19,7 +19,7 @@ import Elm.Derive (Options (..), deriveBoth)
 import GHC.Generics (Generic)
 import Hasql.TH (resultlessStatement, singletonStatement, vectorStatement)
 import Hasql.Transaction (Transaction, statement)
-import SafeNumberConversion (monthsToYears)
+import SafeMath (monthsToYears, roundToNearest)
 import Servant (FromHttpApiData, ToHttpApiData)
 import Servant.Elm qualified
 import Util (reverseEnumToText)
@@ -37,7 +37,8 @@ data UserOverviewInfo = UserOverviewInfo
     userHeaderImageUrl :: Text,
     userDescription :: Text,
     -- | For privacy we never tell someone the exact location of someone else, even though we do store it in the database.
-    userDistanceKm :: Int,
+    -- We'll round this based on the user's settings.
+    userDistanceM :: Int,
     -- | For privacy we send the age as a number to the frontend. Of course we do store the birthday as a data in the database.
     userAge :: Integer,
     userGenderIdentity :: GenderIdentity
@@ -60,8 +61,8 @@ data Location = Location
   }
   deriving (Generic, Show, Eq)
 
-distanceInKmBetween :: Location -> Location -> Int
-distanceInKmBetween l1 l2 =
+exactDistanceKm :: Location -> Location -> Float
+exactDistanceKm l1 l2 =
   let r = 6371.0 -- Radius of the earth in km
       deg2rad deg = (deg * pi) / 180
       lat1 = l1.locationLatitude
@@ -78,7 +79,23 @@ distanceInKmBetween l1 l2 =
             * sin (dLon / 2)
 
       c = 2 * atan2 (sqrt a) (sqrt (1 - a))
-   in round $ r * c
+   in r * c
+
+smartRoundDistanceKm :: Float -> Float -> Int
+smartRoundDistanceKm distKm searchDistKm =
+  let distanceM :: Int
+      distanceM = round (distKm * 1000)
+      searchDistanceM :: Int
+      searchDistanceM = round (searchDistKm * 1000)
+   in case distanceM of
+        m | m < 150 && searchDistanceM <= 1000 -> 100
+        m | m <= 1000 && searchDistanceM <= 1000 -> roundToNearest 100 m
+        m | m <= 1000 -> 1000
+        m | m <= 3000 -> roundToNearest 500 m
+        m -> roundToNearest 1000 m
+
+distanceInMBetween :: Location -> Location -> Float -> Int
+distanceInMBetween l1 l2 = smartRoundDistanceKm $ exactDistanceKm l1 l2
 
 data RelationshipStatus
   = RelationshipStatusSingle
@@ -443,7 +460,8 @@ searchFor userID maxResults = do
           other.last_location_long :: float,
           CURRENT_DATE :: date,
           other.birthday :: date,
-          other.gender_identity :: text
+          other.gender_identity :: text,
+          other.search_distance_km :: float
         FROM users me
         JOIN users other ON other.id <> me.id
         JOIN user_search_gender_identities my_gi ON me.id = my_gi.user_id
@@ -491,13 +509,13 @@ searchFor userID maxResults = do
       |]
   pure $ toUserInfo <$> toList rows
   where
-    toUserInfo (uid, name, img, descr, myLat, myLong, otherLat, otherLong, curDate, birthday, genderId) =
+    toUserInfo (uid, name, img, descr, myLat, myLong, otherLat, otherLong, curDate, birthday, genderId, searchDistanceKm) =
       UserOverviewInfo
         { userId = UserID uid,
           userName = name,
           userHeaderImageUrl = img,
           userDescription = descr,
-          userDistanceKm = distanceInKmBetween (Location myLat myLong) (Location otherLat otherLong),
+          userDistanceM = distanceInMBetween (Location myLat myLong) (Location otherLat otherLong) searchDistanceKm,
           userAge = monthsToYears $ cdMonths (diffGregorianDurationClip curDate birthday),
           userGenderIdentity = fromMaybe Other $ sqlToGenderIdentity genderId
         }
