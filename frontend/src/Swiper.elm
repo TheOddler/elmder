@@ -9,7 +9,16 @@ import Swiper.Internal exposing (..)
 
 container : List (ContainerAttribute msg) -> List (Slide msg) -> Html msg
 container attrs slides =
-    node "swiper-container" (toHtmlAttributes attrs) (List.map unSlide slides)
+    let
+        allAttrs =
+            -- We need to set swiper to observe,
+            -- otherwise it won't play nice with Elm
+            booleanAttribute "observer" True
+                :: booleanAttribute "observe-parents" True
+                :: booleanAttribute "observe-slide-children" True
+                :: attrs
+    in
+    node "swiper-container" (toHtmlAttributes allAttrs) (List.map unSlide slides)
 
 
 type SafeLoopStrategy

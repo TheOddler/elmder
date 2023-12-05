@@ -2,14 +2,17 @@
   "name": "elmder",
   "version": "0.0.1",
   "devDependencies": {
-    "@parcel/packager-raw-url": "^2.8.3",
-    "@parcel/transformer-elm": "^2.8.3",
-    "@parcel/transformer-sass": "^2.8.3",
-    "@parcel/transformer-webmanifest": "^2.8.3",
-    "parcel": "^2.8.3"
+    "@parcel/packager-raw-url": "^2.10.3",
+    "@parcel/transformer-elm": "^2.10.3",
+    "@parcel/transformer-sass": "^2.10.3",
+    "@parcel/transformer-webmanifest": "^2.10.3",
+    "parcel": "^2.10.3"
   },
   "scripts": {
     "dev": "parcel src/index.html --port 8080",
     "build": "parcel build src/index.html"
+  },
+  "dependencies": {
+    "swiper": "^11.0.5"
   }
 }

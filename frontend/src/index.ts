@@ -1,4 +1,7 @@
 import { Elm } from "./Main.elm";
+import { register } from 'swiper/swiper-element-bundle';
+
+register();
 
 const app = Elm.Main.init({
   node: document.getElementById("root"),
