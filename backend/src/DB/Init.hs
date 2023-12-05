@@ -20,7 +20,7 @@ initDB pool =
   runSessionWith pool $
     transaction ReadCommitted Write $
       sql $
-        "CREATE EXTENSION earthdistance CASCADE;\n\n"
+        "CREATE EXTENSION IF NOT EXISTS earthdistance CASCADE;\n\n"
           <> createDBEnum "gender_identity" genderIdentityToSQL
           <> createDBEnum "relationship_status" relationshipStatusToSQL
           <> createDBEnum "impression" impressionToSQL
