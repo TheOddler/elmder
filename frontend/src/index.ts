@@ -1,3 +1,4 @@
+// @ts-ignore
 import { Elm } from "./Main.elm";
 import { register } from 'swiper/swiper-element-bundle';
 
