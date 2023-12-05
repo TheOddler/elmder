@@ -35,7 +35,6 @@ data UserOverviewInfo = UserOverviewInfo
   { userId :: UserID,
     userName :: Text,
     userHeaderImageUrl :: Text,
-    userDescription :: Text,
     -- | For privacy we never tell someone the exact location of someone else, even though we do store it in the database.
     -- We'll round this based on the user's settings.
     userDistanceM :: Int,
@@ -50,6 +49,7 @@ data UserOverviewInfo = UserOverviewInfo
 -- frontend might already know this when it requests this information.
 data UserExtendedInfo = UserExtendedInfo
   { userExtProfileAge :: Int,
+    userExtDescription :: Text,
     userExtProfileSections :: [ProfileSection],
     userExtRelationshipStatus :: RelationshipStatus -- TODO: Rework this to a web of relationships
   }
@@ -336,6 +336,7 @@ getUserExtendedInfo _ =
     UserExtendedInfo
       { -- TODO: Implement actually getting this stuff from the DB
         userExtProfileAge = 0,
+        userExtDescription = "This is a test description",
         userExtProfileSections =
           [ UserSectionGeneric "Generic header" "Generic content",
             UserSectionImages
@@ -397,7 +398,7 @@ createNewUser u = do
               'single',
               18,
               99,
-              100
+              1000
             )
             RETURNING id :: int
           |]
@@ -428,7 +429,6 @@ searchFor userID maxResults = do
           other.id :: int,
           other.name :: text,
           other.header_image_url :: text,
-          other.description :: text,
           earth_distance(me.location, other.location) :: float,
           CURRENT_DATE :: date,
           other.birthday :: date,
@@ -473,12 +473,11 @@ searchFor userID maxResults = do
       |]
   pure $ toUserInfo <$> toList rows
   where
-    toUserInfo (uid, name, img, descr, distanceM, curDate, birthday, genderId, searchDistanceM) =
+    toUserInfo (uid, name, img, distanceM, curDate, birthday, genderId, searchDistanceM) =
       UserOverviewInfo
         { userId = UserID uid,
           userName = name,
           userHeaderImageUrl = img,
-          userDescription = descr,
           userDistanceM = smartRoundDistanceM distanceM searchDistanceM,
           userAge = monthsToYears $ cdMonths (diffGregorianDurationClip curDate birthday),
           userGenderIdentity = fromMaybe Other $ sqlToGenderIdentity genderId

@@ -1,0 +1,82 @@
+.search-view {
+  padding: 1em;
+
+  swiper-container {
+    width: 100%;
+    height: 100%;
+
+    swiper-slide {
+      border-radius: 1.5em;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      box-shadow: 0 0 2em rgba(black, 0.8);
+
+      >img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: top center;
+        position: absolute;
+        z-index: -1;
+      }
+
+      >.overlay {
+        padding: 0.5em;
+        color: white;
+        text-shadow: 0 0 1em black;
+
+        .name {
+          font-size: 1.5em;
+          font-weight: 500;
+        }
+
+        .info {
+          tr {
+            td:first-child {
+              // first child is the icon
+              text-align: center;
+              padding-right: 0.3em;
+            }
+          }
+        }
+
+        .impressions {
+          display: flex;
+          flex-direction: row;
+          gap: 0.4em;
+          margin-top: 0.8em;
+          height: 3em;
+
+          button {
+            all: unset;
+            flex-grow: 1;
+            border-radius: 1.5em;
+            backdrop-filter: blur(0.2em);
+            font-size: 1.3em;
+
+            // Center the icon
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .like {
+            color: hotpink;
+            background-color: rgba(hotpink, 0.2);
+          }
+
+          .dislike {
+            color: lightcoral;
+            background-color: rgba(lightcoral, 0.2);
+          }
+
+          .decide-later {
+            color: lightcyan;
+            background-color: rgba(lightcyan, 0.2);
+          }
+        }
+      }
+    }
+  }
+}

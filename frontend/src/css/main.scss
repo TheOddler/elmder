@@ -3,6 +3,17 @@
 @use 'helpers' as h;
 @use 'nav-bar';
 @use 'images';
+@use 'search';
+
+body,
+html,
+.root {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
 
 html {
   box-sizing: border-box;
@@ -16,9 +27,20 @@ html {
   box-sizing: inherit;
 }
 
+.root {
+  display: grid;
+  grid-template-columns: 100%;
+  grid-template-rows: 3em 1fr min-content repeat(2, auto);
+  grid-template-areas:
+    "header"
+    "main"
+    "navbar";
+}
+
 img {
   // Nicer default for images, otherwise they squish when resized
   object-fit: cover;
+  object-position: bottom center;
 
   // Removes a tiny little bit of whitespace that sometimes appears under images
   // This makes images that are last in the card look better, but I think is a good default for everthing as even in different places the extra whitespace looks bad

@@ -3,12 +3,14 @@ module Main exposing (..)
 import Browser
 import Either exposing (Either(..))
 import Generated.Backend as Backend exposing (Impression(..), UserExtendedInfo, UserID, UserOverviewInfo, jsonEncImpression)
-import Html exposing (Html, a, div, h1, text)
-import Html.Attributes exposing (class, href)
-import Html.Components exposing (NavbarType(..), navbar)
+import Html exposing (Html, a, button, div, h1, i, table, td, text, tr)
+import Html.Attributes exposing (class, href, src)
+import Html.Components exposing (navbar)
 import Html.Events exposing (onClick)
 import Http
 import Json.Encode exposing (encode)
+import StringExtra as String
+import Swiper
 import User
 
 
@@ -218,19 +220,13 @@ view model =
 
         Nothing ->
             div [ class "root" ]
-                [ case model.currentScreen of
+                [ text "header placeholder"
+                , case model.currentScreen of
                     ScreenSearch foundUsers ->
-                        div []
-                            [ div
-                                [ class "masonry" ]
-                                (List.map
-                                    viewUserCard
-                                    foundUsers
-                                )
-                            ]
+                        viewSearch foundUsers
 
-                    ScreenImpression impression users ->
-                        viewScreenImpression impression users
+                    ScreenImpression _ users ->
+                        viewScreenImpression users
 
                     ScreenMyProfile ->
                         div [ class "center-content fill-screen" ] <|
@@ -243,6 +239,12 @@ view model =
 
                     ScreenOtherUser userInfo extInfo ->
                         User.viewProfile SetUserImpression userInfo extInfo
+                , case model.currentScreen of
+                    ScreenImpression impression _ ->
+                        viewScreenImpressionNavbar impression
+
+                    _ ->
+                        text ""
                 , let
                     icon navButton =
                         case navButton of
@@ -255,7 +257,7 @@ view model =
                             NavButtonMyProfile ->
                                 "fa-solid fa-user"
                   in
-                  navbar NavbarMain <|
+                  navbar <|
                     List.map
                         (\navButton ->
                             { icon = icon navButton
@@ -267,13 +269,81 @@ view model =
                 ]
 
 
+viewSearch : List UserOverviewInfo -> Html Msg
+viewSearch users =
+    let
+        viewSlide u =
+            Swiper.slide
+                [ Html.img
+                    [ src u.userHeaderImageUrl
+                    ]
+                    []
+                , div [ class "overlay" ]
+                    [ div [ class "name" ]
+                        [ text <| u.userName
+                        ]
+                    , let
+                        infoRow icon t =
+                            tr []
+                                [ td [] [ i [ class icon ] [] ]
+                                , td [] [ text t ]
+                                ]
+                      in
+                      table [ class "info" ]
+                        [ infoRow "fa-solid fa-user" <| String.fromGenderIdentity u.userGenderIdentity ++ " • " ++ String.fromInt u.userAge
+                        , infoRow "fa-solid fa-location-dot" <| String.fromInt u.userDistanceM ++ "m away"
+                        ]
+                    , let
+                        impressionBtn icon className impr =
+                            button
+                                [ class className
+                                , onClick <| SetUserImpression u.userId impr
+                                ]
+                                [ i [ class icon ] [] ]
+                      in
+                      div [ class "impressions" ]
+                        [ impressionBtn
+                            "fa-solid fa-xmark"
+                            "dislike"
+                            ImpressionDislike
+                        , impressionBtn
+                            "fa-solid fa-heart"
+                            "like"
+                            ImpressionLike
+                        , impressionBtn
+                            "fa-regular fa-clock"
+                            "decide-later"
+                            ImpressionDecideLater
+                        ]
+                    ]
+                ]
+    in
+    div [ class "search-view" ]
+        [ Swiper.container
+            [ Swiper.effect Swiper.EffectCards ]
+            (List.map viewSlide users)
+        ]
+
+
 viewUserCard : UserOverviewInfo -> Html Msg
 viewUserCard userInfo =
     User.viewCard [ onClick <| ViewUser userInfo ] userInfo
 
 
-viewScreenImpression : Impression -> List UserOverviewInfo -> Html Msg
-viewScreenImpression impression users =
+viewScreenImpression : List UserOverviewInfo -> Html Msg
+viewScreenImpression users =
+    div []
+        [ div
+            [ class "masonry" ]
+            (List.map
+                viewUserCard
+                users
+            )
+        ]
+
+
+viewScreenImpressionNavbar : Impression -> Html Msg
+viewScreenImpressionNavbar impression =
     let
         icon impr =
             case impr of
@@ -286,25 +356,15 @@ viewScreenImpression impression users =
                 ImpressionDecideLater ->
                     "fa-solid fa-clock"
 
-                Backend.ImpressionSuperLike ->
+                ImpressionSuperLike ->
                     "fa-solid fa-hand-holding-heart"
     in
-    div []
-        [ div []
-            [ div
-                [ class "masonry" ]
-                (List.map
-                    viewUserCard
-                    users
-                )
-            ]
-        , navbar NavbarSub <|
-            List.map
-                (\impr ->
-                    { icon = icon impr
-                    , onSelect = OpenScreenImpression impr
-                    , isSelected = impr == impression
-                    }
-                )
-                allImpressions
-        ]
+    navbar <|
+        List.map
+            (\impr ->
+                { icon = icon impr
+                , onSelect = OpenScreenImpression impr
+                , isSelected = impr == impression
+                }
+            )
+            allImpressions

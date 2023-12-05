@@ -61,7 +61,6 @@ getImpressionBy userID impression = do
           other.id :: int,
           other.name :: text,
           other.header_image_url :: text,
-          other.description :: text,
           earth_distance(me.location, other.location) :: float,
           CURRENT_DATE :: date,
           other.birthday :: date,
@@ -76,12 +75,11 @@ getImpressionBy userID impression = do
       |]
   pure $ toUserInfo <$> toList rows
   where
-    toUserInfo (uid, name, img, descr, distanceM, curDate, birthday, genderId, searchDistanceM) =
+    toUserInfo (uid, name, img, distanceM, curDate, birthday, genderId, searchDistanceM) =
       UserOverviewInfo
         { userId = UserID uid,
           userName = name,
           userHeaderImageUrl = img,
-          userDescription = descr,
           userDistanceM = smartRoundDistanceM distanceM searchDistanceM,
           userAge = monthsToYears $ cdMonths (diffGregorianDurationClip curDate birthday),
           userGenderIdentity = fromMaybe Other $ sqlToGenderIdentity genderId

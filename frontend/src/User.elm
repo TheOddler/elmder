@@ -17,7 +17,6 @@ viewCard attributes user =
                 [ class "full-width" ]
                 [ class "match-content text-on-image" ]
                 [ div [ class "larger-text" ] [ text user.userName ]
-                , div [] [ text user.userDescription ]
                 ]
         ]
 
