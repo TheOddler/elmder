@@ -3,7 +3,7 @@ module Main exposing (..)
 import Browser
 import Either exposing (Either(..))
 import Generated.Backend as Backend exposing (Impression(..), UserExtendedInfo, UserID, UserOverviewInfo, jsonEncImpression)
-import Html exposing (Html, a, button, div, h1, i, table, td, text, tr)
+import Html exposing (Html, a, button, div, h1, i, li, table, td, text, tr, ul)
 import Html.Attributes exposing (class, href, src)
 import Html.Components exposing (navbar)
 import Html.Events exposing (onClick)
@@ -51,7 +51,7 @@ type alias Model =
     { settings : AppSettings
     , currentScreen : Screen
     , lastClickedNavButton : NavButton
-    , unrecoverableError : Maybe String
+    , errorMessages : List String
     }
 
 
@@ -60,9 +60,10 @@ type Msg
     | OpenScreen Screen
     | OpenScreenImpression Impression
     | ViewUser UserOverviewInfo
-    | GotUnrecoverableErrror String
+    | AddErrorMessage String
+    | ClearErrorMessages
     | SetUserImpression UserID Impression
-    | GotSetUserImpressionResult (Result Http.Error ())
+    | GotSetUserImpressionResult UserID (Result Http.Error ())
 
 
 type alias AppSettings =
@@ -84,7 +85,7 @@ init : AppSettings -> ( Model, Cmd Msg )
 init settings =
     ( { currentScreen = ScreenSearch []
       , lastClickedNavButton = NavButtonSearch
-      , unrecoverableError = Nothing
+      , errorMessages = []
       , settings = settings
       }
     , openScreenSearch settings
@@ -102,7 +103,7 @@ openScreenSearch settings =
         (\errorOrUsers ->
             case errorOrUsers of
                 Err err ->
-                    GotUnrecoverableErrror <| "Failed searching for users: " ++ httpErrorToString err
+                    AddErrorMessage <| "Failed searching for users: " ++ httpErrorToString err
 
                 Ok users ->
                     OpenScreen <|
@@ -112,11 +113,35 @@ openScreenSearch settings =
         )
 
 
+updateImpression : UserID -> Maybe Impression -> Model -> Model
+updateImpression userID impression model =
+    let
+        updateUser userWithImpression =
+            if userWithImpression.user.userId == userID then
+                { userWithImpression | impression = impression }
+
+            else
+                userWithImpression
+
+        newScreen =
+            case model.currentScreen of
+                ScreenSearch users ->
+                    ScreenSearch <| List.map updateUser users
+
+                _ ->
+                    model.currentScreen
+    in
+    { model | currentScreen = newScreen }
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update message model =
     case message of
-        GotUnrecoverableErrror error ->
-            ( { model | unrecoverableError = Just error }, Cmd.none )
+        AddErrorMessage error ->
+            ( { model | errorMessages = error :: model.errorMessages }, Cmd.none )
+
+        ClearErrorMessages ->
+            ( { model | errorMessages = [] }, Cmd.none )
 
         ClickedNavButton button ->
             let
@@ -134,7 +159,7 @@ update message model =
                                 (\errorOrUsers ->
                                     case errorOrUsers of
                                         Err err ->
-                                            GotUnrecoverableErrror <| "Failed getting liked users: " ++ httpErrorToString err
+                                            AddErrorMessage <| "Failed getting liked users: " ++ httpErrorToString err
 
                                         Ok users ->
                                             OpenScreen <| ScreenImpression ImpressionLike users
@@ -164,7 +189,7 @@ update message model =
                         (\errorOrUsers ->
                             case errorOrUsers of
                                 Err err ->
-                                    GotUnrecoverableErrror <| "Failed getting users for impression " ++ encode 0 (jsonEncImpression impression) ++ ": " ++ httpErrorToString err
+                                    AddErrorMessage <| "Failed getting users for impression " ++ encode 0 (jsonEncImpression impression) ++ ": " ++ httpErrorToString err
 
                                 Ok users ->
                                     OpenScreen <| ScreenImpression impression users
@@ -180,7 +205,7 @@ update message model =
                 handleExtInfoLoaded errOrExtInfo =
                     case errOrExtInfo of
                         Err error ->
-                            GotUnrecoverableErrror <| "GotUserExamples returned an error:\n" ++ httpErrorToString error
+                            AddErrorMessage <| "GotUserExamples returned an error:\n" ++ httpErrorToString error
 
                         Ok extInfo ->
                             OpenScreen <| ScreenOtherUser info extInfo
@@ -190,36 +215,27 @@ update message model =
             )
 
         SetUserImpression userID impression ->
-            let
-                updateImpression userWithImpression =
-                    if userWithImpression.user.userId == userID then
-                        { userWithImpression | impression = Just impression }
-
-                    else
-                        userWithImpression
-
-                newScreen =
-                    case model.currentScreen of
-                        ScreenSearch users ->
-                            ScreenSearch <| List.map updateImpression users
-
-                        _ ->
-                            model.currentScreen
-            in
-            ( { model | currentScreen = newScreen }
+            ( updateImpression userID (Just impression) model
             , Cmd.batch
-                [ Backend.postUserByImpressionByOtherUserID model.settings.backendUrl impression userID GotSetUserImpressionResult
+                [ Backend.postUserByImpressionByOtherUserID model.settings.backendUrl impression userID (GotSetUserImpressionResult userID)
                 , swiperSlideNext <| Just "search-swiper"
                 ]
             )
 
-        GotSetUserImpressionResult (Ok ()) ->
+        GotSetUserImpressionResult _ (Ok ()) ->
             ( model
+              -- The user was already optimistically updated
             , Cmd.none
             )
 
-        GotSetUserImpressionResult (Err error) ->
-            ( { model | unrecoverableError = Just <| "Liking a user failed:\n" ++ httpErrorToString error }, Cmd.none )
+        GotSetUserImpressionResult userID (Err error) ->
+            let
+                ( newModel, nextCmd ) =
+                    update (AddErrorMessage <| "Failed registering user impression:\n" ++ httpErrorToString error) model
+            in
+            ( updateImpression userID Nothing newModel
+            , nextCmd
+            )
 
 
 httpErrorToString : Http.Error -> String
@@ -243,11 +259,8 @@ httpErrorToString error =
 
 view : Model -> Html Msg
 view model =
-    case model.unrecoverableError of
-        Just error ->
-            div [] [ text error ]
-
-        Nothing ->
+    case model.errorMessages of
+        [] ->
             div [ class "root" ]
                 [ text "header placeholder"
                 , case model.currentScreen of
@@ -295,6 +308,13 @@ view model =
                             }
                         )
                         allNavButtons
+                ]
+
+        errors ->
+            div []
+                [ h1 [] [ text "We got one or more errors:" ]
+                , ul [] <| List.map (\err -> li [] [ text err ]) errors
+                , button [ onClick ClearErrorMessages ] [ text "Clear errors" ]
                 ]
 
 
