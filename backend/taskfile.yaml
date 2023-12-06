@@ -2,6 +2,7 @@ version: '3'
 
 sources: &defaultSources
   - &srcFiles 'src/**/*.hs'
+  - &elmGenSrcFiles 'elm-gen/**/*.hs'
   - &packageYaml package.yaml
 
 tasks:
@@ -24,6 +25,7 @@ tasks:
     sources: &sources-for-test
       - *srcFiles
       - *packageYaml
+      - *elmGenSrcFiles
       - 'test/**/*.hs'
   
   run:
@@ -43,7 +45,7 @@ tasks:
     sources:
       - *srcFiles
       - *packageYaml
-      - 'elm-gen/**/*.hs'
+      - *elmGenSrcFiles
   
   start-db:
     desc: Starts the database if it's not running

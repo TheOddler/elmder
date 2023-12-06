@@ -11,8 +11,9 @@ import Hasql.Pool qualified
 import Hasql.TH (uncheckedSql)
 import Hasql.Transaction (sql)
 import Hasql.Transaction.Sessions (IsolationLevel (..), Mode (Write), transaction)
-import Impressions (impressionToSQL)
-import User (genderIdentityToSQL, relationshipStatusToSQL)
+import User (relationshipStatusToSQL)
+import User.GenderIdentity (genderIdentityToSQL)
+import User.Impressions (impressionToSQL)
 
 -- | Initialise the database until we have a proper way of doing migrations
 initDB :: Hasql.Pool.Pool -> IO ()

@@ -74,7 +74,8 @@ fakeNewUser = do
 
   -- Place users close to each other so they can find each other
   -- Belgium: lat 50.503887 and long 4.469936
-  newUserLocation <- Location <$> Faker.Combinators.fromRange (49.0, 51.0) <*> Faker.Combinators.fromRange (3.0, 5.0)
+  newUserLatitude <- Faker.Combinators.fromRange (49.0, 51.0)
+  newUserLongitude <- Faker.Combinators.fromRange (3.0, 5.0)
 
   newUserBirthday <- Faker.DateTime.dayBetweenYears 1950 2000
 

@@ -16,7 +16,6 @@ import Servant
   )
 import Servant.Server.Generic (AsServerT)
 import ServerM (ServerM)
-import User.Web (UserRoutes)
 import User.Web qualified as User
 
 type Api = NamedRoutes ApiRoutes
@@ -24,7 +23,7 @@ type Api = NamedRoutes ApiRoutes
 data ApiRoutes mode = ApiRoutes
   { ping :: mode :- "ping" :> Get '[JSON] String,
     pong :: mode :- "pong" :> Get '[JSON] String,
-    userRoutes :: mode :- "user" :> NamedRoutes UserRoutes
+    userRoutes :: mode :- "user" :> NamedRoutes User.UserRoutes
   }
   deriving (Generic)
 

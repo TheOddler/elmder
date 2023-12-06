@@ -5,8 +5,6 @@ module User.Web where
 
 import DB (runHasql)
 import GHC.Generics (Generic)
-import Impressions (Impression)
-import Impressions qualified
 import Servant
   ( Capture,
     GenericMode ((:-)),
@@ -20,6 +18,7 @@ import ServerM (ServerM)
 import User (UserExtendedInfo, UserID (..), UserOverviewInfo)
 import User qualified
 import User.Fake (ensureSomeUsersInDB)
+import User.Impressions (Impression)
 
 data UserRoutes mode = UserRoutes
   { getSearch :: mode :- "search" :> Get '[JSON] [UserOverviewInfo],
@@ -40,6 +39,6 @@ userRoutes =
         _ <- ensureSomeUsersInDB 10
         runHasql $ User.searchFor pretendMyID 10,
       getUserExtendedInfo = runHasql . User.getUserExtendedInfo,
-      getImpressions = runHasql . Impressions.getImpressionBy pretendMyID,
-      postSetImpression = \u -> runHasql . Impressions.setImpressionBy pretendMyID u
+      getImpressions = runHasql . User.getImpressionBy pretendMyID,
+      postSetImpression = \u -> runHasql . User.setImpressionBy pretendMyID u
     }

@@ -37,6 +37,7 @@ library:
     - hasql-transaction
     - servant-elm
     - servant-server
+    - template-haskell
     - text
     - time
     - transformers

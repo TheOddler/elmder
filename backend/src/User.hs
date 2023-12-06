@@ -15,13 +15,14 @@ import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.Time (CalendarDiffDays (..), Day, diffGregorianDurationClip)
 import Data.Vector qualified as V
-import Elm.Derive (Options (..), deriveBoth)
 import GHC.Generics (Generic)
 import Hasql.TH (resultlessStatement, singletonStatement, vectorStatement)
 import Hasql.Transaction (Transaction, statement)
 import SafeMath (monthsToYears, roundToNearest)
 import Servant (FromHttpApiData, ToHttpApiData)
-import Servant.Elm qualified
+import User.DeriveElmAndJson (deriveElmAndJson)
+import User.GenderIdentity (GenderIdentity (..), genderIdentityToSQL, sqlToGenderIdentity)
+import User.Impressions (Impression (..), impressionToSQL)
 import Util (reverseEnumToText)
 
 newtype UserID = UserID {unUserID :: Int32}
@@ -55,25 +56,6 @@ data UserExtendedInfo = UserExtendedInfo
   }
   deriving (Generic, Show, Eq)
 
-data Location = Location
-  { locationLatitude :: Float,
-    locationLongitude :: Float
-  }
-  deriving (Generic, Show, Eq)
-
-smartRoundDistanceM :: Float -> Float -> Int
-smartRoundDistanceM distM searchDistM =
-  let distanceM :: Int
-      distanceM = round distM
-      searchDistanceM :: Int
-      searchDistanceM = round searchDistM
-   in case distanceM of
-        m | m < 150 && searchDistanceM <= 1000 -> 100
-        m | m <= 1000 && searchDistanceM <= 1000 -> roundToNearest 100 m
-        m | m <= 1000 -> 1000
-        m | m <= 3000 -> roundToNearest 500 m
-        m -> roundToNearest 1000 m
-
 data RelationshipStatus
   = RelationshipStatusSingle
   | RelationshipStatusMarried
@@ -90,214 +72,6 @@ relationshipStatusToSQL = \case
 sqlToRelationshipStatus :: Text -> Maybe RelationshipStatus
 sqlToRelationshipStatus = reverseEnumToText relationshipStatusToSQL
 
-data GenderIdentity
-  = Abinary
-  | Agender
-  | Ambigender
-  | Androgyne
-  | Androgynous
-  | Aporagender
-  | Autigender
-  | Bakla
-  | Bigender
-  | Binary
-  | Bissu
-  | Butch
-  | Calabai
-  | Calalai
-  | CisFemale
-  | CisMale
-  | CisMan
-  | CisWoman
-  | DemiBoy
-  | Demiflux
-  | Demigender
-  | DemiGirl
-  | DemiGuy
-  | DemiMan
-  | DemiWoman
-  | DualGender
-  | FaAfafine
-  | Female
-  | FemaleToMale
-  | Femme
-  | FTM
-  | GenderBender
-  | GenderDiverse
-  | GenderGifted
-  | Genderfae
-  | Genderfluid
-  | Genderflux
-  | Genderfuck
-  | Genderless
-  | GenderNonconforming
-  | Genderqueer
-  | GenderQuestioning
-  | GenderVariant
-  | Graygender
-  | Hijra
-  | Intergender
-  | Intersex
-  | Kathoey
-  | Mahu
-  | Male
-  | MaleToFemale
-  | Man
-  | ManOfTransExperience
-  | Maverique
-  | MetaGender
-  | MTF
-  | Multigender
-  | Muxe
-  | Neither
-  | Neurogender
-  | Neutrois
-  | NonBinary
-  | NonBinaryTransgender
-  | Omnigender
-  | Other
-  | Pangender
-  | PersonOfTransgenderedExperience
-  | Polygender
-  | Sekhet
-  | ThirdGender
-  | TransFemale
-  | TransMale
-  | TransMan
-  | TransPerson
-  | TransWoman
-  | TransgenderFemale
-  | TransgenderMale
-  | TransgenderMan
-  | TransgenderPerson
-  | TransgenderWoman
-  | Transfeminine
-  | Transmasculine
-  | TranssexualFemale
-  | TranssexualMale
-  | TranssexualMan
-  | TranssexualPerson
-  | TranssexualWoman
-  | Travesti
-  | Trigender
-  | Tumtum
-  | TwoSpirit
-  | Vakasalewalewa
-  | Waria
-  | Winkte
-  | Woman
-  | WomanOfTransExperience
-  | XGender
-  | XJenda
-  | Xenogender
-  deriving (Generic, Show, Eq, Enum, Bounded)
-
--- | Convert a 'RelationshipStatus' to a SQL name for it.
-genderIdentityToSQL :: GenderIdentity -> Text
-genderIdentityToSQL = \case
-  Abinary -> "abinary"
-  Agender -> "agender"
-  Ambigender -> "ambigender"
-  Androgyne -> "androgyne"
-  Androgynous -> "androgynous"
-  Aporagender -> "aporagender"
-  Autigender -> "autigender"
-  Bakla -> "bakla"
-  Bigender -> "bigender"
-  Binary -> "binary"
-  Bissu -> "bissu"
-  Butch -> "butch"
-  Calabai -> "calabai"
-  Calalai -> "calalai"
-  CisFemale -> "cis_female"
-  CisMale -> "cis_male"
-  CisMan -> "cis_man"
-  CisWoman -> "cis_woman"
-  DemiBoy -> "demi_boy"
-  Demiflux -> "demiflux"
-  Demigender -> "demigender"
-  DemiGirl -> "demi_girl"
-  DemiGuy -> "demi_guy"
-  DemiMan -> "demi_man"
-  DemiWoman -> "demi_woman"
-  DualGender -> "dual_gender"
-  FaAfafine -> "fa_afafine"
-  Female -> "female"
-  FemaleToMale -> "female_to_male"
-  Femme -> "femme"
-  FTM -> "ftm"
-  GenderBender -> "gender_bender"
-  GenderDiverse -> "gender_diverse"
-  GenderGifted -> "gender_gifted"
-  Genderfae -> "genderfae"
-  Genderfluid -> "genderfluid"
-  Genderflux -> "genderflux"
-  Genderfuck -> "genderfuck"
-  Genderless -> "genderless"
-  GenderNonconforming -> "gender_nonconforming"
-  Genderqueer -> "genderqueer"
-  GenderQuestioning -> "gender_questioning"
-  GenderVariant -> "gender_variant"
-  Graygender -> "graygender"
-  Hijra -> "hijra"
-  Intergender -> "intergender"
-  Intersex -> "intersex"
-  Kathoey -> "kathoey"
-  Mahu -> "mahu"
-  Male -> "male"
-  MaleToFemale -> "male_to_female"
-  Man -> "man"
-  ManOfTransExperience -> "man_of_trans_experience"
-  Maverique -> "maverique"
-  MetaGender -> "meta_gender"
-  MTF -> "mtf"
-  Multigender -> "multigender"
-  Muxe -> "muxe"
-  Neither -> "neither"
-  Neurogender -> "neurogender"
-  Neutrois -> "neutrois"
-  NonBinary -> "non_binary"
-  NonBinaryTransgender -> "non_binary_transgender"
-  Omnigender -> "omnigender"
-  Other -> "other"
-  Pangender -> "pangender"
-  PersonOfTransgenderedExperience -> "person_of_transgendered_experience"
-  Polygender -> "polygender"
-  Sekhet -> "sekhet"
-  ThirdGender -> "third_gender"
-  TransFemale -> "trans_female"
-  TransMale -> "trans_male"
-  TransMan -> "trans_man"
-  TransPerson -> "trans_person"
-  TransWoman -> "trans_woman"
-  TransgenderFemale -> "transgender_female"
-  TransgenderMale -> "transgender_male"
-  TransgenderMan -> "transgender_man"
-  TransgenderPerson -> "transgender_person"
-  TransgenderWoman -> "transgender_woman"
-  Transfeminine -> "transfeminine"
-  Transmasculine -> "transmasculine"
-  TranssexualFemale -> "transsexual_female"
-  TranssexualMale -> "transsexual_male"
-  TranssexualMan -> "transsexual_man"
-  TranssexualPerson -> "transsexual_person"
-  TranssexualWoman -> "transsexual_woman"
-  Travesti -> "travesti"
-  Trigender -> "trigender"
-  Tumtum -> "tumtum"
-  TwoSpirit -> "two_spirit"
-  Vakasalewalewa -> "vakasalewalewa"
-  Waria -> "waria"
-  Winkte -> "winkte"
-  Woman -> "woman"
-  WomanOfTransExperience -> "woman_of_trans_experience"
-  XGender -> "x_gender"
-  XJenda -> "x_jenda"
-  Xenogender -> "xenogender"
-
-sqlToGenderIdentity :: Text -> Maybe GenderIdentity
-sqlToGenderIdentity = reverseEnumToText genderIdentityToSQL
-
 data ProfileSection
   = UserSectionGeneric
       { userSectionGenericHeader :: Text,
@@ -313,22 +87,12 @@ data ProfileSection
       }
   deriving (Generic, Show, Eq)
 
-data SearchParameters = SearchParameters
-  { searchAgeMin :: Int,
-    searchAgeMax :: Int,
-    searchDistanceKm :: Float,
-    searchGenderIdentity :: [GenderIdentity]
-  }
-  deriving (Generic)
-
 -- Use the default options from Servant.Elm, they work best for Elm, not those from Elm.Derive nor Aeson.
-deriveBoth Servant.Elm.defaultOptions {unwrapUnaryRecords = True} ''UserID
-deriveBoth Servant.Elm.defaultOptions ''RelationshipStatus
-deriveBoth Servant.Elm.defaultOptions ''GenderIdentity
-deriveBoth Servant.Elm.defaultOptions ''Location
-deriveBoth Servant.Elm.defaultOptions ''ProfileSection
-deriveBoth Servant.Elm.defaultOptions ''UserOverviewInfo
-deriveBoth Servant.Elm.defaultOptions ''UserExtendedInfo
+deriveElmAndJson ''UserID
+deriveElmAndJson ''RelationshipStatus
+deriveElmAndJson ''ProfileSection
+deriveElmAndJson ''UserOverviewInfo
+deriveElmAndJson ''UserExtendedInfo
 
 getUserExtendedInfo :: UserID -> Transaction UserExtendedInfo
 getUserExtendedInfo _ =
@@ -356,10 +120,24 @@ data NewUserInfo = NewUserInfo
   { newUserName :: Text,
     newUserDescription :: Text,
     newUserHeaderImageUrl :: Text,
-    newUserLocation :: Location,
+    newUserLatitude :: Float,
+    newUserLongitude :: Float,
     newUserBirthday :: Day,
     newUserGenderIdentity :: GenderIdentity
   }
+
+smartRoundDistanceM :: Float -> Float -> Int
+smartRoundDistanceM distM searchDistM =
+  let distanceM :: Int
+      distanceM = round distM
+      searchDistanceM :: Int
+      searchDistanceM = round searchDistM
+   in case distanceM of
+        m | m < 150 && searchDistanceM <= 1000 -> 100
+        m | m <= 1000 && searchDistanceM <= 1000 -> roundToNearest 100 m
+        m | m <= 1000 -> 1000
+        m | m <= 3000 -> roundToNearest 500 m
+        m -> roundToNearest 1000 m
 
 createNewUser :: NewUserInfo -> Transaction UserID
 createNewUser u = do
@@ -368,8 +146,8 @@ createNewUser u = do
       ( u.newUserName,
         u.newUserHeaderImageUrl,
         u.newUserDescription,
-        u.newUserLocation.locationLatitude,
-        u.newUserLocation.locationLongitude,
+        u.newUserLatitude,
+        u.newUserLongitude,
         u.newUserBirthday,
         genderIdentityToSQL u.newUserGenderIdentity
       )
@@ -482,3 +260,59 @@ searchFor userID maxResults = do
           userAge = monthsToYears $ cdMonths (diffGregorianDurationClip curDate birthday),
           userGenderIdentity = fromMaybe Other $ sqlToGenderIdentity genderId
         }
+
+getImpressionBy :: UserID -> Impression -> Transaction [UserOverviewInfo]
+getImpressionBy userID impression = do
+  rows <-
+    statement
+      (unUserID userID, impressionToSQL impression)
+      [vectorStatement|
+        SELECT 
+          other.id :: int,
+          other.name :: text,
+          other.header_image_url :: text,
+          earth_distance(me.location, other.location) :: float,
+          CURRENT_DATE :: date,
+          other.birthday :: date,
+          other.gender_identity :: text,
+          (other.search_distance_km * 1000) :: float
+        FROM users me
+        JOIN users other ON other.id <> me.id
+        JOIN impressions ON impressions.user_id = me.id AND impressions.other_user_id = other.id
+        WHERE me.id = $1 :: int
+        AND impressions.impression = $2 :: text :: impression
+        ORDER BY impressions.timestamp DESC
+      |]
+  pure $ toUserInfo <$> toList rows
+  where
+    toUserInfo (uid, name, img, distanceM, curDate, birthday, genderId, searchDistanceM) =
+      UserOverviewInfo
+        { userId = UserID uid,
+          userName = name,
+          userHeaderImageUrl = img,
+          userDistanceM = smartRoundDistanceM distanceM searchDistanceM,
+          userAge = monthsToYears $ cdMonths (diffGregorianDurationClip curDate birthday),
+          userGenderIdentity = fromMaybe Other $ sqlToGenderIdentity genderId
+        }
+
+setImpressionBy :: UserID -> Impression -> UserID -> Transaction ()
+setImpressionBy userID impression otherUserID =
+  statement
+    (unUserID userID, impressionToSQL impression, unUserID otherUserID)
+    [resultlessStatement|
+      INSERT INTO impressions (
+        user_id,
+        impression,
+        other_user_id,
+        timestamp
+      )
+      VALUES (
+        $1 :: int,
+        $2 :: text :: impression,
+        $3 :: int,
+        CURRENT_TIMESTAMP
+      )
+      ON CONFLICT (user_id, other_user_id) DO UPDATE SET 
+        impression = $2 :: text :: impression,
+        timestamp = CURRENT_TIMESTAMP
+    |]

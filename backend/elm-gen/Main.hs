@@ -11,11 +11,12 @@ import Data.Text (Text, pack)
 import Data.Text qualified as T
 import Elm.Module (recAlterType)
 import Elm.TyRep (ETCon (..))
-import Impressions (Impression)
 import Servant
 import Servant.Elm
 import Servant.Foreign (Foreign, HasForeign (..))
 import User qualified
+import User.GenderIdentity (GenderIdentity)
+import User.Impressions (Impression)
 import Web qualified
 
 -- Taken from https://hackage.haskell.org/package/servant-foreign-0.16/docs/src/Servant.Foreign.Internal.html#line-518
@@ -57,8 +58,7 @@ main = do
       DefineElm (Proxy :: Proxy User.UserOverviewInfo),
       DefineElm (Proxy :: Proxy User.UserExtendedInfo),
       DefineElm (Proxy :: Proxy User.RelationshipStatus),
-      DefineElm (Proxy :: Proxy User.GenderIdentity),
-      DefineElm (Proxy :: Proxy User.Location),
+      DefineElm (Proxy :: Proxy GenderIdentity),
       DefineElm (Proxy :: Proxy User.ProfileSection),
       DefineElm (Proxy :: Proxy Impression)
     ]
