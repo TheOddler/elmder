@@ -192,6 +192,17 @@ createNewUser u = do
         |]
   pure $ UserID newID
 
+userOverviewInfoFromSQL :: (Int32, Text, Text, Float, Day, Day, Text, Float) -> UserOverviewInfo
+userOverviewInfoFromSQL (uid, name, img, distanceM, curDate, birthday, genderId, searchDistanceM) =
+  UserOverviewInfo
+    { userId = UserID uid,
+      userName = name,
+      userHeaderImageUrl = img,
+      userDistanceM = smartRoundDistanceM distanceM searchDistanceM,
+      userAge = monthsToYears $ cdMonths (diffGregorianDurationClip curDate birthday),
+      userGenderIdentity = fromMaybe Other $ sqlToGenderIdentity genderId
+    }
+
 searchFor :: UserID -> Int32 -> Transaction [UserOverviewInfo]
 searchFor userID maxResults = do
   rows <-
@@ -249,17 +260,7 @@ searchFor userID maxResults = do
 
         LIMIT $2 :: int
       |]
-  pure $ toUserInfo <$> toList rows
-  where
-    toUserInfo (uid, name, img, distanceM, curDate, birthday, genderId, searchDistanceM) =
-      UserOverviewInfo
-        { userId = UserID uid,
-          userName = name,
-          userHeaderImageUrl = img,
-          userDistanceM = smartRoundDistanceM distanceM searchDistanceM,
-          userAge = monthsToYears $ cdMonths (diffGregorianDurationClip curDate birthday),
-          userGenderIdentity = fromMaybe Other $ sqlToGenderIdentity genderId
-        }
+  pure $ userOverviewInfoFromSQL <$> toList rows
 
 getImpressionBy :: UserID -> Impression -> Transaction [UserOverviewInfo]
 getImpressionBy userID impression = do
@@ -283,17 +284,7 @@ getImpressionBy userID impression = do
         AND impressions.impression = $2 :: text :: impression
         ORDER BY impressions.timestamp DESC
       |]
-  pure $ toUserInfo <$> toList rows
-  where
-    toUserInfo (uid, name, img, distanceM, curDate, birthday, genderId, searchDistanceM) =
-      UserOverviewInfo
-        { userId = UserID uid,
-          userName = name,
-          userHeaderImageUrl = img,
-          userDistanceM = smartRoundDistanceM distanceM searchDistanceM,
-          userAge = monthsToYears $ cdMonths (diffGregorianDurationClip curDate birthday),
-          userGenderIdentity = fromMaybe Other $ sqlToGenderIdentity genderId
-        }
+  pure $ userOverviewInfoFromSQL <$> toList rows
 
 setImpressionBy :: UserID -> Impression -> UserID -> Transaction ()
 setImpressionBy userID impression otherUserID =
