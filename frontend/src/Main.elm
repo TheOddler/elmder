@@ -9,6 +9,7 @@ import Html.Components exposing (navbar)
 import Html.Events exposing (onClick)
 import Http
 import Json.Encode exposing (encode)
+import Ports exposing (swiperSlideNext)
 import StringExtra as String
 import Swiper
 import User
@@ -181,7 +182,10 @@ update message model =
 
         SetUserImpression userID impression ->
             ( model
-            , Backend.postUserByImpressionByOtherUserID model.settings.backendUrl impression userID GotSetUserImpressionResult
+            , Cmd.batch
+                [ Backend.postUserByImpressionByOtherUserID model.settings.backendUrl impression userID GotSetUserImpressionResult
+                , swiperSlideNext <| Just "search-swiper"
+                ]
             )
 
         GotSetUserImpressionResult (Ok ()) ->
@@ -320,7 +324,9 @@ viewSearch users =
     in
     div [ class "search-view" ]
         [ Swiper.container
-            [ Swiper.effect Swiper.EffectCards ]
+            [ Swiper.id "search-swiper"
+            , Swiper.effect Swiper.EffectCards
+            ]
             (List.map viewSlide users)
         ]
 

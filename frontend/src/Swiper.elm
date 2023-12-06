@@ -72,9 +72,14 @@ imgSlide imgAttrs =
 -- Attributes
 
 
+id : String -> ContainerAttribute msg
+id =
+    CAttribute << Html.Attributes.id
+
+
 class : String -> ContainerAttribute msg
-class className =
-    CAttribute (Html.Attributes.class className)
+class =
+    CAttribute << Html.Attributes.class
 
 
 type SliderPerView

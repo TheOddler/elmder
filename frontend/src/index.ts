@@ -1,6 +1,6 @@
 // @ts-ignore
 import { Elm } from "./Main.elm";
-import { register } from 'swiper/swiper-element-bundle';
+import { register, SwiperContainer } from 'swiper/swiper-element-bundle';
 
 register();
 
@@ -11,10 +11,8 @@ const app = Elm.Main.init({
   },
 });
 
-// app.ports.setPointerCapture.subscribe(function (event) {
-//   event.target.setPointerCapture(event.pointerId);
-// });
-
-// app.ports.releasePointerCapture.subscribe(function (event) {
-//   event.target.releasePointerCapture(event.pointerId);
-// });
+app.ports.swiperSlideNext.subscribe(function (maybeId: string | null) {
+  const selector = 'swiper-container' + maybeId ? `#${maybeId}` : '';
+  const swiperEl = document.querySelector(selector) as SwiperContainer | null;
+  swiperEl?.swiper.slideNext();
+});
