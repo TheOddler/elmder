@@ -14,5 +14,5 @@ const app = Elm.Main.init({
 app.ports.swiperSlideNext.subscribe(function (maybeId: string | null) {
   const selector = 'swiper-container' + maybeId ? `#${maybeId}` : '';
   const swiperEl = document.querySelector(selector) as SwiperContainer | null;
-  swiperEl?.swiper.slideNext();
+  swiperEl?.swiper.slideNext(800);
 });

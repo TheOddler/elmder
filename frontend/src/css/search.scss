@@ -46,34 +46,46 @@
           flex-direction: row;
           gap: 0.4em;
           margin-top: 0.8em;
-          height: 3em;
+
+          $buttonHeight: 3em;
+          height: $buttonHeight;
 
           button {
             all: unset;
             flex-grow: 1;
-            border-radius: 1.5em;
+            border-radius: $buttonHeight / 2;
             backdrop-filter: blur(0.2em);
-            font-size: 1.3em;
+            $buttonFontSize: 1.3em;
+            font-size: $buttonFontSize;
+            --alpha: 0.2;
 
             // Center the icon
             display: flex;
             align-items: center;
             justify-content: center;
-          }
 
-          .like {
-            color: hotpink;
-            background-color: rgba(hotpink, 0.2);
-          }
+            &.like {
+              color: hotpink;
+              background-color: rgba(hotpink, var(--alpha));
+            }
 
-          .dislike {
-            color: lightcoral;
-            background-color: rgba(lightcoral, 0.2);
-          }
+            &.dislike {
+              color: red;
+              background-color: rgba(lightcoral, var(--alpha));
+            }
 
-          .decide-later {
-            color: lightcyan;
-            background-color: rgba(lightcyan, 0.2);
+            &.decide-later {
+              color: lightblue;
+              background-color: rgba(lightcyan, var(--alpha));
+            }
+
+            &.selected,
+            &:hover {
+              transition: all 0.2s;
+              font-size: $buttonFontSize * 2;
+              --alpha: 0.5;
+              flex-grow: 1.5;
+            }
           }
         }
       }

@@ -34,8 +34,14 @@ allImpressions =
     [ ImpressionLike, ImpressionDislike, ImpressionDecideLater, ImpressionSuperLike ]
 
 
+type alias UserWithImpression =
+    { user : UserOverviewInfo
+    , impression : Maybe Impression
+    }
+
+
 type Screen
-    = ScreenSearch (List UserOverviewInfo)
+    = ScreenSearch (List UserWithImpression)
     | ScreenImpression Impression (List UserOverviewInfo)
     | ScreenMyProfile
     | ScreenOtherUser UserOverviewInfo UserExtendedInfo
@@ -99,7 +105,10 @@ openScreenSearch settings =
                     GotUnrecoverableErrror <| "Failed searching for users: " ++ httpErrorToString err
 
                 Ok users ->
-                    OpenScreen <| ScreenSearch users
+                    OpenScreen <|
+                        ScreenSearch <|
+                            List.map (\u -> { user = u, impression = Nothing })
+                                users
         )
 
 
@@ -181,7 +190,23 @@ update message model =
             )
 
         SetUserImpression userID impression ->
-            ( model
+            let
+                updateImpression userWithImpression =
+                    if userWithImpression.user.userId == userID then
+                        { userWithImpression | impression = Just impression }
+
+                    else
+                        userWithImpression
+
+                newScreen =
+                    case model.currentScreen of
+                        ScreenSearch users ->
+                            ScreenSearch <| List.map updateImpression users
+
+                        _ ->
+                            model.currentScreen
+            in
+            ( { model | currentScreen = newScreen }
             , Cmd.batch
                 [ Backend.postUserByImpressionByOtherUserID model.settings.backendUrl impression userID GotSetUserImpressionResult
                 , swiperSlideNext <| Just "search-swiper"
@@ -273,18 +298,18 @@ view model =
                 ]
 
 
-viewSearch : List UserOverviewInfo -> Html Msg
+viewSearch : List UserWithImpression -> Html Msg
 viewSearch users =
     let
-        viewSlide u =
+        viewSlide { user, impression } =
             Swiper.slide
                 [ Html.img
-                    [ src u.userHeaderImageUrl
+                    [ src user.userHeaderImageUrl
                     ]
                     []
                 , div [ class "overlay" ]
                     [ div [ class "name" ]
-                        [ text <| u.userName
+                        [ text <| user.userName
                         ]
                     , let
                         infoRow icon t =
@@ -294,14 +319,20 @@ viewSearch users =
                                 ]
                       in
                       table [ class "info" ]
-                        [ infoRow "fa-solid fa-user" <| String.fromGenderIdentity u.userGenderIdentity ++ " • " ++ String.fromInt u.userAge
-                        , infoRow "fa-solid fa-location-dot" <| String.fromInt u.userDistanceM ++ "m away"
+                        [ infoRow "fa-solid fa-user" <| String.fromGenderIdentity user.userGenderIdentity ++ " • " ++ String.fromInt user.userAge
+                        , infoRow "fa-solid fa-location-dot" <| String.fromInt user.userDistanceM ++ "m away"
                         ]
                     , let
                         impressionBtn icon className impr =
                             button
                                 [ class className
-                                , onClick <| SetUserImpression u.userId impr
+                                , class <|
+                                    if impression == Just impr then
+                                        "selected"
+
+                                    else
+                                        ""
+                                , onClick <| SetUserImpression user.userId impr
                                 ]
                                 [ i [ class icon ] [] ]
                       in
