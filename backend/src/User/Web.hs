@@ -39,6 +39,6 @@ userRoutes =
         _ <- ensureSomeUsersInDB 10
         runHasql $ User.searchFor pretendMyID 10,
       getUserExtendedInfo = runHasql . User.getUserExtendedInfo,
-      getImpressions = runHasql . User.getImpressionBy pretendMyID,
+      getImpressions = runHasql . User.getUsersWithImpressionBy pretendMyID,
       postSetImpression = \u -> runHasql . User.setImpressionBy pretendMyID u
     }

@@ -262,8 +262,8 @@ searchFor userID maxResults = do
       |]
   pure $ userOverviewInfoFromSQL <$> toList rows
 
-getImpressionBy :: UserID -> Impression -> Transaction [UserOverviewInfo]
-getImpressionBy userID impression = do
+getUsersWithImpressionBy :: UserID -> Impression -> Transaction [UserOverviewInfo]
+getUsersWithImpressionBy userID impression = do
   rows <-
     statement
       (unUserID userID, impressionToSQL impression)
