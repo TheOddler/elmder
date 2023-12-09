@@ -231,7 +231,40 @@ httpErrorToString error =
 
 view : Model -> Browser.Document Msg
 view model =
-    { title = "Elmder"
+    let
+        suffix =
+            case model.currentScreen of
+                ScreenSearch _ ->
+                    "Search"
+
+                ScreenImpression impression _ ->
+                    case impression of
+                        ImpressionLike ->
+                            "Likes"
+
+                        ImpressionDislike ->
+                            "Dislikes"
+
+                        ImpressionDecideLater ->
+                            "Decide Later"
+
+                        ImpressionSuperLike ->
+                            "Super-Likes"
+
+                ScreenMyProfile ->
+                    "My profile"
+
+                ScreenOtherUser _ ->
+                    -- TODO: Once I update the user profile code, add the name of the user here
+                    "Other user"
+
+                ScreenLoading ->
+                    "Loading..."
+
+                ScreenError _ ->
+                    "Error"
+    in
+    { title = "Elmder" ++ " - " ++ suffix
     , body = [ viewBody model ]
     }
 
