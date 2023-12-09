@@ -16,80 +16,103 @@ type alias UserWithImpression =
     }
 
 
-viewCard : (UserID -> Impression -> msg) -> List (Attribute msg) -> UserWithImpression -> Html msg
-viewCard setImpression attributes { user, impression } =
+type alias UserInteractions msg =
+    { setImpression : UserID -> Impression -> msg
+    , viewProfile : UserOverviewInfo -> msg
+    }
+
+
+viewCard : UserInteractions msg -> List (Attribute msg) -> UserWithImpression -> Html msg
+viewCard interactions attributes userWithImpression =
     card
         attributes
-        [ Html.img
-            [ src user.userHeaderImageUrl
-            ]
-            []
-        , div [ class "content text-on-image" ]
-            [ div [ class "x-large-text" ]
-                [ text <| user.userName
-                ]
-            , let
-                infoRow icon t =
-                    tr []
-                        [ td [] [ i [ class icon ] [] ]
-                        , td [] [ text t ]
-                        ]
-              in
-              table [ class "icon-table" ]
-                [ infoRow "fa-solid fa-user" <| String.fromGenderIdentity user.userGenderIdentity ++ " • " ++ String.fromInt user.userAge
-                , infoRow "fa-solid fa-location-dot" <| String.fromInt user.userDistanceM ++ "m away"
-                ]
-            , let
-                impressionBtn icon className impr =
-                    button
-                        [ class className
-                        , class <|
-                            if impression == Just impr then
-                                "selected"
+        (viewCardContent interactions userWithImpression)
 
-                            else
-                                ""
-                        , onClickStopPropagation <| setImpression user.userId impr
-                        ]
-                        [ i [ class icon ] [] ]
-              in
-              div [ class "impressions" ]
-                [ impressionBtn
-                    "fa-solid fa-xmark"
-                    "dislike"
-                    ImpressionDislike
-                , impressionBtn
-                    "fa-solid fa-heart"
-                    "like"
-                    ImpressionLike
-                , impressionBtn
-                    "fa-regular fa-clock"
-                    "decide-later"
-                    ImpressionDecideLater
-                ]
+
+viewCardAsSwiperSlide : UserInteractions msg -> UserWithImpression -> Swiper.Slide msg
+viewCardAsSwiperSlide interactions userWithImpression =
+    Swiper.slideWithClass "card"
+        (viewCardContent interactions userWithImpression)
+
+
+type IncludeImpressionButtons
+    = LikeDisslikeLater
+    | NoButtons
+
+
+viewCardContent : UserInteractions msg -> UserWithImpression -> List (Html msg)
+viewCardContent interactions { user, impression } =
+    [ Html.img
+        [ src user.userHeaderImageUrl
+        , onClickStopPropagation <| interactions.viewProfile user
+        ]
+        []
+    , div [ class "content text-on-image" ]
+        [ div [ class "x-large-text" ]
+            [ text <| user.userName
+            ]
+        , let
+            infoRow icon t =
+                tr []
+                    [ td [] [ i [ class icon ] [] ]
+                    , td [] [ text t ]
+                    ]
+          in
+          table [ class "icon-table" ]
+            [ infoRow "fa-solid fa-user" <| String.fromGenderIdentity user.userGenderIdentity ++ " • " ++ String.fromInt user.userAge
+            , infoRow "fa-solid fa-location-dot" <| String.fromInt user.userDistanceM ++ "m away"
+            ]
+        , let
+            impressionBtn icon className impr =
+                button
+                    [ class className
+                    , class <|
+                        if impression == Just impr then
+                            "selected"
+
+                        else
+                            ""
+                    , onClickStopPropagation <| interactions.setImpression user.userId impr
+                    ]
+                    [ i [ class icon ] [] ]
+          in
+          div [ class "impressions" ]
+            [ impressionBtn
+                "fa-solid fa-xmark"
+                "dislike"
+                ImpressionDislike
+            , impressionBtn
+                "fa-solid fa-heart"
+                "like"
+                ImpressionLike
+            , impressionBtn
+                "fa-regular fa-clock"
+                "decide-later"
+                ImpressionDecideLater
             ]
         ]
+    ]
 
 
 viewProfile :
-    (UserID -> Impression -> msg)
+    UserInteractions msg
     -> UserOverviewInfo
     -> UserExtendedInfo
     -> Html msg
-viewProfile setImpression userInfo extendedInfo =
+viewProfile interactions userInfo extendedInfo =
     div
-        [ class "masonry" ]
+        [ class "masonry scrollable" ]
     <|
-        viewCard setImpression [] { user = userInfo, impression = Nothing }
-            :: button [ onClick <| setImpression userInfo.userId ImpressionLike ]
+        viewCard interactions [] { user = userInfo, impression = Nothing }
+            :: button [ onClick <| interactions.setImpression userInfo.userId ImpressionLike ]
                 [ text "Like "
                 , i [ class "fa-solid fa-heart" ] []
                 ]
-            :: button [ onClick <| setImpression userInfo.userId ImpressionDislike ]
+            :: button [ onClick <| interactions.setImpression userInfo.userId ImpressionDislike ]
                 [ text "Dislike "
                 , i [ class "fa-solid fa-heart-crack" ] []
                 ]
-            :: button [ onClick <| setImpression userInfo.userId ImpressionDecideLater ]
+            :: button [ onClick <| interactions.setImpression userInfo.userId ImpressionDecideLater ]
                 [ text "Decide later "
                 , i [ class "fa-solid fa-clock" ] []
                 ]

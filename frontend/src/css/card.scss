@@ -1,16 +1,14 @@
-@use 'helpers';
-
 $contentMargin: 6pt;
 
 .card {
-  // Note: Because cards are used in different places, some that hide overflow,
-  // we don't add a shadow here.
-  // Nor do we add a border as usually we want the shadow and border to be defined together.
-
   display: flex;
   flex-direction: column;
   justify-content: flex-end; // This will only really matter if the card has a different size from it's content
   position: relative; // This is needed for the image background to work (as we use position: absolute there)
+
+  border-radius: 18pt;
+  box-shadow: 0 0 2em rgba(black, 0.8);
+  overflow: hidden;
 
   >*,
   .content,
@@ -33,7 +31,7 @@ $contentMargin: 6pt;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    object-position: top center;
+    object-position: center;
     position: absolute;
     z-index: -1;
     margin: 0;

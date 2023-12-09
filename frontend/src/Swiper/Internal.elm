@@ -1,21 +1,8 @@
 module Swiper.Internal exposing (..)
 
-import Html exposing (Html)
+import Html
 import Html.Attributes as Html
 import List exposing (concatMap)
-
-
-
--- Slides
-
-
-type Slide msg
-    = Slide (Html msg)
-
-
-unSlide : Slide msg -> Html msg
-unSlide (Slide html) =
-    html
 
 
 

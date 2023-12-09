@@ -1,0 +1,23 @@
+@import 'card';
+
+$edgePadding: 12pt;
+
+.search-view {
+  padding: $edgePadding;
+
+  swiper-container {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.user-overview {
+  padding: 0 $edgePadding;
+
+  >* {
+    min-height: 250pt;
+    margin: $edgePadding 0;
+    border-radius: 18pt;
+    overflow: hidden;
+  }
+}

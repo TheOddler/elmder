@@ -1,9 +1,8 @@
 @use 'card';
 @use 'overlay';
-@use 'helpers' as h;
 @use 'nav-bar';
 @use 'images';
-@use 'search';
+@use 'views';
 
 body,
 html,
@@ -30,7 +29,7 @@ html {
 .root {
   display: grid;
   grid-template-columns: 100%;
-  grid-template-rows: 3em 1fr min-content repeat(2, auto);
+  grid-template-rows: 36pt (calc(100vh - 36pt*2)) 36pt;
   grid-template-areas:
     "header"
     "main"
@@ -45,29 +44,6 @@ img {
   // Removes a tiny little bit of whitespace that sometimes appears under images
   // This makes images that are last in the card look better, but I think is a good default for everthing as even in different places the extra whitespace looks bad
   vertical-align: middle;
-}
-
-.masonry {
-  $columnGap: 1em;
-
-  column-gap: $columnGap;
-
-  >* {
-    break-inside: avoid;
-    margin-bottom: $columnGap;
-  }
-
-  @include h.onPhone {
-    column-count: 1;
-  }
-
-  @include h.onTablet {
-    column-count: 2;
-  }
-
-  @include h.onDesktop {
-    column-count: 3;
-  }
 }
 
 .larger-text {
@@ -102,4 +78,9 @@ img {
   height: 100%;
   top: 0;
   left: 0;
+}
+
+.scrollable {
+  max-width: 100vw;
+  overflow-y: scroll;
 }

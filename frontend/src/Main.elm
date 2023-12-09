@@ -12,7 +12,7 @@ import Json.Encode exposing (encode)
 import Ports exposing (swiperSlideNext)
 import StringExtra as String
 import Swiper
-import User exposing (UserWithImpression)
+import User exposing (UserInteractions, UserWithImpression)
 
 
 type NavButton
@@ -274,15 +274,9 @@ view model =
                                     ]
 
                     ScreenOtherUser userInfo extInfo ->
-                        User.viewProfile SetUserImpression userInfo extInfo
-                , case model.currentScreen of
-                    ScreenImpression impression _ ->
-                        viewScreenImpressionNavbar impression
-
-                    _ ->
-                        text ""
+                        User.viewProfile userInteractions userInfo extInfo
                 , let
-                    icon navButton =
+                    navIcon navButton =
                         case navButton of
                             NavButtonSearch ->
                                 "fa-solid fa-magnifying-glass"
@@ -292,16 +286,52 @@ view model =
 
                             NavButtonMyProfile ->
                                 "fa-solid fa-user"
+
+                    imprIcon impr =
+                        case impr of
+                            ImpressionLike ->
+                                "fa-solid fa-heart"
+
+                            ImpressionDislike ->
+                                "fa-solid fa-heart-broken"
+
+                            ImpressionDecideLater ->
+                                "fa-solid fa-clock"
+
+                            ImpressionSuperLike ->
+                                "fa-solid fa-hand-holding-heart"
+
+                    mkMainButton navButton =
+                        { icon = navIcon navButton
+                        , onSelect = ClickedNavButton navButton
+                        , isSelected = navButton == model.lastClickedNavButton
+                        }
+
+                    searchButton =
+                        mkMainButton NavButtonSearch
+
+                    impressionsButtons =
+                        case model.currentScreen of
+                            ScreenImpression impression _ ->
+                                let
+                                    mkImpressionButton impr =
+                                        { icon = imprIcon impr
+                                        , onSelect = OpenScreenImpression impr
+                                        , isSelected = impr == impression
+                                        }
+                                in
+                                List.map mkImpressionButton allImpressions
+
+                            _ ->
+                                [ mkMainButton NavButtonImpressions ]
+
+                    myProfileButton =
+                        mkMainButton NavButtonMyProfile
                   in
                   navbar <|
-                    List.map
-                        (\navButton ->
-                            { icon = icon navButton
-                            , onSelect = ClickedNavButton navButton
-                            , isSelected = navButton == model.lastClickedNavButton
-                            }
-                        )
-                        allNavButtons
+                    searchButton
+                        :: impressionsButtons
+                        ++ [ myProfileButton ]
                 ]
 
         errors ->
@@ -312,18 +342,22 @@ view model =
                 ]
 
 
+userInteractions : UserInteractions Msg
+userInteractions =
+    { setImpression = SetUserImpression
+    , viewProfile = ViewUser
+    }
+
+
 viewSearch : List UserWithImpression -> Html Msg
 viewSearch users =
     let
         viewSlide userWithImpr =
-            Swiper.slide
-                [ User.viewCard
-                    SetUserImpression
-                    [ class "fill-parent"
-                    , onClick <| ViewUser userWithImpr.user
-                    ]
-                    userWithImpr
-                ]
+            User.viewCardAsSwiperSlide
+                userInteractions
+                -- [ onClick <| ViewUser userWithImpr.user
+                -- ]
+                userWithImpr
     in
     div [ class "search-view" ]
         [ Swiper.container
@@ -334,46 +368,16 @@ viewSearch users =
         ]
 
 
-viewUserCard : UserOverviewInfo -> Html Msg
-viewUserCard userInfo =
-    User.viewCard SetUserImpression [ onClick <| ViewUser userInfo ] { user = userInfo, impression = Nothing }
-
-
 viewScreenImpression : List UserOverviewInfo -> Html Msg
 viewScreenImpression users =
-    div []
-        [ div
-            [ class "masonry" ]
-            (List.map
-                viewUserCard
-                users
+    div
+        [ class "user-overview scrollable" ]
+        (List.map
+            (\userInfo ->
+                User.viewCard
+                    userInteractions
+                    [ onClick <| ViewUser userInfo ]
+                    { user = userInfo, impression = Nothing }
             )
-        ]
-
-
-viewScreenImpressionNavbar : Impression -> Html Msg
-viewScreenImpressionNavbar impression =
-    let
-        icon impr =
-            case impr of
-                ImpressionLike ->
-                    "fa-solid fa-heart"
-
-                ImpressionDislike ->
-                    "fa-solid fa-heart-broken"
-
-                ImpressionDecideLater ->
-                    "fa-solid fa-clock"
-
-                ImpressionSuperLike ->
-                    "fa-solid fa-hand-holding-heart"
-    in
-    navbar <|
-        List.map
-            (\impr ->
-                { icon = icon impr
-                , onSelect = OpenScreenImpression impr
-                , isSelected = impr == impression
-                }
-            )
-            allImpressions
+            users
+        )

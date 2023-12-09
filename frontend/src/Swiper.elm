@@ -7,6 +7,10 @@ import Html.Attributes
 import Swiper.Internal exposing (..)
 
 
+type Slide msg
+    = Slide (Html msg)
+
+
 container : List (ContainerAttribute msg) -> List (Slide msg) -> Html msg
 container attrs slides =
     let
@@ -17,6 +21,10 @@ container attrs slides =
                 :: booleanAttribute "observe-parents" True
                 :: booleanAttribute "observe-slide-children" True
                 :: attrs
+
+        unSlide : Slide msg -> Html msg
+        unSlide (Slide html) =
+            html
     in
     node "swiper-container" (toHtmlAttributes allAttrs) (List.map unSlide slides)
 
@@ -57,6 +65,11 @@ containerMultiViewSafeLoop strategy slidesPerViewCount attrs slides =
 slide : List (Html msg) -> Slide msg
 slide elements =
     Slide <| node "swiper-slide" [] elements
+
+
+slideWithClass : String -> List (Html msg) -> Slide msg
+slideWithClass className elements =
+    Slide <| node "swiper-slide" [ Html.Attributes.class className ] elements
 
 
 imgSlide : List (Html.Attribute msg) -> Slide msg
