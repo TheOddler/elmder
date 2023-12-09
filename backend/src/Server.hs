@@ -12,8 +12,8 @@ import ServerM (ServerEnv (..), toServantHandler)
 import Web (Api, apiProxy, routes)
 
 mkServerEnv :: Settings -> IO ServerEnv
-mkServerEnv connStr = do
-  pool <- initConnectionPool connStr
+mkServerEnv dbConnStr = do
+  pool <- initConnectionPool dbConnStr
   initDB pool -- Until we have a proper migration system
   pure $ ServerEnv pool
 
@@ -23,7 +23,7 @@ mkServer serverEnv = do
 
 main :: IO ()
 main = do
-  let connStr = "host=127.0.0.1"
-  serverEnv <- mkServerEnv connStr
+  let dbConnStr = "host=127.0.0.1"
+  serverEnv <- mkServerEnv dbConnStr
   server <- mkServer serverEnv
   run 8081 $ simpleCors $ serve apiProxy server
