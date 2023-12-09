@@ -18,7 +18,7 @@ type alias UserWithImpression =
 
 type alias UserInteractions msg =
     { setImpression : UserID -> Impression -> msg
-    , viewProfile : UserOverviewInfo -> msg
+    , viewProfile : UserID -> msg
     }
 
 
@@ -44,7 +44,7 @@ viewCardContent : UserInteractions msg -> UserWithImpression -> List (Html msg)
 viewCardContent interactions { user, impression } =
     [ Html.img
         [ src user.userHeaderImageUrl
-        , onClickStopPropagation <| interactions.viewProfile user
+        , onClickStopPropagation <| interactions.viewProfile user.userId
         ]
         []
     , div [ class "content text-on-image" ]
@@ -96,27 +96,31 @@ viewCardContent interactions { user, impression } =
 
 viewProfile :
     UserInteractions msg
-    -> UserOverviewInfo
     -> UserExtendedInfo
     -> Html msg
-viewProfile interactions userInfo extendedInfo =
+viewProfile interactions extendedInfo =
     div
         [ class "masonry scrollable" ]
     <|
-        viewCard interactions [] { user = userInfo, impression = Nothing }
-            :: button [ onClick <| interactions.setImpression userInfo.userId ImpressionLike ]
-                [ text "Like "
-                , i [ class "fa-solid fa-heart" ] []
-                ]
-            :: button [ onClick <| interactions.setImpression userInfo.userId ImpressionDislike ]
-                [ text "Dislike "
-                , i [ class "fa-solid fa-heart-crack" ] []
-                ]
-            :: button [ onClick <| interactions.setImpression userInfo.userId ImpressionDecideLater ]
-                [ text "Decide later "
-                , i [ class "fa-solid fa-clock" ] []
-                ]
-            :: List.map viewUserSection extendedInfo.userExtProfileSections
+        List.map viewUserSection extendedInfo.userExtProfileSections
+
+
+
+-- TODO: Add this back
+-- viewCard interactions [] { user = userInfo, impression = Nothing }
+--     :: button [ onClick <| interactions.setImpression userInfo.userId ImpressionLike ]
+--         [ text "Like "
+--         , i [ class "fa-solid fa-heart" ] []
+--         ]
+--     :: button [ onClick <| interactions.setImpression userInfo.userId ImpressionDislike ]
+--         [ text "Dislike "
+--         , i [ class "fa-solid fa-heart-crack" ] []
+--         ]
+--     :: button [ onClick <| interactions.setImpression userInfo.userId ImpressionDecideLater ]
+--         [ text "Decide later "
+--         , i [ class "fa-solid fa-clock" ] []
+--         ]
+--     :: List.map viewUserSection extendedInfo.userExtProfileSections
 
 
 viewUserSection : ProfileSection -> Html msg
@@ -133,7 +137,7 @@ viewUserSection section =
                 [ Swiper.containerMultiViewSafeLoop Swiper.DisableMultiView
                     1.2
                     [ Swiper.grabCursor True
-                    , Swiper.pagination Swiper.ProgressBar
+                    , Swiper.pagination (Swiper.Bullets Swiper.Dynamic)
                     , Swiper.centeredSlides True
                     , Swiper.slideToClickedSlide True
                     ]

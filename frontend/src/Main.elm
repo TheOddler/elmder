@@ -1,61 +1,66 @@
 module Main exposing (..)
 
-import Browser
+import Browser exposing (UrlRequest)
+import Browser.Navigation as Nav
 import Either exposing (Either(..))
-import Generated.Backend as Backend exposing (Impression(..), UserExtendedInfo, UserID, UserOverviewInfo, jsonEncImpression)
+import Enums exposing (allImpressions)
+import Generated.Backend as Backend exposing (Impression(..), UserExtendedInfo, UserID, UserOverviewInfo)
 import Html exposing (Html, a, button, div, h1, li, text, ul)
 import Html.Attributes exposing (class, href)
 import Html.Components exposing (navbar)
 import Html.Events exposing (onClick)
 import Http
-import Json.Encode exposing (encode)
 import Ports exposing (swiperSlideNext)
+import Routing exposing (Route(..), impressionToUrlSegement, routeToUrl, urlToRoute)
 import StringExtra as String
 import Swiper
+import Task exposing (perform, succeed)
+import Url exposing (Url)
 import User exposing (UserInteractions, UserWithImpression)
 
 
-type NavButton
-    = NavButtonSearch
-    | NavButtonImpressions
-    | NavButtonMyProfile
-
-
-allNavButtons : List NavButton
-allNavButtons =
-    [ NavButtonSearch
-    , NavButtonImpressions
-    , NavButtonMyProfile
-    ]
-
-
-allImpressions : List Impression
-allImpressions =
-    [ ImpressionLike, ImpressionDislike, ImpressionDecideLater, ImpressionSuperLike ]
-
-
 type Screen
-    = ScreenSearch (List UserWithImpression)
+    = ScreenLoading
+    | ScreenSearch (List UserWithImpression)
     | ScreenImpression Impression (List UserOverviewInfo)
     | ScreenMyProfile
-    | ScreenOtherUser UserOverviewInfo UserExtendedInfo
+    | ScreenOtherUser UserExtendedInfo
+    | ScreenError (List String)
+
+
+routeToScreen : AppSettings -> Route -> Cmd (Result Http.Error Screen)
+routeToScreen settings route =
+    case route of
+        RouteSearch ->
+            Backend.getUserSearch settings.backendUrl
+                (Result.map (ScreenSearch << List.map (\u -> { user = u, impression = Nothing })))
+
+        RouteImpression impression ->
+            Backend.getUserImpressionsByImpression settings.backendUrl
+                impression
+                (Result.map (ScreenImpression impression))
+
+        RouteMyProfile ->
+            perform Ok (succeed ScreenMyProfile)
+
+        RouteOtherUser userID ->
+            Backend.getUserByUserIDProfile settings.backendUrl
+                userID
+                (Result.map ScreenOtherUser)
 
 
 type alias Model =
-    { settings : AppSettings
+    { navKey : Nav.Key
+    , settings : AppSettings
     , currentScreen : Screen
-    , lastClickedNavButton : NavButton
-    , errorMessages : List String
     }
 
 
 type Msg
-    = ClickedNavButton NavButton
-    | OpenScreen Screen
-    | OpenScreenImpression Impression
-    | ViewUser UserOverviewInfo
-    | AddErrorMessage String
-    | ClearErrorMessages
+    = OnUrlRequest UrlRequest
+    | OnUrlChange Url
+    | NavigateTo Route
+    | ScreenLoadingResult Route (Result Http.Error Screen)
     | SetUserImpression UserID Impression
     | GotSetUserImpressionResult UserID (Result Http.Error ())
 
@@ -67,44 +72,34 @@ type alias AppSettings =
 
 main : Program AppSettings Model Msg
 main =
-    Browser.element
+    Browser.application
         { init = init
         , update = update
         , subscriptions = subscriptions
         , view = view
+        , onUrlRequest = OnUrlRequest
+        , onUrlChange = OnUrlChange
         }
 
 
-init : AppSettings -> ( Model, Cmd Msg )
-init settings =
-    ( { currentScreen = ScreenSearch []
-      , lastClickedNavButton = NavButtonSearch
-      , errorMessages = []
+init : AppSettings -> Url -> Nav.Key -> ( Model, Cmd Msg )
+init settings url navKey =
+    ( { navKey = navKey
       , settings = settings
+      , currentScreen = ScreenLoading
       }
-    , openScreenSearch settings
+    , case urlToRoute url of
+        Nothing ->
+            perform identity (succeed <| NavigateTo RouteSearch)
+
+        Just route ->
+            Cmd.map (ScreenLoadingResult route) (routeToScreen settings route)
     )
 
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.none
-
-
-openScreenSearch : AppSettings -> Cmd Msg
-openScreenSearch settings =
-    Backend.getUserSearch settings.backendUrl
-        (\errorOrUsers ->
-            case errorOrUsers of
-                Err err ->
-                    AddErrorMessage <| "Failed searching for users: " ++ httpErrorToString err
-
-                Ok users ->
-                    OpenScreen <|
-                        ScreenSearch <|
-                            List.map (\u -> { user = u, impression = Nothing })
-                                users
-        )
 
 
 updateImpression : UserID -> Maybe Impression -> Model -> Model
@@ -130,83 +125,66 @@ updateImpression userID impression model =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update message model =
-    case message of
-        AddErrorMessage error ->
-            ( { model | errorMessages = error :: model.errorMessages }, Cmd.none )
+    let
+        existingErrors =
+            case model.currentScreen of
+                ScreenError errors ->
+                    errors
 
-        ClearErrorMessages ->
-            ( { model | errorMessages = [] }, Cmd.none )
+                _ ->
+                    []
 
-        ClickedNavButton button ->
-            let
-                ( newScreen, cmds ) =
-                    case button of
-                        NavButtonSearch ->
-                            ( ScreenSearch []
-                            , openScreenSearch model.settings
-                            )
-
-                        NavButtonImpressions ->
-                            ( ScreenImpression ImpressionLike []
-                            , Backend.getUserImpressionsByImpression model.settings.backendUrl
-                                ImpressionLike
-                                (\errorOrUsers ->
-                                    case errorOrUsers of
-                                        Err err ->
-                                            AddErrorMessage <| "Failed getting liked users: " ++ httpErrorToString err
-
-                                        Ok users ->
-                                            OpenScreen <| ScreenImpression ImpressionLike users
-                                )
-                            )
-
-                        NavButtonMyProfile ->
-                            ( ScreenMyProfile
-                            , Cmd.none
-                            )
-            in
-            ( { model | currentScreen = newScreen, lastClickedNavButton = button }
-            , cmds
-            )
-
-        OpenScreen screen ->
-            ( { model | currentScreen = screen }
+        handlError error =
+            ( { model | currentScreen = ScreenError (error :: existingErrors) }
             , Cmd.none
             )
 
-        OpenScreenImpression impression ->
-            let
-                ( newScreen, cmds ) =
-                    ( ScreenImpression impression []
-                    , Backend.getUserImpressionsByImpression model.settings.backendUrl
-                        impression
-                        (\errorOrUsers ->
-                            case errorOrUsers of
-                                Err err ->
-                                    AddErrorMessage <| "Failed getting users for impression " ++ encode 0 (jsonEncImpression impression) ++ ": " ++ httpErrorToString err
+        handlHttpError prefix error =
+            handlError <| prefix ++ ": " ++ httpErrorToString error
+    in
+    case message of
+        OnUrlRequest _ ->
+            ( model, Cmd.none )
 
-                                Ok users ->
-                                    OpenScreen <| ScreenImpression impression users
-                        )
+        OnUrlChange url ->
+            case urlToRoute url of
+                Nothing ->
+                    handlError "Unknown route."
+
+                Just route ->
+                    ( model
+                      -- { model | currentScreen = ScreenLoading }
+                    , Cmd.map (ScreenLoadingResult route) (routeToScreen model.settings route)
                     )
-            in
-            ( { model | currentScreen = newScreen }
-            , cmds
-            )
 
-        ViewUser info ->
-            let
-                handleExtInfoLoaded errOrExtInfo =
-                    case errOrExtInfo of
-                        Err error ->
-                            AddErrorMessage <| "GotUserExamples returned an error:\n" ++ httpErrorToString error
-
-                        Ok extInfo ->
-                            OpenScreen <| ScreenOtherUser info extInfo
-            in
+        NavigateTo route ->
             ( model
-            , Backend.getUserByUserIDProfile model.settings.backendUrl info.userId handleExtInfoLoaded
+              -- { model | currentScreen = ScreenLoading }
+            , Nav.pushUrl model.navKey (routeToUrl route)
             )
+
+        ScreenLoadingResult _ (Ok newScreen) ->
+            ( { model | currentScreen = newScreen }, Cmd.none )
+
+        ScreenLoadingResult route (Err error) ->
+            let
+                prefix =
+                    "Failed navigating to "
+                        ++ (case route of
+                                RouteSearch ->
+                                    "search page"
+
+                                RouteImpression impression ->
+                                    impressionToUrlSegement impression ++ " page"
+
+                                RouteMyProfile ->
+                                    "my profile"
+
+                                RouteOtherUser _ ->
+                                    "other user's page"
+                           )
+            in
+            handlHttpError prefix error
 
         SetUserImpression userID impression ->
             ( updateImpression userID (Just impression) model
@@ -225,7 +203,7 @@ update message model =
         GotSetUserImpressionResult userID (Err error) ->
             let
                 ( newModel, nextCmd ) =
-                    update (AddErrorMessage <| "Failed registering user impression:\n" ++ httpErrorToString error) model
+                    handlHttpError "Failed registering user impression" error
             in
             ( updateImpression userID Nothing newModel
             , nextCmd
@@ -251,101 +229,115 @@ httpErrorToString error =
             "BadBody: " ++ body
 
 
-view : Model -> Html Msg
+view : Model -> Browser.Document Msg
 view model =
-    case model.errorMessages of
-        [] ->
-            div [ class "root" ]
-                [ text "header placeholder"
-                , case model.currentScreen of
-                    ScreenSearch foundUsers ->
-                        viewSearch foundUsers
+    { title = "Elmder"
+    , body = [ viewBody model ]
+    }
 
-                    ScreenImpression _ users ->
-                        viewScreenImpression users
 
-                    ScreenMyProfile ->
-                        div [ class "center-content" ] <|
-                            text "Your profile will come here. But for now there's just this palceholder and the attributions."
-                                :: h1 [] [ text "We use:" ]
-                                :: List.map (\( label, url ) -> a [ href url ] [ text label ])
-                                    [ ( "loading.io", "https://loading.io/" )
-                                    , ( "Font Awesome", "https://fontawesome.com/" )
-                                    ]
+viewBody : Model -> Html Msg
+viewBody model =
+    div [ class "root" ]
+        [ text "header placeholder"
+        , case model.currentScreen of
+            ScreenError errors ->
+                div []
+                    [ h1 [] [ text "We got one or more errors:" ]
+                    , ul [] <| List.map (\err -> li [] [ text err ]) errors
+                    , button [ onClick (NavigateTo RouteSearch) ] [ text "Clear errors" ]
+                    ]
 
-                    ScreenOtherUser userInfo extInfo ->
-                        User.viewProfile userInteractions userInfo extInfo
-                , let
-                    navIcon navButton =
-                        case navButton of
-                            NavButtonSearch ->
-                                "fa-solid fa-magnifying-glass"
+            ScreenLoading ->
+                div [ class "center-content" ]
+                    [ text "Loading..." ]
 
-                            NavButtonImpressions ->
-                                "fa-solid fa-heart-pulse"
+            ScreenSearch foundUsers ->
+                viewSearch foundUsers
 
-                            NavButtonMyProfile ->
-                                "fa-solid fa-user"
+            ScreenImpression _ users ->
+                viewScreenImpression users
 
-                    imprIcon impr =
-                        case impr of
-                            ImpressionLike ->
-                                "fa-solid fa-heart"
+            ScreenMyProfile ->
+                div [ class "center-content" ] <|
+                    text "Your profile will come here. But for now there's just this palceholder and the attributions."
+                        :: h1 [] [ text "We use:" ]
+                        :: List.map (\( label, url ) -> a [ href url ] [ text label ])
+                            [ ( "loading.io", "https://loading.io/" )
+                            , ( "Font Awesome", "https://fontawesome.com/" )
+                            ]
 
-                            ImpressionDislike ->
-                                "fa-solid fa-heart-broken"
+            ScreenOtherUser extInfo ->
+                User.viewProfile userInteractions extInfo
+        , let
+            imprIcon impr =
+                case impr of
+                    ImpressionLike ->
+                        "fa-solid fa-heart"
 
-                            ImpressionDecideLater ->
-                                "fa-solid fa-clock"
+                    ImpressionDislike ->
+                        "fa-solid fa-heart-broken"
 
-                            ImpressionSuperLike ->
-                                "fa-solid fa-hand-holding-heart"
+                    ImpressionDecideLater ->
+                        "fa-solid fa-clock"
 
-                    mkMainButton navButton =
-                        { icon = navIcon navButton
-                        , onSelect = ClickedNavButton navButton
-                        , isSelected = navButton == model.lastClickedNavButton
-                        }
+                    ImpressionSuperLike ->
+                        "fa-solid fa-hand-holding-heart"
 
-                    searchButton =
-                        mkMainButton NavButtonSearch
+            searchButton =
+                { icon = "fa-solid fa-magnifying-glass"
+                , onSelect = NavigateTo RouteSearch
+                , isSelected =
+                    case model.currentScreen of
+                        ScreenSearch _ ->
+                            True
 
-                    impressionsButtons =
-                        case model.currentScreen of
-                            ScreenImpression impression _ ->
-                                let
-                                    mkImpressionButton impr =
-                                        { icon = imprIcon impr
-                                        , onSelect = OpenScreenImpression impr
-                                        , isSelected = impr == impression
-                                        }
-                                in
-                                List.map mkImpressionButton allImpressions
+                        _ ->
+                            False
+                }
 
-                            _ ->
-                                [ mkMainButton NavButtonImpressions ]
+            impressionsButtons =
+                case model.currentScreen of
+                    ScreenImpression impression _ ->
+                        let
+                            mkImpressionButton impr =
+                                { icon = imprIcon impr
+                                , onSelect = NavigateTo <| RouteImpression impr
+                                , isSelected = impr == impression
+                                }
+                        in
+                        List.map mkImpressionButton allImpressions
 
-                    myProfileButton =
-                        mkMainButton NavButtonMyProfile
-                  in
-                  navbar <|
-                    searchButton
-                        :: impressionsButtons
-                        ++ [ myProfileButton ]
-                ]
+                    _ ->
+                        [ { icon = "fa-solid fa-heart-pulse"
+                          , onSelect = NavigateTo <| RouteImpression ImpressionLike
+                          , isSelected = False -- This button is only shown on the other screens
+                          }
+                        ]
 
-        errors ->
-            div []
-                [ h1 [] [ text "We got one or more errors:" ]
-                , ul [] <| List.map (\err -> li [] [ text err ]) errors
-                , button [ onClick ClearErrorMessages ] [ text "Clear errors" ]
-                ]
+            myProfileButton =
+                { icon = "fa-solid fa-user"
+                , onSelect = NavigateTo RouteMyProfile
+                , isSelected =
+                    case model.currentScreen of
+                        ScreenMyProfile ->
+                            True
+
+                        _ ->
+                            False
+                }
+          in
+          navbar <|
+            searchButton
+                :: impressionsButtons
+                ++ [ myProfileButton ]
+        ]
 
 
 userInteractions : UserInteractions Msg
 userInteractions =
     { setImpression = SetUserImpression
-    , viewProfile = ViewUser
+    , viewProfile = NavigateTo << RouteOtherUser
     }
 
 
@@ -374,7 +366,7 @@ viewScreenImpression users =
             (\userInfo ->
                 User.viewCard
                     userInteractions
-                    [ onClick <| ViewUser userInfo ]
+                    [ onClick <| userInteractions.viewProfile userInfo.userId ]
                     { user = userInfo, impression = Nothing }
             )
             users
