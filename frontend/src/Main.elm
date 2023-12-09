@@ -355,8 +355,6 @@ viewSearch users =
         viewSlide userWithImpr =
             User.viewCardAsSwiperSlide
                 userInteractions
-                -- [ onClick <| ViewUser userWithImpr.user
-                -- ]
                 userWithImpr
     in
     div [ class "search-view" ]
