@@ -5,7 +5,6 @@ $height: 3em !default;
 
 .navbar {
   height: $height;
-  width: 100%;
   z-index: 100; // Swiper uses some z-index stuff too, so make sure this is higher
 
   background-color: rgba(42, 42, 50, 1); // for now just closely mimicing my phone's navbar color
