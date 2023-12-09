@@ -1,13 +1,19 @@
 @use 'helpers';
 
-$contentMargin: 0.75em !default;
+$contentMargin: 6pt;
 
 .card {
-  overflow: hidden;
-  border-radius: 0.25rem;
-  box-shadow: 0 .2em .5em .1em rgba(0, 0, 0, .25);
+  // Note: Because cards are used in different places, some that hide overflow,
+  // we don't add a shadow here.
+  // Nor do we add a border as usually we want the shadow and border to be defined together.
+
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end; // This will only really matter if the card has a different size from it's content
+  position: relative; // This is needed for the image background to work (as we use position: absolute there)
 
   >*,
+  .content,
   .match-content {
     // Use margin for top and bottom because they can overlap
     margin: $contentMargin 0;
@@ -20,5 +26,80 @@ $contentMargin: 0.75em !default;
     padding: 0;
     margin: 0;
     width: 100%;
+  }
+
+  // If the first child in a card is an image, make it fill the card like it's the background
+  >img:first-child {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top center;
+    position: absolute;
+    z-index: -1;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  // A table with two columns, the first one is the icon, the second one is the text
+  // Not sure if this belongs here, might want to move it out of card at some point, but for now only used on a card
+  .icon-table {
+    tr {
+      td:first-child {
+        // first child is the icon
+        text-align: center;
+        padding-right: 3pt;
+      }
+    }
+  }
+
+  // A list of buttons for impressions
+  .impressions {
+    display: flex;
+    flex-direction: row;
+    gap: 0.4em;
+    margin-top: 10pt;
+
+    $buttonHeight: 36pt;
+    height: $buttonHeight;
+
+    button {
+      all: unset;
+      flex-grow: 1;
+      border-radius: calc($buttonHeight / 2);
+      backdrop-filter: blur(0.2em);
+      font-size: calc($buttonHeight / 2);
+      cursor: pointer;
+
+      --alpha: 0.2;
+
+      // Center the icon
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &.like {
+        color: hotpink;
+        background-color: rgba(hotpink, var(--alpha));
+      }
+
+      &.dislike {
+        color: red;
+        background-color: rgba(lightcoral, var(--alpha));
+      }
+
+      &.decide-later {
+        color: lightblue;
+        background-color: rgba(lightcyan, var(--alpha));
+      }
+
+      &.selected,
+      &:hover {
+        transition: all 0.2s;
+        font-size: calc($buttonHeight / 2 * 1.5);
+        --alpha: 0.5;
+        flex-grow: 1.5;
+      }
+    }
   }
 }

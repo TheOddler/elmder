@@ -71,13 +71,16 @@ img {
 }
 
 .larger-text {
-  font-size: larger;
-  font-weight: bold;
+  font-size: larger; // Equivalent of 120% bigger than parent
+}
+
+.x-large-text {
+  font-size: x-large;
 }
 
 .text-on-image {
   color: white;
-  @include h.textGlow(rgba(0, 0, 0, 0.5));
+  text-shadow: 0 0 1em black;
 }
 
 .center-content {
@@ -90,4 +93,13 @@ img {
 
 .fill-screen {
   height: 100vh;
+}
+
+.fill-parent {
+  // This assumes the parent has position: relative or something similar
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
 }

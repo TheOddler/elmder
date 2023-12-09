@@ -3,8 +3,8 @@ module Main exposing (..)
 import Browser
 import Either exposing (Either(..))
 import Generated.Backend as Backend exposing (Impression(..), UserExtendedInfo, UserID, UserOverviewInfo, jsonEncImpression)
-import Html exposing (Html, a, button, div, h1, i, li, table, td, text, tr, ul)
-import Html.Attributes exposing (class, href, src)
+import Html exposing (Html, a, button, div, h1, li, text, ul)
+import Html.Attributes exposing (class, href)
 import Html.Components exposing (navbar)
 import Html.Events exposing (onClick)
 import Http
@@ -12,7 +12,7 @@ import Json.Encode exposing (encode)
 import Ports exposing (swiperSlideNext)
 import StringExtra as String
 import Swiper
-import User
+import User exposing (UserWithImpression)
 
 
 type NavButton
@@ -32,12 +32,6 @@ allNavButtons =
 allImpressions : List Impression
 allImpressions =
     [ ImpressionLike, ImpressionDislike, ImpressionDecideLater, ImpressionSuperLike ]
-
-
-type alias UserWithImpression =
-    { user : UserOverviewInfo
-    , impression : Maybe Impression
-    }
 
 
 type Screen
@@ -321,56 +315,14 @@ view model =
 viewSearch : List UserWithImpression -> Html Msg
 viewSearch users =
     let
-        viewSlide { user, impression } =
+        viewSlide userWithImpr =
             Swiper.slide
-                [ Html.img
-                    [ src user.userHeaderImageUrl
+                [ User.viewCard
+                    SetUserImpression
+                    [ class "fill-parent"
+                    , onClick <| ViewUser userWithImpr.user
                     ]
-                    []
-                , div [ class "overlay" ]
-                    [ div [ class "name" ]
-                        [ text <| user.userName
-                        ]
-                    , let
-                        infoRow icon t =
-                            tr []
-                                [ td [] [ i [ class icon ] [] ]
-                                , td [] [ text t ]
-                                ]
-                      in
-                      table [ class "info" ]
-                        [ infoRow "fa-solid fa-user" <| String.fromGenderIdentity user.userGenderIdentity ++ " • " ++ String.fromInt user.userAge
-                        , infoRow "fa-solid fa-location-dot" <| String.fromInt user.userDistanceM ++ "m away"
-                        ]
-                    , let
-                        impressionBtn icon className impr =
-                            button
-                                [ class className
-                                , class <|
-                                    if impression == Just impr then
-                                        "selected"
-
-                                    else
-                                        ""
-                                , onClick <| SetUserImpression user.userId impr
-                                ]
-                                [ i [ class icon ] [] ]
-                      in
-                      div [ class "impressions" ]
-                        [ impressionBtn
-                            "fa-solid fa-xmark"
-                            "dislike"
-                            ImpressionDislike
-                        , impressionBtn
-                            "fa-solid fa-heart"
-                            "like"
-                            ImpressionLike
-                        , impressionBtn
-                            "fa-regular fa-clock"
-                            "decide-later"
-                            ImpressionDecideLater
-                        ]
-                    ]
+                    userWithImpr
                 ]
     in
     div [ class "search-view" ]
@@ -384,7 +336,7 @@ viewSearch users =
 
 viewUserCard : UserOverviewInfo -> Html Msg
 viewUserCard userInfo =
-    User.viewCard [ onClick <| ViewUser userInfo ] userInfo
+    User.viewCard SetUserImpression [ onClick <| ViewUser userInfo ] { user = userInfo, impression = Nothing }
 
 
 viewScreenImpression : List UserOverviewInfo -> Html Msg

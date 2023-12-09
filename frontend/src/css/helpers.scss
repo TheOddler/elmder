@@ -27,12 +27,3 @@ $desktopWidth: 1000px;
     -1px 1px 0 $outlineColor,
     1px 1px 0 $outlineColor;
 }
-
-@mixin textGlow($color) {
-  $outlineColor: $color;
-  text-shadow:
-    -1px -1px 5px $outlineColor,
-    1px -1px 5px $outlineColor,
-    -1px 1px 5px $outlineColor,
-    1px 1px 5px $outlineColor;
-}
