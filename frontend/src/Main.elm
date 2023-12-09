@@ -4,7 +4,7 @@ import Browser exposing (UrlRequest)
 import Browser.Navigation as Nav
 import Either exposing (Either(..))
 import Enums exposing (allImpressions)
-import Generated.Backend as Backend exposing (Impression(..), UserExtendedInfo, UserID, UserOverviewInfo)
+import Generated.Backend as Backend exposing (Impression(..), UserExtendedInfo, UserID)
 import Html exposing (Html, a, button, div, h1, li, text, ul)
 import Html.Attributes exposing (class, href)
 import Html.Components exposing (navbar)
@@ -22,7 +22,7 @@ import User exposing (UserInteractions, UserWithImpression)
 type Screen
     = ScreenLoading
     | ScreenSearch (List UserWithImpression)
-    | ScreenImpression Impression (List UserOverviewInfo)
+    | ScreenImpression Impression (List UserWithImpression)
     | ScreenMyProfile
     | ScreenOtherUser UserExtendedInfo
     | ScreenError (List String)
@@ -38,7 +38,7 @@ routeToScreen settings route =
         RouteImpression impression ->
             Backend.getUserImpressionsByImpression settings.backendUrl
                 impression
-                (Result.map (ScreenImpression impression))
+                (Result.map (ScreenImpression impression << List.map (\u -> { user = u, impression = Just impression })))
 
         RouteMyProfile ->
             perform Ok (succeed ScreenMyProfile)
@@ -116,6 +116,9 @@ updateImpression userID impression model =
             case model.currentScreen of
                 ScreenSearch users ->
                     ScreenSearch <| List.map updateUser users
+
+                ScreenImpression impr users ->
+                    ScreenImpression impr <| List.map updateUser users
 
                 _ ->
                     model.currentScreen
@@ -391,16 +394,16 @@ viewSearch users =
         ]
 
 
-viewScreenImpression : List UserOverviewInfo -> Html Msg
+viewScreenImpression : List UserWithImpression -> Html Msg
 viewScreenImpression users =
     div
         [ class "user-overview scrollable" ]
         (List.map
-            (\userInfo ->
+            (\{ user, impression } ->
                 User.viewCard
                     userInteractions
-                    [ onClick <| userInteractions.viewProfile userInfo.userId ]
-                    { user = userInfo, impression = Nothing }
+                    [ onClick <| userInteractions.viewProfile user.userId ]
+                    { user = user, impression = impression }
             )
             users
         )
