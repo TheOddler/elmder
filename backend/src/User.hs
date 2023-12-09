@@ -126,19 +126,6 @@ data NewUserInfo = NewUserInfo
     newUserGenderIdentity :: GenderIdentity
   }
 
-smartRoundDistanceM :: Float -> Float -> Int
-smartRoundDistanceM distM searchDistM =
-  let distanceM :: Int
-      distanceM = round distM
-      searchDistanceM :: Int
-      searchDistanceM = round searchDistM
-   in case distanceM of
-        m | m < 150 && searchDistanceM <= 1000 -> 100
-        m | m <= 1000 && searchDistanceM <= 1000 -> roundToNearest 100 m
-        m | m <= 1000 -> 1000
-        m | m <= 3000 -> roundToNearest 500 m
-        m -> roundToNearest 1000 m
-
 createNewUser :: NewUserInfo -> Transaction UserID
 createNewUser u = do
   newID <-
@@ -191,6 +178,19 @@ createNewUser u = do
           FROM UNNEST ($2 :: text[] :: gender_identity[])
         |]
   pure $ UserID newID
+
+smartRoundDistanceM :: Float -> Float -> Int
+smartRoundDistanceM distM searchDistM =
+  let distanceM :: Int
+      distanceM = round distM
+      searchDistanceM :: Int
+      searchDistanceM = round searchDistM
+   in case distanceM of
+        m | m < 150 && searchDistanceM <= 1000 -> 100
+        m | m <= 1000 && searchDistanceM <= 1000 -> roundToNearest 100 m
+        m | m <= 1000 -> 1000
+        m | m <= 3000 -> roundToNearest 500 m
+        m -> roundToNearest 1000 m
 
 userOverviewInfoFromSQL :: (Int32, Text, Text, Float, Day, Day, Text, Float) -> UserOverviewInfo
 userOverviewInfoFromSQL (uid, name, img, distanceM, curDate, birthday, genderId, searchDistanceM) =
