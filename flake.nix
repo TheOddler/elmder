@@ -99,7 +99,7 @@
           name = "elmder";
           nativeBuildInputs = buildPackages ++ elmParcelNixFix.nativeBuildPackages;
           src = ./frontend;
-          npmDepsHash = "sha256-SvlklTgqGSoDyjlHRIjlhBuB4dyYl4Ro1Sc2aBgx76I=";
+          npmDepsHash = "sha256-NkJQy6gxdpqSFhdswRsYqT69dY7QytFp9iZRAQ++3x8=";
 
           preBuild = ''
             ${self.packages.${system}.backend}/bin/elm-gen
