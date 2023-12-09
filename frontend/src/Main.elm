@@ -265,7 +265,7 @@ view model =
                         viewScreenImpression users
 
                     ScreenMyProfile ->
-                        div [ class "center-content fill-screen" ] <|
+                        div [ class "center-content" ] <|
                             text "Your profile will come here. But for now there's just this palceholder and the attributions."
                                 :: h1 [] [ text "We use:" ]
                                 :: List.map (\( label, url ) -> a [ href url ] [ text label ])
