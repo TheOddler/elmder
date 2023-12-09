@@ -91,19 +91,3 @@ img {
 .fill-screen {
   height: 100vh;
 }
-
-.full-screen-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: calc(100vw - 4em);
-  height: calc(100vh - 4em);
-  padding: 2em;
-
-  background-color: rgba(0, 0, 0, 0.5);
-  overflow: auto;
-}
-
-.max-height-half-screen {
-  max-height: 50vh;
-}
