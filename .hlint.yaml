@@ -79,7 +79,7 @@
   - {name: Prelude.rem, within: []}
   - name: Prelude.mod
     within:
-      - SmartRoundingSpec
+      - DistanceSpec
       - SafeMathSpec
   - {name: Prelude.quotRem, within: []}
   - {name: Prelude.divMod, within: []}
