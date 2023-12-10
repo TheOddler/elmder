@@ -120,6 +120,13 @@ updateImpression userID impression model =
                 ScreenImpression impr users ->
                     ScreenImpression impr <| List.map updateUser users
 
+                ScreenOtherUser info extInfo ->
+                    if info.userId == userID then
+                        ScreenOtherUser info { extInfo | userExtImpression = impression }
+
+                    else
+                        model.currentScreen
+
                 _ ->
                     model.currentScreen
     in
