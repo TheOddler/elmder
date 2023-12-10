@@ -57,6 +57,7 @@ main = do
     [ DefineElm (Proxy :: Proxy User.UserID),
       DefineElm (Proxy :: Proxy User.UserOverviewInfo),
       DefineElm (Proxy :: Proxy User.UserExtendedInfo),
+      DefineElm (Proxy :: Proxy User.UserAllInfo),
       DefineElm (Proxy :: Proxy User.RelationshipStatus),
       DefineElm (Proxy :: Proxy GenderIdentity),
       DefineElm (Proxy :: Proxy User.ProfileSection),

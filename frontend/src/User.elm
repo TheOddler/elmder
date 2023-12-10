@@ -96,31 +96,27 @@ viewCardContent interactions { user, impression } =
 
 viewProfile :
     UserInteractions msg
+    -> UserOverviewInfo
     -> UserExtendedInfo
     -> Html msg
-viewProfile interactions extendedInfo =
+viewProfile interactions user extendedInfo =
     div
         [ class "masonry scrollable" ]
     <|
-        List.map viewUserSection extendedInfo.userExtProfileSections
-
-
-
--- TODO: Add this back
--- viewCard interactions [] { user = userInfo, impression = Nothing }
---     :: button [ onClick <| interactions.setImpression userInfo.userId ImpressionLike ]
---         [ text "Like "
---         , i [ class "fa-solid fa-heart" ] []
---         ]
---     :: button [ onClick <| interactions.setImpression userInfo.userId ImpressionDislike ]
---         [ text "Dislike "
---         , i [ class "fa-solid fa-heart-crack" ] []
---         ]
---     :: button [ onClick <| interactions.setImpression userInfo.userId ImpressionDecideLater ]
---         [ text "Decide later "
---         , i [ class "fa-solid fa-clock" ] []
---         ]
---     :: List.map viewUserSection extendedInfo.userExtProfileSections
+        viewCard interactions [] { user = user, impression = extendedInfo.userExtImpression }
+            :: button [ onClick <| interactions.setImpression user.userId ImpressionLike ]
+                [ text "Like "
+                , i [ class "fa-solid fa-heart" ] []
+                ]
+            :: button [ onClick <| interactions.setImpression user.userId ImpressionDislike ]
+                [ text "Dislike "
+                , i [ class "fa-solid fa-heart-crack" ] []
+                ]
+            :: button [ onClick <| interactions.setImpression user.userId ImpressionDecideLater ]
+                [ text "Decide later "
+                , i [ class "fa-solid fa-clock" ] []
+                ]
+            :: List.map viewUserSection extendedInfo.userExtProfileSections
 
 
 viewUserSection : ProfileSection -> Html msg

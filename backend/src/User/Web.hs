@@ -15,14 +15,14 @@ import Servant
   )
 import Servant.Server.Generic (AsServerT)
 import ServerM (ServerM)
-import User (UserExtendedInfo, UserID (..), UserOverviewInfo)
+import User (UserAllInfo (..), UserID (..), UserOverviewInfo)
 import User qualified
 import User.Fake (ensureSomeUsersInDB)
 import User.Impressions (Impression)
 
 data UserRoutes mode = UserRoutes
   { getSearch :: mode :- "search" :> Get '[JSON] [UserOverviewInfo],
-    getUserExtendedInfo :: mode :- Capture "userID" UserID :> "profile" :> Get '[JSON] UserExtendedInfo,
+    getUserInfo :: mode :- Capture "userID" UserID :> "info" :> Get '[JSON] UserAllInfo,
     getImpressions :: mode :- "impressions" :> Capture "impression" Impression :> Get '[JSON] [UserOverviewInfo],
     postSetImpression :: mode :- Capture "impression" Impression :> Capture "otherUserID" UserID :> Post '[JSON] ()
   }
@@ -38,7 +38,11 @@ userRoutes =
     { getSearch = do
         _ <- ensureSomeUsersInDB 10
         runHasql $ User.searchFor pretendMyID 10,
-      getUserExtendedInfo = runHasql . User.getUserExtendedInfo,
+      getUserInfo = \otherUserID ->
+        runHasql $ do
+          info <- User.getUserInfo pretendMyID otherUserID
+          extInfo <- User.getUserExtendedInfo pretendMyID otherUserID
+          pure $ UserAllInfo info extInfo,
       getImpressions = runHasql . User.getUsersWithImpressionBy pretendMyID,
       postSetImpression = \u -> runHasql . User.setImpressionBy pretendMyID u
     }

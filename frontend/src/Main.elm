@@ -4,7 +4,7 @@ import Browser exposing (UrlRequest)
 import Browser.Navigation as Nav
 import Either exposing (Either(..))
 import Enums exposing (allImpressions)
-import Generated.Backend as Backend exposing (Impression(..), UserExtendedInfo, UserID)
+import Generated.Backend as Backend exposing (Impression(..), UserExtendedInfo, UserID, UserOverviewInfo)
 import Html exposing (Html, a, button, div, h1, li, text, ul)
 import Html.Attributes exposing (class, href)
 import Html.Components exposing (navbar)
@@ -24,7 +24,7 @@ type Screen
     | ScreenSearch (List UserWithImpression)
     | ScreenImpression Impression (List UserWithImpression)
     | ScreenMyProfile
-    | ScreenOtherUser UserExtendedInfo
+    | ScreenOtherUser UserOverviewInfo UserExtendedInfo
     | ScreenError (List String)
 
 
@@ -44,9 +44,9 @@ routeToScreen settings route =
             perform Ok (succeed ScreenMyProfile)
 
         RouteOtherUser userID ->
-            Backend.getUserByUserIDProfile settings.backendUrl
+            Backend.getUserByUserIDInfo settings.backendUrl
                 userID
-                (Result.map ScreenOtherUser)
+                (Result.map (\allInfo -> ScreenOtherUser allInfo.userAllOverviewInfo allInfo.userAllExtendedInfo))
 
 
 type alias Model =
@@ -257,9 +257,8 @@ view model =
                 ScreenMyProfile ->
                     "My profile"
 
-                ScreenOtherUser _ ->
-                    -- TODO: Once I update the user profile code, add the name of the user here
-                    "Other user"
+                ScreenOtherUser user _ ->
+                    user.userName
 
                 ScreenLoading ->
                     "Loading..."
@@ -303,8 +302,8 @@ viewBody model =
                             , ( "Font Awesome", "https://fontawesome.com/" )
                             ]
 
-            ScreenOtherUser extInfo ->
-                User.viewProfile userInteractions extInfo
+            ScreenOtherUser info extInfo ->
+                User.viewProfile userInteractions info extInfo
         , let
             imprIcon impr =
                 case impr of

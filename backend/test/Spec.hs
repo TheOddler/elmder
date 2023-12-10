@@ -32,7 +32,7 @@ userSpec = do
   serverAndClientTest $ do
     it "returns the requested user's info" $ \(server, clientEnv) -> do
       ids <- runOnServer server $ ensureSomeUsersInDB 10
-      mapM_ (runOnClient clientEnv . api.userRoutes.getUserExtendedInfo) ids
+      mapM_ (runOnClient clientEnv . api.userRoutes.getUserInfo) ids
 
     it "can search for users" $ \(server, clientEnv) -> do
       -- The users that are randomly generated have very broad search criteria,

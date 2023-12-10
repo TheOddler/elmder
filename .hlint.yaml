@@ -125,7 +125,9 @@
     within:
       - SafeMath # Here we put all our safe number conversion functions
       - TestUtil # We use it with a constant that we know is safe
-  - {name: fromInteger, within: []}
+  - name: fromInteger
+    within: 
+      - SafeMath
 
 
   - {name: 'read', within: []} # Partial, use `Text.Read.readMaybe` instead.

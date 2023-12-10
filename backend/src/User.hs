@@ -13,16 +13,16 @@ import Data.Foldable (toList)
 import Data.Int (Int32)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
-import Data.Time (CalendarDiffDays (..), Day, diffGregorianDurationClip)
+import Data.Time (Day)
 import Data.Vector qualified as V
 import GHC.Generics (Generic)
 import Hasql.TH (resultlessStatement, singletonStatement, vectorStatement)
 import Hasql.Transaction (Transaction, statement)
-import SafeMath (monthsToYears, roundToNearest)
+import SafeMath (age, roundToNearest)
 import Servant (FromHttpApiData, ToHttpApiData)
 import User.DeriveElmAndJson (deriveElmAndJson)
 import User.GenderIdentity (GenderIdentity (..), genderIdentityToSQL, sqlToGenderIdentity)
-import User.Impressions (Impression (..), impressionToSQL)
+import User.Impressions (Impression (..), impressionToSQL, sqlToImpression)
 import Util (reverseEnumToText)
 
 newtype UserID = UserID {unUserID :: Int32}
@@ -40,7 +40,7 @@ data UserOverviewInfo = UserOverviewInfo
     -- We'll round this based on the user's settings.
     userDistanceM :: Int,
     -- | For privacy we send the age as a number to the frontend. Of course we do store the birthday as a data in the database.
-    userAge :: Integer,
+    userAge :: Int,
     userGenderIdentity :: GenderIdentity
   }
   deriving (Generic, Show, Eq)
@@ -52,12 +52,22 @@ data UserExtendedInfo = UserExtendedInfo
   { userExtProfileAge :: Int,
     userExtDescription :: Text,
     userExtProfileSections :: [ProfileSection],
-    userExtRelationshipStatus :: RelationshipStatus -- TODO: Rework this to a web of relationships
+    userExtRelationshipStatus :: RelationshipStatus, -- TODO: Rework this to a web of relationships
+
+    -- | The impression that the currently logged in user has of this user, if any
+    userExtImpression :: Maybe Impression
+  }
+  deriving (Generic, Show, Eq)
+
+data UserAllInfo = UserAllInfo
+  { userAllOverviewInfo :: UserOverviewInfo,
+    userAllExtendedInfo :: UserExtendedInfo
   }
   deriving (Generic, Show, Eq)
 
 data RelationshipStatus
-  = RelationshipStatusSingle
+  = RelationshipStatusUnknown
+  | RelationshipStatusSingle
   | RelationshipStatusMarried
   | RelationshipStatusInRelationship
   deriving (Generic, Show, Eq, Enum, Bounded)
@@ -65,6 +75,7 @@ data RelationshipStatus
 -- | Convert a 'RelationshipStatus' to a SQL name for it.
 relationshipStatusToSQL :: RelationshipStatus -> Text
 relationshipStatusToSQL = \case
+  RelationshipStatusUnknown -> "unknown"
   RelationshipStatusSingle -> "single"
   RelationshipStatusInRelationship -> "in_relationship"
   RelationshipStatusMarried -> "married"
@@ -93,28 +104,68 @@ deriveElmAndJson ''RelationshipStatus
 deriveElmAndJson ''ProfileSection
 deriveElmAndJson ''UserOverviewInfo
 deriveElmAndJson ''UserExtendedInfo
+deriveElmAndJson ''UserAllInfo
 
-getUserExtendedInfo :: UserID -> Transaction UserExtendedInfo
-getUserExtendedInfo _ =
-  pure
-    UserExtendedInfo
-      { -- TODO: Implement actually getting this stuff from the DB
-        userExtProfileAge = 0,
-        userExtDescription = "This is a test description",
-        userExtProfileSections =
-          [ UserSectionGeneric "Generic header" "Generic content",
-            UserSectionImages
-              [ "https://via.placeholder.com/110",
-                "https://via.placeholder.com/120",
-                "https://via.placeholder.com/130",
-                "https://via.placeholder.com/140",
-                "https://via.placeholder.com/150"
-              ]
-              "Image description",
-            UserSectionQuestionAndAnswer "Question?" "Answer!"
-          ],
-        userExtRelationshipStatus = RelationshipStatusSingle
-      }
+getUserInfo :: UserID -> UserID -> Transaction UserOverviewInfo
+getUserInfo myID otherID = do
+  rows <-
+    statement
+      (unUserID myID, unUserID otherID)
+      [singletonStatement|
+        SELECT 
+          other.id :: int,
+          other.name :: text,
+          other.header_image_url :: text,
+          earth_distance(me.location, other.location) :: float,
+          CURRENT_DATE :: date,
+          other.birthday :: date,
+          other.gender_identity :: text,
+          (other.search_distance_km * 1000) :: float
+        FROM users me
+        JOIN users other ON other.id = $2 :: int
+        WHERE me.id = $1 :: int
+      |]
+  pure $ userOverviewInfoFromSQL rows
+
+getUserExtendedInfo :: UserID -> UserID -> Transaction UserExtendedInfo
+getUserExtendedInfo myID otherID = do
+  rows <-
+    statement
+      (unUserID myID, unUserID otherID)
+      [singletonStatement|
+        SELECT 
+          join_day :: date,
+          CURRENT_DATE :: date,
+          description :: text,
+          relationship_status :: text,
+          impression :: text?
+        FROM users
+        LEFT JOIN impressions ON impressions.user_id = $1 :: int AND impressions.other_user_id = $2 :: int
+        WHERE id = $2 :: int
+      |]
+  pure $ fromSQL rows
+  where
+    fromSQL :: (Day, Day, Text, Text, Maybe Text) -> UserExtendedInfo
+    fromSQL (profileDate, currentDate, description, relationshipStatus, impression) =
+      UserExtendedInfo
+        { -- TODO: Implement actually getting this stuff from the DB
+          userExtProfileAge = age currentDate profileDate,
+          userExtDescription = description,
+          userExtProfileSections =
+            [ UserSectionGeneric "Generic header" "Generic content",
+              UserSectionImages
+                [ "https://via.placeholder.com/110",
+                  "https://via.placeholder.com/120",
+                  "https://via.placeholder.com/130",
+                  "https://via.placeholder.com/140",
+                  "https://via.placeholder.com/150"
+                ]
+                "Image description",
+              UserSectionQuestionAndAnswer "Question?" "Answer!"
+            ],
+          userExtRelationshipStatus = fromMaybe RelationshipStatusUnknown $ sqlToRelationshipStatus relationshipStatus,
+          userExtImpression = sqlToImpression =<< impression
+        }
 
 data NewUserInfo = NewUserInfo
   { newUserName :: Text,
@@ -199,7 +250,7 @@ userOverviewInfoFromSQL (uid, name, img, distanceM, curDate, birthday, genderId,
       userName = name,
       userHeaderImageUrl = img,
       userDistanceM = smartRoundDistanceM distanceM searchDistanceM,
-      userAge = monthsToYears $ cdMonths (diffGregorianDurationClip curDate birthday),
+      userAge = age curDate birthday,
       userGenderIdentity = fromMaybe Other $ sqlToGenderIdentity genderId
     }
 
@@ -287,9 +338,9 @@ getUsersWithImpressionBy userID impression = do
   pure $ userOverviewInfoFromSQL <$> toList rows
 
 setImpressionBy :: UserID -> Impression -> UserID -> Transaction ()
-setImpressionBy userID impression otherUserID =
+setImpressionBy myID impression otherUserID =
   statement
-    (unUserID userID, impressionToSQL impression, unUserID otherUserID)
+    (unUserID myID, impressionToSQL impression, unUserID otherUserID)
     [resultlessStatement|
       INSERT INTO impressions (
         user_id,
