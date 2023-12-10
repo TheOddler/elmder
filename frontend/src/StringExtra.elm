@@ -302,3 +302,12 @@ fromGenderIdentity gi =
 
         Backend.Xenogender ->
             "Xenogender"
+
+
+fromDistanceM : Int -> String
+fromDistanceM m =
+    if m < 1000 then
+        String.fromInt m ++ " m"
+
+    else
+        String.fromInt (m // 1000) ++ " km"

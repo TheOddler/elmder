@@ -60,7 +60,7 @@ viewCardContent interactions { user, impression } =
           in
           table [ class "icon-table" ]
             [ infoRow "fa-solid fa-user" <| String.fromGenderIdentity user.userGenderIdentity ++ " • " ++ String.fromInt user.userAge
-            , infoRow "fa-solid fa-location-dot" <| String.fromInt user.userDistanceM ++ "m away"
+            , infoRow "fa-solid fa-location-dot" <| String.fromDistanceM user.userDistanceM ++ " away"
             ]
         , let
             impressionBtn icon className impr =
