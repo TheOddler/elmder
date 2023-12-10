@@ -4,6 +4,7 @@
 
 module Main (main) where
 
+import SafeMathSpec qualified
 import Servant.Client ((//))
 import SmartRoundingSpec qualified
 import Test.Syd (Spec, it, shouldBe, shouldSatisfy, sydTest)
@@ -26,6 +27,7 @@ main = sydTest $ do
   userSpec
 
   SmartRoundingSpec.spec
+  SafeMathSpec.spec
 
 userSpec :: Spec
 userSpec = do

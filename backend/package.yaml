@@ -78,4 +78,5 @@ tests:
       - sydtest-wai
       - sydtest-servant
       - text
+      - time
       - tmp-postgres

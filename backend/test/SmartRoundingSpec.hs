@@ -14,8 +14,11 @@ spec = testThoroughly $ describe "smart distance" $ do
   it "never shows closer than 1000 meters if my search is larger" $ property $ \real ->
     smartRoundDistanceM real 1200 `shouldSatisfy` (>= 1000)
 
-  it "large distances are rounded to nearest km" $ property $ \(real, search) ->
-    smartRoundDistanceM (4000 + abs real) search `shouldSatisfy` (\res -> res `mod` 1000 == 0)
+  it "large distances are rounded to nearest km" $ property $ \(real, search) -> do
+    let largeDistance = 4000 + abs real
+    let smartDistance = smartRoundDistanceM largeDistance search
+    smartDistance `shouldSatisfy` (\res -> res `mod` 1000 == 0)
+    smartDistance `shouldBe` round (largeDistance / 1000) * 1000
 
   describe "examples" $ do
     let exampleTest (realDistance, searchDistance, result) =

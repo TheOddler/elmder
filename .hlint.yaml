@@ -74,11 +74,13 @@
   - name: Prelude.div
     within:
       - SafeMath
+      - SafeMathSpec
       - TestUtil
   - {name: Prelude.rem, within: []}
   - name: Prelude.mod
     within:
       - SmartRoundingSpec
+      - SafeMathSpec
   - {name: Prelude.quotRem, within: []}
   - {name: Prelude.divMod, within: []}
 
