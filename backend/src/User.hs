@@ -161,7 +161,24 @@ getUserExtendedInfo myID otherID = do
                   "https://via.placeholder.com/150"
                 ]
                 "Image description",
-              UserSectionQuestionAndAnswer "Question?" "Answer!"
+              UserSectionQuestionAndAnswer "Question?" "Answer!",
+              UserSectionImages
+                [ "https://via.placeholder.com/110",
+                  "https://via.placeholder.com/120",
+                  "https://via.placeholder.com/130"
+                ]
+                "Image description",
+              UserSectionQuestionAndAnswer "Question?" "Answer!",
+              UserSectionQuestionAndAnswer "Question?" "Answer!",
+              UserSectionGeneric "Generic header" "Generic content",
+              UserSectionImages
+                [ "https://via.placeholder.com/110",
+                  "https://via.placeholder.com/120",
+                  "https://via.placeholder.com/130"
+                ]
+                "Image description",
+              UserSectionGeneric "Generic header" "Generic content",
+              UserSectionGeneric "Generic header" "Generic content"
             ],
           userExtRelationshipStatus = fromMaybe RelationshipStatusUnknown $ sqlToRelationshipStatus relationshipStatus,
           userExtImpression = sqlToImpression =<< impression
