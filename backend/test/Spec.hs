@@ -4,9 +4,9 @@
 
 module Main (main) where
 
+import DistanceSpec qualified
 import SafeMathSpec qualified
 import Servant.Client ((//))
-import SmartRoundingSpec qualified
 import Test.Syd (Spec, it, shouldBe, shouldSatisfy, sydTest)
 import TestUtil
 import User.Fake (ensureSomeUsersInDB)
@@ -26,7 +26,7 @@ main = sydTest $ do
 
   userSpec
 
-  SmartRoundingSpec.spec
+  DistanceSpec.spec
   SafeMathSpec.spec
 
 userSpec :: Spec

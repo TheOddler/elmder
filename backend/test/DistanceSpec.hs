@@ -1,13 +1,21 @@
-module SmartRoundingSpec (spec) where
+{-# LANGUAGE OverloadedRecordDot #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
+
+module DistanceSpec (spec) where
 
 import Control.Monad (forM_)
+import DB (runHasql)
+import Data.Time (fromGregorian)
+import SafeMath (int32ToInt)
 import Test.QuickCheck (property)
-import Test.Syd (Spec, describe, it, shouldBe, shouldSatisfy)
+import Test.Syd (Spec, describe, expectationFailure, it, shouldBe, shouldSatisfy)
 import TestUtil
-import User (smartRoundDistanceM)
+import User (NewUserInfo (..), UserOverviewInfo (..), createNewUser, searchFor, smartRoundDistanceM)
+import User.GenderIdentity (GenderIdentity (..))
 
 spec :: Spec
-spec = testThoroughly $ describe "smart distance" $ do
+spec = testThoroughly $ describe "smart distance rounding" $ do
   it "never shows closer than 100 meters" $ property $ \(real, search) ->
     smartRoundDistanceM real search `shouldSatisfy` (>= 100)
 
