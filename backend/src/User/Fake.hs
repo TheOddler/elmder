@@ -81,6 +81,11 @@ fakeNewUser = do
 
   newUserGenderIdentity <- fakeBoundedEnum
 
+  let newUserSearchMinAge = 18
+  let newUserSearchMaxAge = 99
+  let newUserSearchDistanceM = 1_000_000
+  let newUserSearchGenderIdentities = [minBound .. maxBound]
+
   pure NewUserInfo {..}
 
 ensureSomeUsersInDB :: Int -> ServerM [UserID]

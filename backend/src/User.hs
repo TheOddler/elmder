@@ -174,7 +174,11 @@ data NewUserInfo = NewUserInfo
     newUserLatitude :: Float,
     newUserLongitude :: Float,
     newUserBirthday :: Day,
-    newUserGenderIdentity :: GenderIdentity
+    newUserGenderIdentity :: GenderIdentity,
+    newUserSearchMinAge :: Int32,
+    newUserSearchMaxAge :: Int32,
+    newUserSearchDistanceM :: Int32,
+    newUserSearchGenderIdentities :: [GenderIdentity]
   }
 
 createNewUser :: NewUserInfo -> Transaction UserID
@@ -187,7 +191,10 @@ createNewUser u = do
         u.newUserLatitude,
         u.newUserLongitude,
         u.newUserBirthday,
-        genderIdentityToSQL u.newUserGenderIdentity
+        genderIdentityToSQL u.newUserGenderIdentity,
+        u.newUserSearchMinAge,
+        u.newUserSearchMaxAge,
+        u.newUserSearchDistanceM
       )
       [singletonStatement|
             INSERT INTO users (
@@ -212,14 +219,14 @@ createNewUser u = do
               $6 :: date,
               $7 :: text :: gender_identity,
               'single',
-              18,
-              99,
-              1000
+              $8 :: int,
+              $9 :: int,
+              $10 :: int4 / 1000
             )
             RETURNING id :: int
           |]
   statement
-    (newID, V.fromList $ genderIdentityToSQL <$> [minBound .. maxBound])
+    (newID, V.fromList $ genderIdentityToSQL <$> u.newUserSearchGenderIdentities)
     [resultlessStatement|
           INSERT INTO user_search_gender_identities (
             user_id,
