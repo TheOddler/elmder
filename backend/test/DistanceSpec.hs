@@ -6,7 +6,7 @@ module DistanceSpec (spec) where
 import Control.Monad (forM_)
 import DB (runHasql)
 import Data.Time (fromGregorian)
-import SafeMath (int32ToInt)
+import SafeMaths (int32ToInt)
 import Test.QuickCheck (property)
 import Test.Syd (Spec, describe, expectationFailure, it, shouldBe, shouldSatisfy)
 import TestUtil

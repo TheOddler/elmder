@@ -73,14 +73,14 @@
   - {name: Prelude.quot, within: []} # Partial, see https://github.com/NorfairKing/haskell-WAT#num-int
   - name: Prelude.div
     within:
-      - SafeMath
-      - SafeMathSpec
+      - SafeMaths
+      - SafeMathsSpec
       - TestUtil
   - {name: Prelude.rem, within: []}
   - name: Prelude.mod
     within:
       - DistanceSpec
-      - SafeMathSpec
+      - SafeMathsSpec
   - {name: Prelude.quotRem, within: []}
   - {name: Prelude.divMod, within: []}
 
@@ -125,11 +125,11 @@
   # 44
   - name: fromIntegral
     within:
-      - SafeMath # Here we put all our safe number conversion functions
+      - SafeMaths # Here we put all our safe number conversion functions
       - TestUtil # We use it with a constant that we know is safe
   - name: fromInteger
     within: 
-      - SafeMath
+      - SafeMaths
 
 
   - {name: 'read', within: []} # Partial, use `Text.Read.readMaybe` instead.

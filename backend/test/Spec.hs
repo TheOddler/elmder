@@ -5,7 +5,7 @@
 module Main (main) where
 
 import DistanceSpec qualified
-import SafeMathSpec qualified
+import SafeMathsSpec qualified
 import Servant.Client ((//))
 import Test.Syd (Spec, it, shouldBe, shouldSatisfy, sydTest)
 import TestUtil
@@ -27,7 +27,7 @@ main = sydTest $ do
   userSpec
 
   DistanceSpec.spec
-  SafeMathSpec.spec
+  SafeMathsSpec.spec
 
 userSpec :: Spec
 userSpec = do

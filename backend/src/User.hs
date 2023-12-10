@@ -18,7 +18,7 @@ import Data.Vector qualified as V
 import GHC.Generics (Generic)
 import Hasql.TH (resultlessStatement, singletonStatement, vectorStatement)
 import Hasql.Transaction (Transaction, statement)
-import SafeMath (age, roundToNearest)
+import SafeMaths (age, roundToNearest)
 import Servant (FromHttpApiData, ToHttpApiData)
 import User.DeriveElmAndJson (deriveElmAndJson)
 import User.GenderIdentity (GenderIdentity (..), genderIdentityToSQL, sqlToGenderIdentity)

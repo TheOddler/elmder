@@ -1,7 +1,7 @@
-module SafeMathSpec (spec) where
+module SafeMathsSpec (spec) where
 
 import Data.Time.Calendar (fromGregorian)
-import SafeMath
+import SafeMaths
 import Test.QuickCheck (property)
 import Test.Syd (Spec, describe, it, shouldBe, shouldSatisfy)
 import TestUtil

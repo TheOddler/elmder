@@ -1,6 +1,6 @@
 -- | In this module we put all the functions that use unsafe math functions like `div` and `mod`,
 -- but we use them in ways we know are safe, or safe enough for our needs.
-module SafeMath where
+module SafeMaths where
 
 import Data.Int (Int32)
 import Data.Time (CalendarDiffDays (..), Day, diffGregorianDurationClip)
