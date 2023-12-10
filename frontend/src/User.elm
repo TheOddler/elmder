@@ -4,7 +4,6 @@ import Generated.Backend exposing (Impression(..), ProfileSection(..), UserExten
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Components exposing (..)
-import Html.Events exposing (onClick)
 import Html.Events.Extra exposing (onClickStopPropagation)
 import StringExtra as String
 import Swiper
@@ -101,21 +100,9 @@ viewProfile :
     -> Html msg
 viewProfile interactions user extendedInfo =
     div
-        [ class "masonry scrollable" ]
+        [ class "profile scrollable" ]
     <|
-        viewCard interactions [] { user = user, impression = extendedInfo.userExtImpression }
-            :: button [ onClick <| interactions.setImpression user.userId ImpressionLike ]
-                [ text "Like "
-                , i [ class "fa-solid fa-heart" ] []
-                ]
-            :: button [ onClick <| interactions.setImpression user.userId ImpressionDislike ]
-                [ text "Dislike "
-                , i [ class "fa-solid fa-heart-crack" ] []
-                ]
-            :: button [ onClick <| interactions.setImpression user.userId ImpressionDecideLater ]
-                [ text "Decide later "
-                , i [ class "fa-solid fa-clock" ] []
-                ]
+        viewCard interactions [ class "profile-header" ] { user = user, impression = extendedInfo.userExtImpression }
             :: List.map viewUserSection extendedInfo.userExtProfileSections
 
 

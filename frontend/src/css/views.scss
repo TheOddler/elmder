@@ -21,3 +21,15 @@ $edgePadding: 12pt;
     overflow: hidden;
   }
 }
+
+.profile {
+  padding: 0 $edgePadding;
+
+  >* {
+    margin: $edgePadding 0;
+  }
+
+  .profile-header {
+    min-height: 300pt;
+  }
+}
