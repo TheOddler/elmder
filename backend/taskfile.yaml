@@ -21,7 +21,7 @@ tasks:
 
   test:
     cmds:
-      - stack test --test-arguments="--match=""{{.MATCH}}"""
+      - stack test --test-arguments="\"{{.MATCH}}\""
     sources: &sources-for-test
       - *srcFiles
       - *packageYaml
