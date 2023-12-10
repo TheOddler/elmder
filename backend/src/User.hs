@@ -116,11 +116,11 @@ getUserInfo myID otherID = do
           other.id :: int,
           other.name :: text,
           other.header_image_url :: text,
-          earth_distance(me.location, other.location) :: float,
+          earth_distance(me.location, other.location) :: float4,
           CURRENT_DATE :: date,
           other.birthday :: date,
           other.gender_identity :: text,
-          (other.search_distance_km * 1000) :: float
+          (other.search_distance_km * 1000) :: float4
         FROM users me
         JOIN users other ON other.id = $2 :: int
         WHERE me.id = $1 :: int
@@ -269,11 +269,11 @@ searchFor userID maxResults = do
           other.id :: int,
           other.name :: text,
           other.header_image_url :: text,
-          earth_distance(me.location, other.location) :: float,
+          earth_distance(me.location, other.location) :: float4,
           CURRENT_DATE :: date,
           other.birthday :: date,
           other.gender_identity :: text,
-          (other.search_distance_km * 1000) :: float
+          (other.search_distance_km * 1000) :: float4
         FROM users me
         JOIN users other ON other.id <> me.id
         JOIN user_search_gender_identities my_gi ON me.id = my_gi.user_id
@@ -323,11 +323,11 @@ getUsersWithImpressionBy userID impression = do
           other.id :: int,
           other.name :: text,
           other.header_image_url :: text,
-          earth_distance(me.location, other.location) :: float,
+          earth_distance(me.location, other.location) :: float4,
           CURRENT_DATE :: date,
           other.birthday :: date,
           other.gender_identity :: text,
-          (other.search_distance_km * 1000) :: float
+          (other.search_distance_km * 1000) :: float4
         FROM users me
         JOIN users other ON other.id <> me.id
         JOIN impressions ON impressions.user_id = me.id AND impressions.other_user_id = other.id
