@@ -19,26 +19,20 @@
         };
         pkgs-unstable = nixpkgs-unstable.legacyPackages.${system};
 
-        buildPackages = with pkgs; [
+        devPackages = with pkgs; [
           pkgs-unstable.go-task # Run commands, like a modern make
 
-          # Stuff for the frontend
-          nodejs_18
-
-          # Stuff for the backend
-          cabal-install
-          postgresql
-        ];
-
-        devPackages = with pkgs; [
           # Stuff for the frontend development
+          nodejs_18
           elmPackages.elm-format # Formatter for Elm
           elmPackages.elm-json # elm.json management
 
           # Stuff for the backend development
           ghc
+          cabal-install
           haskell-language-server
           hlint
+          postgresql
         ];
 
         elmParcelNixFix = {
@@ -59,7 +53,7 @@
       {
         devShells.default = pkgs.haskellPackages.shellFor {
           packages = p: [ self.packages.${system}.backend ];
-          buildInputs = buildPackages ++ devPackages;
+          buildInputs = devPackages;
           inherit (self.checks.${system}.pre-commit-check) shellHook;
         };
 
@@ -96,7 +90,6 @@
 
         packages.frontend = pkgs.buildNpmPackage {
           name = "elmder";
-          nativeBuildInputs = buildPackages ++ elmParcelNixFix.nativeBuildPackages;
           src = ./frontend;
           npmDepsHash = "sha256-NkJQy6gxdpqSFhdswRsYqT69dY7QytFp9iZRAQ++3x8=";
 
@@ -109,6 +102,7 @@
             cp -r dist/ $out
           '';
 
+          nativeBuildInputs = elmParcelNixFix.nativeBuildPackages;
           npmFlags = elmParcelNixFix.npmFlags;
           prePatch = elmParcelNixFix.generateElmJsonFiles;
         };
