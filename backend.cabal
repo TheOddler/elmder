@@ -12,7 +12,18 @@ copyright:      2023 Pablo Bollansée
 license:        NONE
 build-type:     Simple
 
+common shared-properties
+  default-language: GHC2021
+  build-depends: base >=4.16.4.0 && <5
+  ghc-options:
+      -Wall -Wcompat -Wincomplete-record-updates -Wredundant-constraints -Wunused-packages -threaded -rtsopts -with-rtsopts=-N -freverse-errors
+  default-extensions:
+      StrictData
+
 library
+  import: shared-properties
+  hs-source-dirs:
+      backend/src
   exposed-modules:
       DB
       DB.Init
@@ -27,18 +38,8 @@ library
       User.Web
       Util
       Web
-  other-modules:
-      Paths_backend
-  autogen-modules:
-      Paths_backend
-  hs-source-dirs:
-      backend/src
-  default-extensions:
-      StrictData
-  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -with-rtsopts=-N -Wredundant-constraints -Wunused-packages -threaded -rtsopts -with-rtsopts=-N -freverse-errors
   build-depends:
-      base >=4.16.4.0 && <5
-    , bytestring
+      bytestring
     , elm-bridge
     , fakedata
     , hasql
@@ -54,65 +55,37 @@ library
     , vector
     , wai-cors
     , warp
-  default-language: GHC2021
 
 executable backend-exe
+  import: shared-properties
   main-is: Main.hs
-  other-modules:
-      Paths_backend
-  autogen-modules:
-      Paths_backend
   hs-source-dirs:
       backend/exe
-  default-extensions:
-      StrictData
-  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -with-rtsopts=-N -Wredundant-constraints -Wunused-packages -threaded -rtsopts -with-rtsopts=-N -freverse-errors
   build-depends:
       backend
-    , base >=4.16.4.0 && <5
-  default-language: GHC2021
 
 executable elm-gen
+  import: shared-properties
   main-is: Main.hs
-  other-modules:
-      Paths_backend
-  autogen-modules:
-      Paths_backend
   hs-source-dirs:
       backend/elm-gen
-  default-extensions:
-      StrictData
-  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -with-rtsopts=-N -Wredundant-constraints -Wunused-packages -threaded -rtsopts -with-rtsopts=-N -freverse-errors
   build-depends:
       backend
-    , base >=4.16.4.0 && <5
     , elm-bridge
     , servant-elm
     , servant-foreign
     , servant-server
     , text
-  default-language: GHC2021
 
 test-suite backend-test
+  import: shared-properties
   type: exitcode-stdio-1.0
   main-is: Spec.hs
-  other-modules:
-      DistanceSpec
-      SafeMathsSpec
-      SydTestExtra
-      TestUtil
-      Paths_backend
-  autogen-modules:
-      Paths_backend
   hs-source-dirs:
       backend/test
-  default-extensions:
-      StrictData
-  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -with-rtsopts=-N -Wredundant-constraints -Wunused-packages -threaded -rtsopts -with-rtsopts=-N -freverse-errors
   build-depends:
       QuickCheck
     , backend
-    , base >=4.16.4.0 && <5
     , http-client
     , quickcheck-instances
     , servant-client
@@ -123,4 +96,3 @@ test-suite backend-test
     , text
     , time
     , tmp-postgres
-  default-language: GHC2021
