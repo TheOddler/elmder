@@ -62,9 +62,6 @@
               hlint.enable = true;
               ormolu.enable = true;
               nixpkgs-fmt.enable = true;
-              nixpkgs-fmt.excludes = [
-                "frontend/elm-srcs.nix" # Auto generated
-              ];
             };
             settings = {
               hlint.hintFile = ./.hlint.yaml;
