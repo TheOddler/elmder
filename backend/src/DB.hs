@@ -1,5 +1,3 @@
-{-# LANGUAGE DerivingStrategies #-}
-
 module DB where
 
 import Control.Exception (throwIO)

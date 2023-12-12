@@ -67,6 +67,10 @@
               hlint.hintFile = ./.hlint.yaml;
               ormolu.defaultExtensions = [
                 "GHC2021" # Let Ormolu know we're using GHC2021
+                "LambdaCase"
+                "OverloadedRecordDot"
+                "OverloadedStrings"
+                "StrictData"
               ];
             };
           };

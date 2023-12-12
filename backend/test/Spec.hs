@@ -1,7 +1,3 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE OverloadedRecordDot #-}
-{-# LANGUAGE OverloadedStrings #-}
-
 module Main (main) where
 
 import DistanceSpec qualified

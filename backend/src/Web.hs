@@ -1,18 +1,16 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeOperators #-}
 
 module Web where
 
 import GHC.Generics (Generic)
 import Servant
-  ( GenericMode (type (:-)),
+  ( GenericMode ((:-)),
     Get,
     JSON,
     NamedRoutes,
     Proxy (..),
-    type (:>),
+    (:>),
   )
 import Servant.Server.Generic (AsServerT)
 import ServerM (ServerM)

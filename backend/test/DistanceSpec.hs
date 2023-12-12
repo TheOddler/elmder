@@ -1,6 +1,3 @@
-{-# LANGUAGE OverloadedRecordDot #-}
-{-# LANGUAGE OverloadedStrings #-}
-
 module DistanceSpec (spec) where
 
 import Control.Monad (forM_)

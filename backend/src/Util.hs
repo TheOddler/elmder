@@ -1,5 +1,3 @@
-{-# LANGUAGE DerivingStrategies #-}
-
 module Util where
 
 import Data.List (find)

@@ -18,6 +18,9 @@ common shared-properties
   ghc-options:
       -Wall -Wcompat -Wincomplete-record-updates -Wredundant-constraints -Wunused-packages -threaded -rtsopts -with-rtsopts=-N -freverse-errors
   default-extensions:
+      LambdaCase
+      OverloadedRecordDot
+      OverloadedStrings
       StrictData
 
 library

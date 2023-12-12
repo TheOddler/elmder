@@ -1,10 +1,5 @@
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE OverloadedRecordDot #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module User where

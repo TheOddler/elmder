@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-
 module ServerM where
 
 import Control.Monad.Trans.Reader (ReaderT, runReaderT)

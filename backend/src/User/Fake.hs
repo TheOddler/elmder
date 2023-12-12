@@ -1,10 +1,5 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE OverloadedRecordDot #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 module User.Fake where
 
