@@ -26,7 +26,7 @@
           nodejs_18
 
           # Stuff for the backend
-          stack
+          cabal-install
           postgresql
         ];
 
@@ -35,11 +35,9 @@
           elmPackages.elm-format # Formatter for Elm
           elmPackages.elm-json # elm.json management
 
-          # Stuff for the backend development, make sure the haskell stuff matches the stackage snapshot we're using
-          # The snapshot can be found in `stack.yaml` under the field `resolver`
-          # The ghc version that snapshot is using can be found by going to the stackage page for it, for example: https://www.stackage.org/lts-20.25
-          haskell.compiler.ghc92
-          (haskell-language-server.override { supportedGhcVersions = [ "928" ]; })
+          # Stuff for the backend development
+          ghc
+          haskell-language-server
           hlint
         ];
 
@@ -87,7 +85,7 @@
         };
 
         packages.backend = pkgs.haskellPackages.developPackage {
-          root = ./backend;
+          root = ./.;
           modifier = drv:
             pkgs.haskell.lib.addBuildTools drv (with pkgs; [
               zlib # required for servant

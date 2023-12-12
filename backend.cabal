@@ -1,0 +1,126 @@
+cabal-version: 2.2
+
+-- This file has been generated from package.yaml by hpack version 0.35.2.
+--
+-- see: https://github.com/sol/hpack
+
+name:           backend
+version:        0.1.0.0
+author:         Pablo Bollansée
+maintainer:     pablo@pabloproductions.be
+copyright:      2023 Pablo Bollansée
+license:        NONE
+build-type:     Simple
+
+library
+  exposed-modules:
+      DB
+      DB.Init
+      SafeMaths
+      Server
+      ServerM
+      User
+      User.DeriveElmAndJson
+      User.Fake
+      User.GenderIdentity
+      User.Impressions
+      User.Web
+      Util
+      Web
+  other-modules:
+      Paths_backend
+  autogen-modules:
+      Paths_backend
+  hs-source-dirs:
+      backend/src
+  default-extensions:
+      StrictData
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -with-rtsopts=-N -Wredundant-constraints -Wunused-packages -threaded -rtsopts -with-rtsopts=-N -freverse-errors
+  build-depends:
+      base >=4.16.4.0 && <5
+    , bytestring
+    , elm-bridge
+    , fakedata
+    , hasql
+    , hasql-pool
+    , hasql-th
+    , hasql-transaction
+    , servant-elm
+    , servant-server
+    , template-haskell
+    , text
+    , time
+    , transformers
+    , vector
+    , wai-cors
+    , warp
+  default-language: GHC2021
+
+executable backend-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_backend
+  autogen-modules:
+      Paths_backend
+  hs-source-dirs:
+      backend/exe
+  default-extensions:
+      StrictData
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -with-rtsopts=-N -Wredundant-constraints -Wunused-packages -threaded -rtsopts -with-rtsopts=-N -freverse-errors
+  build-depends:
+      backend
+    , base >=4.16.4.0 && <5
+  default-language: GHC2021
+
+executable elm-gen
+  main-is: Main.hs
+  other-modules:
+      Paths_backend
+  autogen-modules:
+      Paths_backend
+  hs-source-dirs:
+      backend/elm-gen
+  default-extensions:
+      StrictData
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -with-rtsopts=-N -Wredundant-constraints -Wunused-packages -threaded -rtsopts -with-rtsopts=-N -freverse-errors
+  build-depends:
+      backend
+    , base >=4.16.4.0 && <5
+    , elm-bridge
+    , servant-elm
+    , servant-foreign
+    , servant-server
+    , text
+  default-language: GHC2021
+
+test-suite backend-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      DistanceSpec
+      SafeMathsSpec
+      SydTestExtra
+      TestUtil
+      Paths_backend
+  autogen-modules:
+      Paths_backend
+  hs-source-dirs:
+      backend/test
+  default-extensions:
+      StrictData
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -with-rtsopts=-N -Wredundant-constraints -Wunused-packages -threaded -rtsopts -with-rtsopts=-N -freverse-errors
+  build-depends:
+      QuickCheck
+    , backend
+    , base >=4.16.4.0 && <5
+    , http-client
+    , quickcheck-instances
+    , servant-client
+    , servant-server
+    , sydtest
+    , sydtest-servant
+    , sydtest-wai
+    , text
+    , time
+    , tmp-postgres
+  default-language: GHC2021

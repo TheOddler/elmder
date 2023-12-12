@@ -20,7 +20,7 @@ import User.Impressions (Impression)
 import Web qualified
 
 -- Taken from https://hackage.haskell.org/package/servant-foreign-0.16/docs/src/Servant.Foreign.Internal.html#line-518
--- But that is only available on servant-foreign 0.16, which is not in any stackage lts yet
+-- But that is only available on servant-foreign 0.16, which I'm not using yet
 instance HasForeign lang ftype (ToServantApi r) => HasForeign lang ftype (NamedRoutes r) where
   type Foreign ftype (NamedRoutes r) = Foreign ftype (ToServantApi r)
 

@@ -3,7 +3,6 @@
 .task/
 .vscode/
 result
-
-# Backend stuff, once I can move the stack files into the backend folder I should remove this
-.stack-work/
-backend.cabal
+postgres/
+dist-newstyle/
+psql_logfile

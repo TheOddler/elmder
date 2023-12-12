@@ -1,9 +1,9 @@
-version: '3'
+version: "3"
 
 sources: &defaultSources
-  - &srcFiles 'src/**/*.hs'
-  - &elmGenSrcFiles 'elm-gen/**/*.hs'
-  - &packageYaml package.yaml
+  - &srcFiles "backend/src/**/*.hs"
+  - &elmGenSrcFiles "backend/elm-gen/**/*.hs"
+  - &cabalFile backend.cabal
 
 tasks:
   default:
@@ -11,8 +11,8 @@ tasks:
       - task: start-db
       # Defer inside a watch behaves weirdly, so instead by default we do the defer outside of the watch
       - defer: { task: stop-db }
-      - task test-and-run --watch
-  
+      - task be:test-and-run --watch
+
   test-and-run:
     cmds:
       - task: test
@@ -21,32 +21,32 @@ tasks:
 
   test:
     cmds:
-      - stack test --test-arguments="\"{{.MATCH}}\""
+      - cabal --enable-nix test --test-option="\"{{.MATCH}}\""
     sources: &sources-for-test
       - *srcFiles
-      - *packageYaml
+      - *cabalFile
       - *elmGenSrcFiles
-      - 'test/**/*.hs'
-  
+      - "backend/test/**/*.hs"
+
   run:
     cmds:
       - pkill backend-exe || true # Kill existing backend if it's still running, Task should already do that, but apparently not always when watching: https://github.com/go-task/task/issues/160
-      - stack run backend-exe
+      - cabal --enable-nix run backend-exe
     sources: *defaultSources
-  
+
   golden-test-reset:
     cmds:
-      - stack test --test-arguments="--golden-reset --golden-start"
+      - cabal --enable-nix test --test-options="--golden-reset --golden-start"
     sources: *sources-for-test
 
   elm-gen:
     cmds:
-      - stack run elm-gen
+      - cabal --enable-nix run elm-gen
     sources:
       - *srcFiles
-      - *packageYaml
+      - *cabalFile
       - *elmGenSrcFiles
-  
+
   start-db:
     desc: Starts the database if it's not running
     deps: [setup-db]
@@ -55,15 +55,15 @@ tasks:
       - pg_ctl status -D ./postgres
     cmds:
       - pg_ctl start -D ./postgres -l psql_logfile
-  
+
   stop-db:
     desc: Stops the database if it's running
     status:
       # If the server is already stopped, we can skip
-      - '! pg_ctl status -D ./postgres'
+      - "! pg_ctl status -D ./postgres"
     cmds:
       - pg_ctl stop -D ./postgres
-  
+
   setup-db:
     desc: |
       Anything needed to make sure the DB can be started locally.

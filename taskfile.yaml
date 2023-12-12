@@ -1,9 +1,9 @@
-version: '3'
+version: "3"
 
 includes:
   fe:
     taskfile: ./frontend/taskfile.yaml
-    dir: ./frontend 
+    dir: ./frontend
   be:
     taskfile: ./backend/taskfile.yaml
-    dir: ./backend 
+    dir: ./.
