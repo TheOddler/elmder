@@ -28,11 +28,9 @@
           elmPackages.elm-json # elm.json management
 
           # Stuff for the backend development
-          ghc
           cabal-install
           haskell-language-server
           hlint
-          postgresql
         ];
 
         elmParcelNixFix = {
