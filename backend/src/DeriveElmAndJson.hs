@@ -1,4 +1,4 @@
-module User.DeriveElmAndJson where
+module DeriveElmAndJson where
 
 import Elm.Derive (Options (..), deriveBoth)
 import Language.Haskell.TH qualified as TH

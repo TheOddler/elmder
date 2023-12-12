@@ -30,11 +30,11 @@ library
   exposed-modules:
       DB
       DB.Init
+      DeriveElmAndJson
       SafeMaths
       Server
       ServerM
       User
-      User.DeriveElmAndJson
       User.Fake
       User.GenderIdentity
       User.Impressions

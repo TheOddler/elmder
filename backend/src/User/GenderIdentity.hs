@@ -3,8 +3,8 @@
 module User.GenderIdentity where
 
 import Data.Text (Text)
+import DeriveElmAndJson (deriveElmAndJson)
 import GHC.Generics (Generic)
-import User.DeriveElmAndJson (deriveElmAndJson)
 import Util (reverseEnumToText)
 
 data GenderIdentity
