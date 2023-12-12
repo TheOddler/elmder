@@ -6,4 +6,4 @@ includes:
     dir: ./frontend
   be:
     taskfile: ./backend/taskfile.yaml
-    dir: ./.
+    dir: ./backend

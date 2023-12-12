@@ -1,0 +1,3 @@
+-- This is just here so HLS works properly in VSCode
+-- You can just run the backend from the backend folder without this as well
+packages: backend/*.cabal

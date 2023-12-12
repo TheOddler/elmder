@@ -79,7 +79,7 @@
         };
 
         packages.backend = pkgs.haskellPackages.developPackage {
-          root = ./.;
+          root = ./backend;
           modifier = drv:
             pkgs.haskell.lib.addBuildTools drv (with pkgs; [
               zlib # required for servant

@@ -26,7 +26,7 @@ common shared-properties
 library
   import: shared-properties
   hs-source-dirs:
-      backend/src
+      src
   exposed-modules:
       DB
       DB.Init
@@ -63,7 +63,7 @@ executable backend-exe
   import: shared-properties
   main-is: Main.hs
   hs-source-dirs:
-      backend/exe
+      exe
   build-depends:
       backend
 
@@ -71,7 +71,7 @@ executable elm-gen
   import: shared-properties
   main-is: Main.hs
   hs-source-dirs:
-      backend/elm-gen
+      elm-gen
   build-depends:
       backend
     , elm-bridge
@@ -85,7 +85,7 @@ test-suite backend-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   hs-source-dirs:
-      backend/test
+      test
   build-depends:
       QuickCheck
     , backend
