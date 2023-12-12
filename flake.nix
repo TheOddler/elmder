@@ -57,7 +57,8 @@
         };
       in
       {
-        devShells.default = pkgs.mkShell {
+        devShells.default = pkgs.haskellPackages.shellFor {
+          packages = p: [ self.packages.${system}.backend ];
           buildInputs = buildPackages ++ devPackages;
           inherit (self.checks.${system}.pre-commit-check) shellHook;
         };
