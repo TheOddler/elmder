@@ -21,7 +21,7 @@ tasks:
 
   test:
     cmds:
-      - cabal --enable-nix test --test-option="\"{{.MATCH}}\""
+      - cabal --enable-nix test --test-option="{{.MATCH}}"
     sources: &sources-for-test
       - *srcFiles
       - *cabalFile
