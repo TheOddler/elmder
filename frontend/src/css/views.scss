@@ -8,6 +8,11 @@ $edgePadding: 12pt;
   swiper-container {
     width: 100%;
     height: 100%;
+
+    swiper-slide {
+      // A background for when the image is loading
+      background-color: black;
+    }
   }
 }
 
