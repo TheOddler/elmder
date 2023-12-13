@@ -80,6 +80,20 @@ executable elm-gen
     , servant-server
     , text
 
+executable tools
+  import: shared-properties
+  main-is: Main.hs
+  hs-source-dirs:
+      tools
+  build-depends:
+      backend
+    , fakedata
+    , hasql
+    , hasql-pool
+    , hasql-th
+    , hasql-transaction
+    , servant-client
+
 test-suite backend-test
   import: shared-properties
   type: exitcode-stdio-1.0
