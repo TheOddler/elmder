@@ -2,14 +2,13 @@
   description = "Elmder, a dating-app experiment";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-23.05";
-    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-23.11";
     pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
     flake-utils.url = "github:numtide/flake-utils";
     mkElmDerivation.url = github:jeslie0/mkElmDerivation;
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, pre-commit-hooks, flake-utils, mkElmDerivation }:
+  outputs = { self, nixpkgs, pre-commit-hooks, flake-utils, mkElmDerivation }:
     flake-utils.lib.eachSystem [ flake-utils.lib.system.x86_64-linux ] (system:
       let
         pkgs = import nixpkgs {
@@ -17,10 +16,9 @@
           config.allowBroken = true; # For servant-elm
           inherit system;
         };
-        pkgs-unstable = nixpkgs-unstable.legacyPackages.${system};
 
         devPackages = with pkgs; [
-          pkgs-unstable.go-task # Run commands, like a modern make
+          go-task # Run commands, like a modern make
 
           # Stuff for the frontend development
           nodejs_18
