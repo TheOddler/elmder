@@ -1,14 +1,5 @@
 $height: 3em !default;
 
-.root {
-  padding-bottom: $height !important;
-}
-
-#navbar-space {
-  height: $height;
-  width: 100%;
-}
-
 #navbar {
   position: fixed;
   bottom: 0;

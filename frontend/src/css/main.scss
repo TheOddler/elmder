@@ -14,12 +14,10 @@ body {
 }
 
 .root {
-  padding: 0;
+  padding: 0 0 nav-bar.$height 0;
   margin: 0 auto;
   min-height: 100vh;
-  height: 100vh;
   min-height: 100dvh;
-  height: 100dvh;
   max-width: calc(10/16*100vh);
 }
 
