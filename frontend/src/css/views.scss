@@ -11,15 +11,6 @@ $edgePadding: 12pt;
   swiper-container {
     width: 100%;
     height: 100%;
-
-    swiper-slide {
-      // A background for when the image is loading
-      background: linear-gradient(30deg,
-          rgba(235, 35, 0, 1) 0%,
-          rgba(235, 235, 33, 1) calc(100%/3),
-          rgba(33, 200, 225, 1) calc(200%/3),
-          rgba(200, 0, 255, 1) 100%);
-    }
   }
 }
 
