@@ -5,14 +5,28 @@
 @use 'views';
 
 html,
-body,
-.root {
-  margin: 0 auto;
+body {
+  margin: 0;
   padding: 0;
   width: 100vw;
   height: 100vh;
+  overflow-x: hidden;
+}
+
+// @media screen and (max-width: calc(10/16*100vh)) {
+
+//   html,
+//   body {
+//     overflow-x: hidden;
+//   }
+// }
+
+.root {
+  padding: 0;
+  margin: 0 auto;
+  min-height: 100vh;
+  height: 100%;
   max-width: calc(10/16*100vh);
-  overflow: hidden;
 }
 
 html {
@@ -25,16 +39,6 @@ html {
 *::before,
 *::after {
   box-sizing: inherit;
-}
-
-.root {
-  display: grid;
-  grid-template-columns: 100%;
-  grid-template-rows: 36pt (calc(100vh - 36pt*2)) 36pt;
-  grid-template-areas:
-    "header"
-    "main"
-    "navbar";
 }
 
 img {
@@ -75,9 +79,4 @@ img {
   height: 100%;
   top: 0;
   left: 0;
-}
-
-.scrollable {
-  max-width: 100vw;
-  overflow-y: scroll;
 }

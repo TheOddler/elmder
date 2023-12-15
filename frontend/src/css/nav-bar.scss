@@ -3,8 +3,16 @@
 
 $height: 3em !default;
 
+.root {
+  padding-bottom: $height !important;
+}
+
 .navbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
   height: $height;
+  width: 100vw;
   z-index: 100; // Swiper uses some z-index stuff too, so make sure this is higher
 
   background-color: rgba(42, 42, 50, 1); // for now just closely mimicing my phone's navbar color

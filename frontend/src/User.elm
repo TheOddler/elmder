@@ -100,7 +100,7 @@ viewProfile :
     -> Html msg
 viewProfile interactions user extendedInfo =
     div
-        [ class "profile scrollable" ]
+        [ class "profile" ]
     <|
         viewCard interactions [ class "profile-header" ] { user = user, impression = extendedInfo.userExtImpression }
             :: List.map viewUserSection extendedInfo.userExtProfileSections

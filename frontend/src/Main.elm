@@ -281,8 +281,7 @@ view model =
 viewBody : Model -> Html Msg
 viewBody model =
     div [ class "root" ]
-        [ text "header placeholder"
-        , case model.currentScreen of
+        [ case model.currentScreen of
             ScreenError errors ->
                 div []
                     [ h1 [] [ text "We got one or more errors:" ]
@@ -403,7 +402,7 @@ viewSearch users =
 viewScreenImpression : List UserWithImpression -> Html Msg
 viewScreenImpression users =
     div
-        [ class "user-overview scrollable" ]
+        [ class "user-overview" ]
         (List.map
             (\{ user, impression } ->
                 User.viewCard
