@@ -1,14 +1,15 @@
-version: '3'
+version: "3"
 
 tasks:
   default:
+    - task: install
     - npm run dev
 
   build:
     - nix build .#frontend
-  
+
   install:
     - npm ci
-  
+
   update:
     - npm install
