@@ -65,11 +65,10 @@ $contentMargin: 6pt;
       all: unset;
       flex-grow: 1;
       border-radius: calc($buttonHeight / 2);
-      backdrop-filter: blur(0.2em);
       font-size: calc($buttonHeight / 2);
       cursor: pointer;
 
-      --alpha: 0.2;
+      --alpha: 0.5;
 
       // Center the icon
       display: flex;
@@ -95,7 +94,7 @@ $contentMargin: 6pt;
       &:hover {
         transition: all 0.2s;
         font-size: calc($buttonHeight / 2 * 1.5);
-        --alpha: 0.5;
+        --alpha: 0.75;
         flex-grow: 1.5;
       }
     }
