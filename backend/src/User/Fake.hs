@@ -31,7 +31,7 @@ fakeImgUrl :: Fake Text
 fakeImgUrl = do
   imgWidth <- fromRange (200, 600 :: Int)
   imgHeight <- fromRange (200, 600 :: Int)
-  pure $ "https://placekitten.com/" <> T.pack (show imgWidth) <> "/" <> T.pack (show imgHeight)
+  pure $ "https://loremflickr.com/" <> T.pack (show imgWidth) <> "/" <> T.pack (show imgHeight) <> "/cat"
 
 fakeUserSection :: Fake ProfileSection
 fakeUserSection = do
