@@ -50,6 +50,6 @@ navbar buttons =
                 ]
     in
     div
-        [ class "navbar" ]
+        [ id "navbar" ]
     <|
         List.map viewButton buttons

@@ -6,7 +6,7 @@ import Either exposing (Either(..))
 import Enums exposing (allImpressions)
 import Generated.Backend as Backend exposing (Impression(..), UserExtendedInfo, UserID, UserOverviewInfo)
 import Html exposing (Html, a, button, div, h1, li, text, ul)
-import Html.Attributes exposing (class, href)
+import Html.Attributes exposing (class, href, id)
 import Html.Components exposing (navbar)
 import Html.Events exposing (onClick)
 import Http
@@ -372,6 +372,7 @@ viewBody model =
             searchButton
                 :: impressionsButtons
                 ++ [ myProfileButton ]
+        , div [ id "navbar-space" ] []
         ]
 
 

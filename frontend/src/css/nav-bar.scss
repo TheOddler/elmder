@@ -7,7 +7,12 @@ $height: 3em !default;
   padding-bottom: $height !important;
 }
 
-.navbar {
+#navbar-space {
+  height: $height;
+  width: 100%;
+}
+
+#navbar {
   position: fixed;
   bottom: 0;
   left: 0;
