@@ -4,12 +4,16 @@
 @use 'images';
 @use 'views';
 
-html,
+
+html {
+  box-sizing: border-box;
+  overflow-wrap: break-word;
+  text-align: justify;
+}
+
 body {
   margin: 0;
   padding: 0;
-  width: 100vw;
-  height: 100vh;
   overflow-x: hidden;
 }
 
@@ -19,12 +23,6 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
   max-width: calc(10/16*100vh);
-}
-
-html {
-  box-sizing: border-box;
-  overflow-wrap: break-word;
-  text-align: justify;
 }
 
 *,
