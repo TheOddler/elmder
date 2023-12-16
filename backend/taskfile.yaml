@@ -54,6 +54,9 @@ tasks:
       # If the server is already running, we can skip.
       - pg_ctl status -D ./postgres
     cmds:
+      # Often this folder is missing, so we create just in case
+      - sudo mkdir -p /run/postgresql
+      - sudo chown -R $USER /run/postgresql
       - pg_ctl start -D ./postgres -l psql_logfile
 
   stop-db:
