@@ -153,8 +153,13 @@ update message model =
             handlError <| prefix ++ ": " ++ httpErrorToString error
     in
     case message of
-        OnUrlRequest _ ->
-            ( model, Cmd.none )
+        OnUrlRequest urlRequest ->
+            case urlRequest of
+                Browser.Internal url ->
+                    ( model, Nav.pushUrl model.navKey (Url.toString url) )
+
+                Browser.External url ->
+                    handlError <| "Unknown url: " ++ url
 
         OnUrlChange url ->
             case urlToRoute url of
