@@ -158,8 +158,9 @@ update message model =
                 Browser.Internal url ->
                     ( model, Nav.pushUrl model.navKey (Url.toString url) )
 
-                Browser.External url ->
-                    handlError <| "Unknown url: " ++ url
+                Browser.External href ->
+                    -- TODO: Consider showing a "you are leaving the app, are you sure?" page
+                    ( model, Nav.load href )
 
         OnUrlChange url ->
             case urlToRoute url of
