@@ -1,6 +1,7 @@
 module Main exposing (..)
 
 import Browser exposing (UrlRequest)
+import Browser.Dom exposing (Viewport, getViewport, setViewport)
 import Browser.Navigation as Nav
 import Either exposing (Either(..))
 import Enums exposing (allImpressions)
@@ -10,6 +11,7 @@ import Html.Attributes exposing (class, href)
 import Html.Components exposing (navbar)
 import Html.Events exposing (onClick)
 import Http
+import List.Extra as List
 import Ports exposing (swiperSlideNext)
 import Routing exposing (Route(..), impressionToUrlSegement, routeToUrl, urlToRoute)
 import StringExtra as String
@@ -26,6 +28,47 @@ type Screen
     | ScreenMyProfile
     | ScreenOtherUser UserOverviewInfo UserExtendedInfo
     | ScreenError (List String)
+
+
+isSameScreen : Screen -> Screen -> Bool
+isSameScreen a b =
+    case ( a, b ) of
+        ( ScreenLoading, ScreenLoading ) ->
+            True
+
+        ( ScreenSearch _, ScreenSearch _ ) ->
+            True
+
+        ( ScreenImpression imprA _, ScreenImpression imprB _ ) ->
+            imprA == imprB
+
+        ( ScreenMyProfile, ScreenMyProfile ) ->
+            True
+
+        ( ScreenOtherUser infoA _, ScreenOtherUser infoB _ ) ->
+            infoA.userId == infoB.userId
+
+        ( ScreenError _, ScreenError _ ) ->
+            True
+
+        -- Don't use a default case here, so that we get a compiler warning if we add a new screen
+        ( ScreenLoading, _ ) ->
+            False
+
+        ( ScreenSearch _, _ ) ->
+            False
+
+        ( ScreenImpression _ _, _ ) ->
+            False
+
+        ( ScreenMyProfile, _ ) ->
+            False
+
+        ( ScreenOtherUser _ _, _ ) ->
+            False
+
+        ( ScreenError _, _ ) ->
+            False
 
 
 routeToScreen : AppSettings -> Route -> Cmd (Result Http.Error Screen)
@@ -49,20 +92,27 @@ routeToScreen settings route =
                 (Result.map (\allInfo -> ScreenOtherUser allInfo.userAllOverviewInfo allInfo.userAllExtendedInfo))
 
 
+type alias ScrollPosition =
+    Float
+
+
 type alias Model =
     { navKey : Nav.Key
     , settings : AppSettings
     , currentScreen : Screen
+    , screenStack : List ( Screen, ScrollPosition )
     }
 
 
 type Msg
-    = OnUrlRequest UrlRequest
+    = NoOp
+    | OnUrlRequest UrlRequest
     | OnUrlChange Url
     | NavigateTo Route
     | ScreenLoadingResult Route (Result Http.Error Screen)
     | SetUserImpression UserID Impression
     | GotSetUserImpressionResult UserID (Result Http.Error ())
+    | SaveScrollPositionAndContinue (Cmd Msg) Viewport
 
 
 type alias AppSettings =
@@ -87,6 +137,7 @@ init settings url navKey =
     ( { navKey = navKey
       , settings = settings
       , currentScreen = ScreenLoading
+      , screenStack = []
       }
     , case urlToRoute url of
         Nothing ->
@@ -153,6 +204,19 @@ update message model =
             handlError <| prefix ++ ": " ++ httpErrorToString error
     in
     case message of
+        NoOp ->
+            ( model, Cmd.none )
+
+        SaveScrollPositionAndContinue cmd vp ->
+            let
+                cleanedScreenStack =
+                    List.filter (not << isSameScreen model.currentScreen << Tuple.first) model.screenStack
+
+                newScreenStack =
+                    ( model.currentScreen, vp.viewport.y ) :: cleanedScreenStack
+            in
+            ( { model | screenStack = newScreenStack }, cmd )
+
         OnUrlRequest urlRequest ->
             case urlRequest of
                 Browser.Internal url ->
@@ -168,19 +232,24 @@ update message model =
                     handlError "Unknown route."
 
                 Just route ->
-                    ( model
-                      -- { model | currentScreen = ScreenLoading }
+                    ( { model | currentScreen = ScreenLoading }
                     , Cmd.map (ScreenLoadingResult route) (routeToScreen model.settings route)
                     )
 
         NavigateTo route ->
             ( model
-              -- { model | currentScreen = ScreenLoading }
-            , Nav.pushUrl model.navKey (routeToUrl route)
+            , Task.perform (SaveScrollPositionAndContinue <| Nav.pushUrl model.navKey (routeToUrl route)) getViewport
             )
 
         ScreenLoadingResult _ (Ok newScreen) ->
-            ( { model | currentScreen = newScreen }, Cmd.none )
+            ( { model | currentScreen = newScreen }
+            , case List.find (isSameScreen newScreen << Tuple.first) model.screenStack of
+                Nothing ->
+                    Cmd.none
+
+                Just ( _, pos ) ->
+                    Task.perform (\() -> NoOp) (setViewport 0 pos)
+            )
 
         ScreenLoadingResult route (Err error) ->
             let
