@@ -42,8 +42,7 @@ library
       Util
       Web
   build-depends:
-      bytestring
-    , elm-bridge
+      elm-bridge
     , fakedata
     , hasql
     , hasql-interpolate
