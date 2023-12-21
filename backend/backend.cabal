@@ -100,6 +100,11 @@ test-suite backend-test
   main-is: Spec.hs
   hs-source-dirs:
       test
+  other-modules:
+      DistanceSpec
+      SafeMathsSpec
+      SydTestExtra
+      TestUtil
   build-depends:
       QuickCheck
     , backend
@@ -110,6 +115,5 @@ test-suite backend-test
     , sydtest
     , sydtest-servant
     , sydtest-wai
-    , text
     , time
     , tmp-postgres
