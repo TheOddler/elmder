@@ -112,6 +112,8 @@ data GenderIdentity
   | Xenogender
   deriving (Generic, Show, Eq, Enum, Bounded)
 
+deriveElmAndJson ''GenderIdentity
+
 instance EncodeValue GenderIdentity where
   encodeValue = Encoders.enum genderIdentityToSQL
 
@@ -220,5 +222,3 @@ genderIdentityToSQL = \case
   XGender -> "x_gender"
   XJenda -> "x_jenda"
   Xenogender -> "xenogender"
-
-deriveElmAndJson ''GenderIdentity
