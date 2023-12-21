@@ -5,6 +5,9 @@ module User.GenderIdentity where
 import Data.Text (Text)
 import DeriveElmAndJson (deriveElmAndJson)
 import GHC.Generics (Generic)
+import Hasql.Decoders qualified as Decoders
+import Hasql.Encoders qualified as Encoders
+import Hasql.Interpolate (DecodeValue (..), EncodeValue (..))
 import Util (reverseEnumToText)
 
 data GenderIdentity
@@ -109,6 +112,12 @@ data GenderIdentity
   | Xenogender
   deriving (Generic, Show, Eq, Enum, Bounded)
 
+instance EncodeValue GenderIdentity where
+  encodeValue = Encoders.enum genderIdentityToSQL
+
+instance DecodeValue GenderIdentity where
+  decodeValue = Decoders.enum $ reverseEnumToText genderIdentityToSQL
+
 -- | Convert a 'RelationshipStatus' to a SQL name for it.
 genderIdentityToSQL :: GenderIdentity -> Text
 genderIdentityToSQL = \case
@@ -211,8 +220,5 @@ genderIdentityToSQL = \case
   XGender -> "x_gender"
   XJenda -> "x_jenda"
   Xenogender -> "xenogender"
-
-sqlToGenderIdentity :: Text -> Maybe GenderIdentity
-sqlToGenderIdentity = reverseEnumToText genderIdentityToSQL
 
 deriveElmAndJson ''GenderIdentity

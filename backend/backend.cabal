@@ -46,8 +46,8 @@ library
     , elm-bridge
     , fakedata
     , hasql
+    , hasql-interpolate
     , hasql-pool
-    , hasql-th
     , hasql-transaction
     , servant-elm
     , servant-server
@@ -55,7 +55,6 @@ library
     , text
     , time
     , transformers
-    , vector
     , wai-cors
     , warp
 
@@ -88,11 +87,8 @@ executable tools
   build-depends:
       backend
     , fakedata
-    , hasql
     , hasql-pool
-    , hasql-th
     , hasql-transaction
-    , servant-client
 
 test-suite backend-test
   import: shared-properties

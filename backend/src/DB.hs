@@ -5,9 +5,10 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Reader (asks)
 import Data.Time (secondsToDiffTime)
 import Hasql.Connection qualified
+import Hasql.Interpolate (DecodeResult, Sql, interp)
 import Hasql.Pool qualified
 import Hasql.Session qualified
-import Hasql.Transaction (Transaction)
+import Hasql.Transaction (Transaction, statement)
 import Hasql.Transaction.Sessions (IsolationLevel (..), Mode (..), transaction)
 import ServerM (ServerEnv (dbConnectionPool), ServerM)
 
@@ -41,3 +42,9 @@ runHasqlWithIsolationLevel isolationLevel sql =
   -- it's only as a safety check, disallowing any updates. So it doesn't really matter
   -- to make all queries write queries, and that's one less thing to think about for now.
   runSession $ transaction isolationLevel Write sql
+
+sqlTransaction :: (DecodeResult a) => Sql -> Transaction a
+sqlTransaction = statement () . interp False -- Should I prepare here instead? (False -> True)
+
+sqlTransaction_ :: Sql -> Transaction ()
+sqlTransaction_ = sqlTransaction

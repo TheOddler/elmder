@@ -4,7 +4,7 @@
 module User.Fake where
 
 import Control.Monad.IO.Class (liftIO)
-import DB (runHasql)
+import DB (runHasql, sqlTransaction)
 import Data.List (genericTake)
 import Data.Maybe (catMaybes)
 import Data.Text (Text)
@@ -18,8 +18,7 @@ import Faker.Food qualified
 import Faker.FunnyName qualified
 import Faker.Name qualified
 import Faker.Superhero qualified
-import Hasql.TH (singletonStatement)
-import Hasql.Transaction (statement)
+import Hasql.Interpolate (getOneColumn, getOneRow, sql)
 import SafeMaths (int32ToInt)
 import ServerM (ServerM)
 import User
@@ -89,6 +88,7 @@ ensureSomeUsersInDB wanted = do
   -- We generate these here first, so we can do the check and insert queries as a single transaction
   fakeUsers <- liftIO $ generateNonDeterministic $ listOf wanted fakeNewUser
   runHasql $ do
-    currentCount <- statement () [singletonStatement| SELECT COUNT(*) :: int FROM users |]
+    row <- sqlTransaction [sql| SELECT COUNT(*) :: int FROM users |]
+    let currentCount = getOneColumn $ getOneRow row
     let usersToAdd = genericTake (wanted - int32ToInt currentCount) fakeUsers
     mapM createNewUser usersToAdd
