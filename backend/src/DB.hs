@@ -33,15 +33,16 @@ runSession session = do
 
 runHasql :: Transaction result -> ServerM result
 runHasql =
-  -- ReadCommitted is the default of Postgres, so we make it the default for us too
-  runHasqlWithIsolationLevel ReadCommitted
-
-runHasqlWithIsolationLevel :: IsolationLevel -> Transaction result -> ServerM result
-runHasqlWithIsolationLevel isolationLevel sql =
+  -- Isolation level: ReadCommitted is the default of Postgres,
+  -- so we make it the default for us too
   -- Read/Write mode: Postgres doesn't actually do any optimisations for read-only
   -- it's only as a safety check, disallowing any updates. So it doesn't really matter
   -- to make all queries write queries, and that's one less thing to think about for now.
-  runSession $ transaction isolationLevel Write sql
+  runHasql' ReadCommitted Write
+
+runHasql' :: IsolationLevel -> Mode -> Transaction result -> ServerM result
+runHasql' isolationLevel readWriteMode sql =
+  runSession $ transaction isolationLevel readWriteMode sql
 
 sqlTransaction :: (DecodeResult a) => Sql -> Transaction a
 sqlTransaction = statement () . interp False -- Should I prepare here instead? (False -> True)
