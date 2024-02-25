@@ -42,11 +42,12 @@ library
       Util
       Web
   build-depends:
-      elm-bridge
+      bytestring
+    , elm-bridge
     , fakedata
     , hasql
-    , hasql-interpolate
     , hasql-pool
+    , hasql-th
     , hasql-transaction
     , servant-elm
     , servant-server
@@ -54,6 +55,7 @@ library
     , text
     , time
     , transformers
+    , vector
     , wai-cors
     , warp
 

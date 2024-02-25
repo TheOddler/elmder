@@ -4,9 +4,6 @@ module User.Impressions where
 
 import Data.Text (Text)
 import Elm.Derive (deriveBoth)
-import Hasql.Decoders qualified as Decoders
-import Hasql.Encoders qualified as Encoders
-import Hasql.Interpolate (DecodeValue (..), EncodeValue (..))
 import Servant (FromHttpApiData (..), ToHttpApiData (..))
 import Servant.Elm qualified
 import Util (reverseEnumToText)
@@ -33,12 +30,6 @@ instance FromHttpApiData Impression where
     Nothing -> Left $ "Invalid impression: " <> t
     Just x -> Right x
 
-instance EncodeValue Impression where
-  encodeValue = Encoders.enum impressionToSQL
-
-instance DecodeValue Impression where
-  decodeValue = Decoders.enum $ reverseEnumToText impressionToSQL
-
 -- | Convert a 'RelationshipStatus' to a SQL name for it.
 impressionToSQL :: Impression -> Text
 impressionToSQL = \case
@@ -46,3 +37,6 @@ impressionToSQL = \case
   ImpressionDislike -> "dislike"
   ImpressionDecideLater -> "decide_later"
   ImpressionSuperLike -> "super_like"
+
+impressionFromSQL :: Text -> Maybe Impression
+impressionFromSQL = reverseEnumToText impressionToSQL

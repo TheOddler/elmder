@@ -5,10 +5,9 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Reader (asks)
 import Data.Time (secondsToDiffTime)
 import Hasql.Connection qualified
-import Hasql.Interpolate (DecodeResult, Sql, interp)
 import Hasql.Pool qualified
 import Hasql.Session qualified
-import Hasql.Transaction (Transaction, statement)
+import Hasql.Transaction (Transaction)
 import Hasql.Transaction.Sessions (IsolationLevel (..), Mode (..), transaction)
 import ServerM (ServerEnv (dbConnectionPool), ServerM)
 
@@ -43,9 +42,3 @@ runHasql =
 runHasql' :: IsolationLevel -> Mode -> Transaction result -> ServerM result
 runHasql' isolationLevel readWriteMode sql =
   runSession $ transaction isolationLevel readWriteMode sql
-
-sqlTransaction :: (DecodeResult a) => Sql -> Transaction a
-sqlTransaction = statement () . interp False -- Should I prepare here instead? (False -> True)
-
-sqlTransaction_ :: Sql -> Transaction ()
-sqlTransaction_ = sqlTransaction
