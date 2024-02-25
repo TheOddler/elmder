@@ -1,4 +1,4 @@
-$height: 3em !default;
+$height: 3em;
 
 #navbar {
   position: fixed;
@@ -23,10 +23,18 @@ $height: 3em !default;
     justify-content: center;
     align-items: center;
 
+    transition: 0.3s;
+
     // box-shadow: inset 0px 0px 1em rgba(255, 255, 0, 0.5); // for debugging
 
     &.selected {
       color: white;
+    }
+
+    &.hidden {
+      width: 0;
+      flex-grow: 0;
+      overflow: hidden;
     }
   }
 }

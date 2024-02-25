@@ -27,6 +27,7 @@ type alias NavbarButton msg =
     { icon : String -- The font-awesome icon name, this should include the style (fa-regular/fa-solid/...) as not all are available for free
     , onSelect : msg
     , isSelected : Bool
+    , isVisible : Bool -- Used to hide buttons that are not available, but we still want them in the dom so we can do animations on them
     }
 
 
@@ -39,12 +40,11 @@ navbar buttons =
         viewButton btn =
             div
                 [ onClick <| btn.onSelect
-                , class <|
-                    if btn.isSelected then
-                        "button selected"
-
-                    else
-                        "button"
+                , classList
+                    [ ( "button", True )
+                    , ( "selected", btn.isSelected )
+                    , ( "hidden", not btn.isVisible )
+                    ]
                 ]
                 [ i [ class <| btn.icon ] []
                 ]

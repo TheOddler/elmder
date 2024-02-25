@@ -10,8 +10,10 @@ import Html exposing (Html, a, button, div, h1, li, text, ul)
 import Html.Attributes exposing (class, href)
 import Html.Components exposing (navbar)
 import Html.Events exposing (onClick)
+import Html.Keyed as Keyed
 import Http
 import List.Extra as List
+import Maybe.Extra exposing (isJust)
 import Ports exposing (swiperSlideNext)
 import Routing exposing (Route(..), impressionToUrlSegement, routeToUrl, urlToRoute)
 import StringExtra as String
@@ -22,7 +24,9 @@ import User exposing (UserInteractions, UserWithImpression)
 
 
 type Screen
-    = ScreenLoading
+    = ScreenInitialLoading -- The very first loading of the app
+    | ScreenLoading Screen
+      -- ^ When loading a new screen, we keep the old one around so we can render a nicer transition
     | ScreenSearch (List UserWithImpression)
     | ScreenImpression Impression (List UserWithImpression)
     | ScreenMyProfile
@@ -33,8 +37,11 @@ type Screen
 isSameScreen : Screen -> Screen -> Bool
 isSameScreen a b =
     case ( a, b ) of
-        ( ScreenLoading, ScreenLoading ) ->
+        ( ScreenInitialLoading, ScreenInitialLoading ) ->
             True
+
+        ( ScreenLoading a_, ScreenLoading b_ ) ->
+            isSameScreen a_ b_
 
         ( ScreenSearch _, ScreenSearch _ ) ->
             True
@@ -52,7 +59,10 @@ isSameScreen a b =
             True
 
         -- Don't use a default case here, so that we get a compiler warning if we add a new screen
-        ( ScreenLoading, _ ) ->
+        ( ScreenInitialLoading, _ ) ->
+            False
+
+        ( ScreenLoading _, _ ) ->
             False
 
         ( ScreenSearch _, _ ) ->
@@ -136,7 +146,7 @@ init : AppSettings -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init settings url navKey =
     ( { navKey = navKey
       , settings = settings
-      , currentScreen = ScreenLoading
+      , currentScreen = ScreenInitialLoading
       , screenStack = []
       }
     , case urlToRoute url of
@@ -232,7 +242,7 @@ update message model =
                     handlError "Unknown route."
 
                 Just route ->
-                    ( { model | currentScreen = ScreenLoading }
+                    ( { model | currentScreen = ScreenLoading model.currentScreen }
                     , Cmd.map (ScreenLoadingResult route) (routeToScreen model.settings route)
                     )
 
@@ -317,8 +327,11 @@ httpErrorToString error =
 view : Model -> Browser.Document Msg
 view model =
     let
-        suffix =
-            case model.currentScreen of
+        titleSuffixFor screen =
+            case screen of
+                ScreenInitialLoading ->
+                    "Loading..."
+
                 ScreenSearch _ ->
                     "Search"
 
@@ -342,111 +355,137 @@ view model =
                 ScreenOtherUser user _ ->
                     user.userName
 
-                ScreenLoading ->
-                    "Loading..."
+                ScreenLoading prev ->
+                    titleSuffixFor prev
 
                 ScreenError _ ->
                     "Error"
     in
-    { title = "Elmder" ++ " - " ++ suffix
+    { title = "Elmder" ++ " - " ++ titleSuffixFor model.currentScreen
     , body = [ viewBody model ]
     }
 
 
 viewBody : Model -> Html Msg
 viewBody model =
-    div [ class "root" ]
-        [ case model.currentScreen of
-            ScreenError errors ->
-                div []
-                    [ h1 [] [ text "We got one or more errors:" ]
-                    , ul [] <| List.map (\err -> li [] [ text err ]) errors
-                    , button [ onClick (NavigateTo RouteSearch) ] [ text "Clear errors" ]
-                    ]
-
-            ScreenLoading ->
-                div [ class "center-content" ]
-                    [ text "Loading..." ]
-
-            ScreenSearch foundUsers ->
-                viewSearch foundUsers
-
-            ScreenImpression _ users ->
-                viewScreenImpression users
-
-            ScreenMyProfile ->
-                div [ class "center-content" ] <|
-                    text "Your profile will come here. But for now there's just this palceholder and the attributions."
-                        :: h1 [] [ text "We use:" ]
-                        :: List.map (\( label, url ) -> a [ href url ] [ text label ])
-                            [ ( "loading.io", "https://loading.io/" )
-                            , ( "Font Awesome", "https://fontawesome.com/" )
-                            ]
-
-            ScreenOtherUser info extInfo ->
-                User.viewProfile userInteractions info extInfo
-        , let
-            imprIcon impr =
-                case impr of
-                    ImpressionLike ->
-                        "fa-solid fa-heart"
-
-                    ImpressionDislike ->
-                        "fa-solid fa-heart-broken"
-
-                    ImpressionDecideLater ->
-                        "fa-solid fa-clock"
-
-                    ImpressionSuperLike ->
-                        "fa-solid fa-hand-holding-heart"
-
-            searchButton =
-                { icon = "fa-solid fa-magnifying-glass"
-                , onSelect = NavigateTo RouteSearch
-                , isSelected =
-                    case model.currentScreen of
-                        ScreenSearch _ ->
-                            True
-
-                        _ ->
-                            False
-                }
-
-            impressionsButtons =
-                case model.currentScreen of
-                    ScreenImpression impression _ ->
-                        let
-                            mkImpressionButton impr =
-                                { icon = imprIcon impr
-                                , onSelect = NavigateTo <| RouteImpression impr
-                                , isSelected = impr == impression
-                                }
-                        in
-                        List.map mkImpressionButton allImpressions
-
-                    _ ->
-                        [ { icon = "fa-solid fa-heart-pulse"
-                          , onSelect = NavigateTo <| RouteImpression ImpressionLike
-                          , isSelected = False -- This button is only shown on the other screens
-                          }
+    let
+        viewScreen screen =
+            case screen of
+                ScreenError errors ->
+                    div []
+                        [ h1 [] [ text "We got one or more errors:" ]
+                        , ul [] <| List.map (\err -> li [] [ text err ]) errors
+                        , button [ onClick (NavigateTo RouteSearch) ] [ text "Clear errors" ]
                         ]
 
-            myProfileButton =
-                { icon = "fa-solid fa-user"
-                , onSelect = NavigateTo RouteMyProfile
-                , isSelected =
-                    case model.currentScreen of
-                        ScreenMyProfile ->
-                            True
+                ScreenInitialLoading ->
+                    div [ class "center-content" ]
+                        [ text "Loading..." ]
 
-                        _ ->
-                            False
-                }
-          in
-          navbar <|
-            searchButton
-                :: impressionsButtons
-                ++ [ myProfileButton ]
+                ScreenLoading prev ->
+                    viewScreen prev
+
+                ScreenSearch foundUsers ->
+                    viewSearch foundUsers
+
+                ScreenImpression _ users ->
+                    viewScreenImpression users
+
+                ScreenMyProfile ->
+                    div [ class "center-content" ] <|
+                        text "Your profile will come here. But for now there's just this palceholder and the attributions."
+                            :: h1 [] [ text "We use:" ]
+                            :: List.map (\( label, url ) -> a [ href url ] [ text label ])
+                                [ ( "loading.io", "https://loading.io/" )
+                                , ( "Font Awesome", "https://fontawesome.com/" )
+                                ]
+
+                ScreenOtherUser info extInfo ->
+                    User.viewProfile userInteractions info extInfo
+
+        viewNavBar =
+            let
+                imprIcon impr =
+                    case impr of
+                        ImpressionLike ->
+                            "fa-solid fa-heart"
+
+                        ImpressionDislike ->
+                            "fa-solid fa-heart-broken"
+
+                        ImpressionDecideLater ->
+                            "fa-solid fa-clock"
+
+                        ImpressionSuperLike ->
+                            "fa-solid fa-hand-holding-heart"
+
+                searchButton =
+                    { icon = "fa-solid fa-magnifying-glass"
+                    , onSelect = NavigateTo RouteSearch
+                    , isSelected =
+                        case model.currentScreen of
+                            ScreenSearch _ ->
+                                True
+
+                            _ ->
+                                False
+                    , isVisible = True
+                    }
+
+                impressionsButtons =
+                    let
+                        currentImpression =
+                            case model.currentScreen of
+                                ScreenImpression impr _ ->
+                                    Just impr
+
+                                ScreenLoading (ScreenImpression impr _) ->
+                                    Just impr
+
+                                _ ->
+                                    Nothing
+                    in
+                    let
+                        mkImpressionButton impr =
+                            { icon = imprIcon impr
+                            , onSelect = NavigateTo <| RouteImpression impr
+                            , isSelected = Just impr == currentImpression
+                            , isVisible = isJust currentImpression || impr == ImpressionLike
+                            }
+                    in
+                    List.map mkImpressionButton allImpressions
+
+                myProfileButton =
+                    { icon = "fa-solid fa-user"
+                    , onSelect = NavigateTo RouteMyProfile
+                    , isSelected =
+                        case model.currentScreen of
+                            ScreenMyProfile ->
+                                True
+
+                            _ ->
+                                False
+                    , isVisible = True
+                    }
+            in
+            navbar <|
+                searchButton
+                    :: impressionsButtons
+                    ++ [ myProfileButton ]
+    in
+    Keyed.node "div"
+        [ class "root" ]
+    <|
+        [ ( "screen", viewScreen model.currentScreen )
+        , ( "loading"
+          , case model.currentScreen of
+                ScreenLoading _ ->
+                    div [ class "loading-overlay" ] [ text "Loading..." ]
+
+                _ ->
+                    text ""
+          )
+        , ( "navbar", viewNavBar )
         ]
 
 
