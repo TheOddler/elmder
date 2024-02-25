@@ -338,7 +338,7 @@ getUsersWithImpressionBy userID impression = do
         JOIN users other ON other.id <> me.id
         JOIN impressions ON impressions.user_id = me.id AND impressions.other_user_id = other.id
         WHERE me.id = #{userID}
-        AND impressions.impression = #{impression}
+        AND impressions.impression = #{impression}::impression
         ORDER BY impressions.timestamp DESC
       |]
   pure $ userOverviewInfoFromSQL <$> rows
@@ -347,7 +347,7 @@ setImpressionBy :: UserID -> Impression -> UserID -> Transaction ()
 setImpressionBy myID impression otherUserID =
   sqlTransaction
     [sql|
-      INSERT INTO impressions (
+      INSERT LALALA impressions (
         user_id,
         impression,
         other_user_id,
@@ -360,6 +360,6 @@ setImpressionBy myID impression otherUserID =
         CURRENT_TIMESTAMP
       )
       ON CONFLICT (user_id, other_user_id) DO UPDATE SET 
-        impression = #{impression},
+        impression = #{impression}::impression,
         timestamp = CURRENT_TIMESTAMP
     |]
