@@ -13,7 +13,7 @@ import Hasql.Transaction (Transaction, statement)
 import SafeMaths (age)
 import User (NewUserInfo (..), ProfileSection (..), RelationshipStatus (..), UserExtendedInfo (..), UserID (..), UserOverviewInfo, sqlToRelationshipStatus)
 import User.GenderIdentity (genderIdentityToSQL)
-import User.Impressions (Impression (..), impressionFromSQL, impressionToSQL)
+import User.Impressions (Impression (..), impressionToSQL)
 import User.TH (userOverviewInfoDecoder, userOverviewInfoStatement, usersOverviewInfoStatement)
 
 -- | Get the information about a different user
@@ -39,16 +39,15 @@ getUserExtendedInfo myID otherID = do
           join_day :: date,
           CURRENT_DATE :: date,
           description :: text,
-          relationship_status :: text,
-          impression :: text?
+          relationship_status :: text
         FROM users
         LEFT JOIN impressions ON impressions.user_id = $1 :: int AND impressions.other_user_id = $2 :: int
         WHERE id = $2 :: int
       |]
   pure $ fromSQL rows
   where
-    fromSQL :: (Day, Day, Text, Text, Maybe Text) -> UserExtendedInfo
-    fromSQL (profileDate, currentDate, description, relationshipStatus, impression) =
+    fromSQL :: (Day, Day, Text, Text) -> UserExtendedInfo
+    fromSQL (profileDate, currentDate, description, relationshipStatus) =
       UserExtendedInfo
         { -- TODO: Implement actually getting this stuff from the DB
           userExtProfileAge = age currentDate profileDate,
@@ -82,8 +81,7 @@ getUserExtendedInfo myID otherID = do
               UserSectionGeneric "Generic header" "Generic content",
               UserSectionGeneric "Generic header" "Generic content"
             ],
-          userExtRelationshipStatus = fromMaybe RelationshipStatusUnknown $ sqlToRelationshipStatus relationshipStatus,
-          userExtImpression = impressionFromSQL =<< impression
+          userExtRelationshipStatus = fromMaybe RelationshipStatusUnknown $ sqlToRelationshipStatus relationshipStatus
         }
 
 createNewUser :: NewUserInfo -> Transaction UserID

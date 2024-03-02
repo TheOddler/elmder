@@ -9,26 +9,20 @@ import StringExtra as String
 import Swiper
 
 
-type alias UserWithImpression =
-    { user : UserOverviewInfo
-    , impression : Maybe Impression
-    }
-
-
 type alias UserInteractions msg =
     { setImpression : UserID -> Impression -> msg
     , viewProfile : UserID -> msg
     }
 
 
-viewCard : UserInteractions msg -> List (Attribute msg) -> UserWithImpression -> Html msg
+viewCard : UserInteractions msg -> List (Attribute msg) -> UserOverviewInfo -> Html msg
 viewCard interactions attributes userWithImpression =
     card
         attributes
         (viewCardContent interactions userWithImpression)
 
 
-viewCardAsSwiperSlide : UserInteractions msg -> UserWithImpression -> Swiper.Slide msg
+viewCardAsSwiperSlide : UserInteractions msg -> UserOverviewInfo -> Swiper.Slide msg
 viewCardAsSwiperSlide interactions userWithImpression =
     Swiper.slideWithClass "card"
         (viewCardContent interactions userWithImpression)
@@ -39,8 +33,8 @@ type IncludeImpressionButtons
     | NoButtons
 
 
-viewCardContent : UserInteractions msg -> UserWithImpression -> List (Html msg)
-viewCardContent interactions { user, impression } =
+viewCardContent : UserInteractions msg -> UserOverviewInfo -> List (Html msg)
+viewCardContent interactions user =
     [ Html.img
         [ src user.userHeaderImageUrl
         , onClickStopPropagation <| interactions.viewProfile user.userId
@@ -66,7 +60,7 @@ viewCardContent interactions { user, impression } =
                 button
                     [ class className
                     , class <|
-                        if impression == Just impr then
+                        if user.userImpression == Just impr then
                             "selected"
 
                         else
@@ -102,7 +96,7 @@ viewProfile interactions user extendedInfo =
     div
         [ class "profile" ]
     <|
-        viewCard interactions [ class "profile-header" ] { user = user, impression = extendedInfo.userExtImpression }
+        viewCard interactions [ class "profile-header" ] user
             :: List.map viewUserSection extendedInfo.userExtProfileSections
 
 

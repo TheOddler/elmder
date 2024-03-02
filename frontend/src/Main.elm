@@ -20,15 +20,15 @@ import StringExtra as String
 import Swiper
 import Task exposing (perform, succeed)
 import Url exposing (Url)
-import User exposing (UserInteractions, UserWithImpression)
+import User exposing (UserInteractions)
 
 
 type Screen
     = ScreenInitialLoading -- The very first loading of the app
     | ScreenLoading Screen
       -- ^ When loading a new screen, we keep the old one around so we can render a nicer transition
-    | ScreenSearch (List UserWithImpression)
-    | ScreenImpression Impression (List UserWithImpression)
+    | ScreenSearch (List UserOverviewInfo)
+    | ScreenImpression Impression (List UserOverviewInfo)
     | ScreenMyProfile
     | ScreenOtherUser UserOverviewInfo UserExtendedInfo
     | ScreenError (List String)
@@ -85,13 +85,12 @@ routeToScreen : AppSettings -> Route -> Cmd (Result Http.Error Screen)
 routeToScreen settings route =
     case route of
         RouteSearch ->
-            Backend.getUserSearch settings.backendUrl
-                (Result.map (ScreenSearch << List.map (\u -> { user = u, impression = Nothing })))
+            Backend.getUserSearch settings.backendUrl (Result.map ScreenSearch)
 
         RouteImpression impression ->
             Backend.getUserImpressionsByImpression settings.backendUrl
                 impression
-                (Result.map (ScreenImpression impression << List.map (\u -> { user = u, impression = Just impression })))
+                (Result.map <| ScreenImpression impression)
 
         RouteMyProfile ->
             perform Ok (succeed ScreenMyProfile)
@@ -166,12 +165,12 @@ subscriptions _ =
 updateImpression : UserID -> Maybe Impression -> Model -> Model
 updateImpression userID impression model =
     let
-        updateUser userWithImpression =
-            if userWithImpression.user.userId == userID then
-                { userWithImpression | impression = impression }
+        updateUser user =
+            if user.userId == userID then
+                { user | userImpression = impression }
 
             else
-                userWithImpression
+                user
 
         newScreen =
             case model.currentScreen of
@@ -182,11 +181,7 @@ updateImpression userID impression model =
                     ScreenImpression impr <| List.map updateUser users
 
                 ScreenOtherUser info extInfo ->
-                    if info.userId == userID then
-                        ScreenOtherUser info { extInfo | userExtImpression = impression }
-
-                    else
-                        model.currentScreen
+                    ScreenOtherUser (updateUser info) extInfo
 
                 _ ->
                     model.currentScreen
@@ -496,7 +491,7 @@ userInteractions =
     }
 
 
-viewSearch : List UserWithImpression -> Html Msg
+viewSearch : List UserOverviewInfo -> Html Msg
 viewSearch users =
     let
         viewSlide userWithImpr =
@@ -513,16 +508,16 @@ viewSearch users =
         ]
 
 
-viewScreenImpression : List UserWithImpression -> Html Msg
+viewScreenImpression : List UserOverviewInfo -> Html Msg
 viewScreenImpression users =
     div
         [ class "user-overview" ]
         (List.map
-            (\{ user, impression } ->
+            (\user ->
                 User.viewCard
                     userInteractions
                     [ onClick <| userInteractions.viewProfile user.userId ]
-                    { user = user, impression = impression }
+                    user
             )
             users
         )

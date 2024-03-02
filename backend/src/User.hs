@@ -43,10 +43,7 @@ data UserExtendedInfo = UserExtendedInfo
   { userExtProfileAge :: Int,
     userExtDescription :: Text,
     userExtProfileSections :: [ProfileSection],
-    userExtRelationshipStatus :: RelationshipStatus, -- TODO: Rework this to a web of relationships
-
-    -- | The impression that the currently logged in user has of this user, if any
-    userExtImpression :: Maybe Impression
+    userExtRelationshipStatus :: RelationshipStatus -- TODO: Rework this to a web of relationships
   }
   deriving (Generic, Show, Eq)
 
