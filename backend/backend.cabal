@@ -38,6 +38,8 @@ library
       User.Fake
       User.GenderIdentity
       User.Impressions
+      User.Queries
+      User.TH
       User.Web
       Util
       Web

@@ -7,8 +7,9 @@ import SafeMaths (int32ToInt)
 import Test.QuickCheck (property)
 import Test.Syd (Spec, describe, expectationFailure, it, shouldBe, shouldSatisfy)
 import TestUtil
-import User (NewUserInfo (..), UserOverviewInfo (..), createNewUser, searchFor, smartRoundDistanceM)
+import User (NewUserInfo (..), UserOverviewInfo (..), smartRoundDistanceM)
 import User.GenderIdentity (GenderIdentity (..))
+import User.Queries (createNewUser, searchFor)
 
 spec :: Spec
 spec = do

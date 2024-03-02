@@ -1,23 +1,17 @@
 {-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module User where
 
-import Data.Foldable (toList)
 import Data.Int (Int32)
-import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.Time (Day)
-import Data.Vector qualified as V
 import DeriveElmAndJson (deriveElmAndJson)
 import GHC.Generics (Generic)
-import Hasql.TH (resultlessStatement, singletonStatement, vectorStatement)
-import Hasql.Transaction (Transaction, statement)
-import SafeMaths (age, roundToNearest)
+import SafeMaths (roundToNearest)
 import Servant (FromHttpApiData, ToHttpApiData)
-import User.GenderIdentity (GenderIdentity (..), genderIdentityFromSQL, genderIdentityToSQL)
-import User.Impressions (Impression (..), impressionFromSQL, impressionToSQL)
+import User.GenderIdentity (GenderIdentity)
+import User.Impressions (Impression)
 import Util (reverseEnumToText)
 
 newtype UserID = UserID {unUserID :: Int32}
@@ -36,7 +30,9 @@ data UserOverviewInfo = UserOverviewInfo
     userDistanceM :: Int,
     -- | For privacy we send the age as a number to the frontend. Of course we do store the birthday as a data in the database.
     userAge :: Int,
-    userGenderIdentity :: GenderIdentity
+    userGenderIdentity :: GenderIdentity,
+    -- | The impression that the currently logged in user has of this user, if any
+    userImpression :: Maybe Impression
   }
   deriving (Generic, Show, Eq)
 
@@ -101,84 +97,6 @@ deriveElmAndJson ''UserOverviewInfo
 deriveElmAndJson ''UserExtendedInfo
 deriveElmAndJson ''UserAllInfo
 
-getUserInfo :: UserID -> UserID -> Transaction UserOverviewInfo
-getUserInfo myID otherID = do
-  rows <-
-    statement
-      (unUserID myID, unUserID otherID)
-      [singletonStatement|
-        SELECT 
-          other.id :: int,
-          other.name :: text,
-          other.header_image_url :: text,
-          earth_distance(me.location, other.location) :: float4,
-          CURRENT_DATE :: date,
-          other.birthday :: date,
-          other.gender_identity :: text,
-          (other.search_distance_km * 1000) :: float4
-        FROM users me
-        JOIN users other ON other.id = $2 :: int
-        WHERE me.id = $1 :: int
-      |]
-  pure $ userOverviewInfoFromSQL rows
-
-getUserExtendedInfo :: UserID -> UserID -> Transaction UserExtendedInfo
-getUserExtendedInfo myID otherID = do
-  rows <-
-    statement
-      (unUserID myID, unUserID otherID)
-      [singletonStatement|
-        SELECT 
-          join_day :: date,
-          CURRENT_DATE :: date,
-          description :: text,
-          relationship_status :: text,
-          impression :: text?
-        FROM users
-        LEFT JOIN impressions ON impressions.user_id = $1 :: int AND impressions.other_user_id = $2 :: int
-        WHERE id = $2 :: int
-      |]
-  pure $ fromSQL rows
-  where
-    fromSQL :: (Day, Day, Text, Text, Maybe Text) -> UserExtendedInfo
-    fromSQL (profileDate, currentDate, description, relationshipStatus, impression) =
-      UserExtendedInfo
-        { -- TODO: Implement actually getting this stuff from the DB
-          userExtProfileAge = age currentDate profileDate,
-          userExtDescription = description,
-          userExtProfileSections =
-            [ UserSectionGeneric "Generic header" "Generic content",
-              UserSectionImages
-                [ "https://via.placeholder.com/110",
-                  "https://via.placeholder.com/120",
-                  "https://via.placeholder.com/130",
-                  "https://via.placeholder.com/140",
-                  "https://via.placeholder.com/150"
-                ]
-                "Image description",
-              UserSectionQuestionAndAnswer "Question?" "Answer!",
-              UserSectionImages
-                [ "https://via.placeholder.com/110",
-                  "https://via.placeholder.com/120",
-                  "https://via.placeholder.com/130"
-                ]
-                "Image description",
-              UserSectionQuestionAndAnswer "Question?" "Answer!",
-              UserSectionQuestionAndAnswer "Question?" "Answer!",
-              UserSectionGeneric "Generic header" "Generic content",
-              UserSectionImages
-                [ "https://via.placeholder.com/110",
-                  "https://via.placeholder.com/120",
-                  "https://via.placeholder.com/130"
-                ]
-                "Image description",
-              UserSectionGeneric "Generic header" "Generic content",
-              UserSectionGeneric "Generic header" "Generic content"
-            ],
-          userExtRelationshipStatus = fromMaybe RelationshipStatusUnknown $ sqlToRelationshipStatus relationshipStatus,
-          userExtImpression = impressionFromSQL =<< impression
-        }
-
 data NewUserInfo = NewUserInfo
   { newUserName :: Text,
     newUserDescription :: Text,
@@ -193,62 +111,6 @@ data NewUserInfo = NewUserInfo
     newUserSearchGenderIdentities :: [GenderIdentity]
   }
 
-createNewUser :: NewUserInfo -> Transaction UserID
-createNewUser u = do
-  newID <-
-    statement
-      ( u.newUserName,
-        u.newUserHeaderImageUrl,
-        u.newUserDescription,
-        u.newUserLatitude,
-        u.newUserLongitude,
-        u.newUserBirthday,
-        genderIdentityToSQL u.newUserGenderIdentity,
-        u.newUserSearchMinAge,
-        u.newUserSearchMaxAge,
-        u.newUserSearchDistanceM
-      )
-      [singletonStatement|
-            INSERT INTO users (
-              name,
-              header_image_url,
-              description,
-              location,
-              join_day,
-              birthday,
-              gender_identity,
-              relationship_status,
-              search_age_min,
-              search_age_max,
-              search_distance_km
-            )
-            VALUES (
-              $1 :: text,
-              $2 :: text,
-              $3 :: text,
-              ll_to_earth($4 :: float4, $5 :: float4),
-              CURRENT_DATE,
-              $6 :: date,
-              $7 :: text :: gender_identity,
-              'single',
-              $8 :: int,
-              $9 :: int,
-              $10 :: int4 / 1000
-            )
-            RETURNING id :: int
-          |]
-  statement
-    (newID, V.fromList $ genderIdentityToSQL <$> u.newUserSearchGenderIdentities)
-    [resultlessStatement|
-          INSERT INTO user_search_gender_identities (
-            user_id,
-            search_gender_identity
-          )
-          SELECT $1 :: int, *
-          FROM UNNEST ($2 :: text[] :: gender_identity[])
-        |]
-  pure $ UserID newID
-
 smartRoundDistanceM :: Float -> Float -> Int
 smartRoundDistanceM distM searchDistM =
   let distanceM :: Int
@@ -261,119 +123,3 @@ smartRoundDistanceM distM searchDistM =
         m | m <= 1000 -> 1000
         m | m <= 3000 -> roundToNearest 500 m
         m -> roundToNearest 1000 m
-
-userOverviewInfoFromSQL :: (Int32, Text, Text, Float, Day, Day, Text, Float) -> UserOverviewInfo
-userOverviewInfoFromSQL (uid, name, img, distanceM, curDate, birthday, genderId, searchDistanceM) =
-  UserOverviewInfo
-    { userId = UserID uid,
-      userName = name,
-      userHeaderImageUrl = img,
-      userDistanceM = smartRoundDistanceM distanceM searchDistanceM,
-      userAge = age curDate birthday,
-      userGenderIdentity = fromMaybe Other $ genderIdentityFromSQL genderId
-    }
-
-searchFor :: UserID -> Int32 -> Transaction [UserOverviewInfo]
-searchFor userID maxResults = do
-  rows <-
-    statement
-      (unUserID userID, maxResults)
-      -- We can't do comments in the SQL here, because the parser doesn't support it.
-      -- But essentially, we first just get all the tables we need (all the joins)
-      -- then a block of queries to search people for me (the first block of `AND`'s),
-      -- then the same but in reverse for reverse search
-      -- and then lastly we filter out any users that you've already judged
-      [vectorStatement|
-        SELECT 
-          other.id :: int,
-          other.name :: text,
-          other.header_image_url :: text,
-          earth_distance(me.location, other.location) :: float4,
-          CURRENT_DATE :: date,
-          other.birthday :: date,
-          other.gender_identity :: text,
-          (other.search_distance_km * 1000) :: float4
-        FROM users me
-        JOIN users other ON other.id <> me.id
-        JOIN user_search_gender_identities my_gi ON me.id = my_gi.user_id
-        JOIN user_search_gender_identities other_gi ON other.id = other_gi.user_id
-        WHERE me.id = $1 :: int
-
-        AND other.birthday
-          BETWEEN CURRENT_DATE - concat(me.search_age_max::text,' years')::interval
-          AND CURRENT_DATE - concat(me.search_age_min::text,' years')::interval
-        AND other.gender_identity = my_gi.search_gender_identity
-        AND earth_box(me.location, me.search_distance_km * 1000) @> other.location
-        AND earth_distance(me.location, other.location) <= me.search_distance_km * 1000
-
-        AND me.birthday
-          BETWEEN CURRENT_DATE - concat(other.search_age_max::text,' years')::interval
-          AND CURRENT_DATE - concat(other.search_age_min::text,' years')::interval
-        AND me.gender_identity = other_gi.search_gender_identity
-        AND earth_box(other.location, other.search_distance_km * 1000) @> me.location
-        AND earth_distance(other.location, me.location) <= other.search_distance_km * 1000
-
-        AND NOT EXISTS (
-          SELECT 1
-          FROM impressions
-          WHERE user_id = me.id
-          AND other_user_id = other.id
-        )
-
-        AND NOT EXISTS (
-          SELECT 1
-          FROM impressions
-          WHERE user_id = other.id
-          AND other_user_id = me.id
-          AND impression = 'dislike'
-        )
-
-        LIMIT $2 :: int
-      |]
-  pure $ userOverviewInfoFromSQL <$> toList rows
-
-getUsersWithImpressionBy :: UserID -> Impression -> Transaction [UserOverviewInfo]
-getUsersWithImpressionBy userID impression = do
-  rows <-
-    statement
-      (unUserID userID, impressionToSQL impression)
-      [vectorStatement|
-        SELECT 
-          other.id :: int,
-          other.name :: text,
-          other.header_image_url :: text,
-          earth_distance(me.location, other.location) :: float4,
-          CURRENT_DATE :: date,
-          other.birthday :: date,
-          other.gender_identity :: text,
-          (other.search_distance_km * 1000) :: float4
-        FROM users me
-        JOIN users other ON other.id <> me.id
-        JOIN impressions ON impressions.user_id = me.id AND impressions.other_user_id = other.id
-        WHERE me.id = $1 :: int
-        AND impressions.impression = $2 :: text :: impression
-        ORDER BY impressions.timestamp DESC
-      |]
-  pure $ userOverviewInfoFromSQL <$> toList rows
-
-setImpressionBy :: UserID -> Impression -> UserID -> Transaction ()
-setImpressionBy myID impression otherUserID =
-  statement
-    (unUserID myID, impressionToSQL impression, unUserID otherUserID)
-    [resultlessStatement|
-      INSERT INTO impressions (
-        user_id,
-        impression,
-        other_user_id,
-        timestamp
-      )
-      VALUES (
-        $1 :: int,
-        $2 :: text :: impression,
-        $3 :: int,
-        CURRENT_TIMESTAMP
-      )
-      ON CONFLICT (user_id, other_user_id) DO UPDATE SET 
-        impression = $2 :: text :: impression,
-        timestamp = CURRENT_TIMESTAMP
-    |]

@@ -22,7 +22,8 @@ import Hasql.TH (singletonStatement)
 import Hasql.Transaction (statement)
 import SafeMaths (int32ToInt)
 import ServerM (ServerM)
-import User
+import User (NewUserInfo (..), ProfileSection (..), UserID)
+import User.Queries (createNewUser)
 
 maybeF :: Fake a -> Fake (Maybe a)
 maybeF f = oneof [pure Nothing, Just <$> f]

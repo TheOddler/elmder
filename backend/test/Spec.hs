@@ -36,5 +36,5 @@ userSpec = do
       -- The users that are randomly generated have very broad search criteria,
       -- so they should be able to find each other
       _ <- runOnServer server $ ensureSomeUsersInDB 10
-      answer <- runOnClient clientEnv (api.userRoutes.getSearch)
+      answer <- runOnClient clientEnv api.userRoutes.getSearch
       length answer `shouldSatisfy` (> 0)
