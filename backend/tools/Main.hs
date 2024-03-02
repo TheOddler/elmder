@@ -8,8 +8,8 @@ import GHC.Float (int2Float)
 import Hasql.Pool qualified
 import Hasql.Transaction (Transaction)
 import Hasql.Transaction.Sessions (IsolationLevel (..), Mode (..), transaction)
-import User (createNewUser)
 import User.Fake (fakeNewUser)
+import User.Queries (createNewUser)
 
 main :: IO ()
 main = do
