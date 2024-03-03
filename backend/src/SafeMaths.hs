@@ -10,7 +10,7 @@ import Data.Time (CalendarDiffDays (..), Day, diffGregorianDurationClip)
 int32ToInt :: Int32 -> Int
 int32ToInt = fromIntegral
 
-monthsToYears :: Integral a => a -> a
+monthsToYears :: (Integral a) => a -> a
 monthsToYears m = m `div` 12
 
 -- | We use this to get the age of people or accounts,
