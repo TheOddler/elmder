@@ -19,7 +19,6 @@ import Servant.Client
   )
 import Server (mkServer, mkServerEnv)
 import ServerM (ServerEnv, ServerM, toServantHandler)
-import SydTestExtra (setupAroundWithAll)
 import Test.QuickCheck.Instances.Text ()
 import Test.Syd
   ( HList (..),
@@ -30,6 +29,7 @@ import Test.Syd
     modifyMaxSuccess,
     setupAroundAll,
     setupAroundWith,
+    setupAroundWithAll,
   )
 import Test.Syd.Servant (testClientOrError)
 import Test.Syd.Wai.Def (applicationSetupFunc, managerSpec)
