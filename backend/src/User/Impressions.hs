@@ -4,7 +4,6 @@ module User.Impressions where
 
 import Data.Text (Text)
 import Elm.Derive (deriveBoth)
-import Servant (FromHttpApiData (..), ToHttpApiData (..))
 import Servant.Elm qualified
 import Util (reverseEnumToText)
 
@@ -21,14 +20,6 @@ data Impression
   deriving (Eq, Show, Enum, Bounded)
 
 deriveBoth Servant.Elm.defaultOptions ''Impression
-
-instance ToHttpApiData Impression where
-  toUrlPiece = impressionToSQL
-
-instance FromHttpApiData Impression where
-  parseUrlPiece t = case reverseEnumToText toUrlPiece t of
-    Nothing -> Left $ "Invalid impression: " <> t
-    Just x -> Right x
 
 -- | Convert a 'RelationshipStatus' to a SQL name for it.
 impressionToSQL :: Impression -> Text

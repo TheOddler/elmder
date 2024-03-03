@@ -4,7 +4,6 @@ import Browser exposing (UrlRequest)
 import Browser.Dom exposing (Viewport, getViewport, setViewport)
 import Browser.Navigation as Nav
 import Either exposing (Either(..))
-import Enums exposing (allImpressions)
 import Generated.Backend as Backend exposing (Impression(..), UserExtendedInfo, UserID, UserOverviewInfo)
 import Html exposing (Html, a, button, div, h1, li, text, ul)
 import Html.Attributes exposing (class, href)
@@ -13,9 +12,8 @@ import Html.Events exposing (onClick)
 import Html.Keyed as Keyed
 import Http
 import List.Extra as List
-import Maybe.Extra exposing (isJust)
 import Ports exposing (swiperSlideNext)
-import Routing exposing (Route(..), impressionToUrlSegement, routeToUrl, urlToRoute)
+import Routing exposing (Route(..), routeToUrl, urlToRoute)
 import StringExtra as String
 import Swiper
 import Task exposing (perform, succeed)
@@ -28,7 +26,11 @@ type Screen
     | ScreenLoading Screen
       -- ^ When loading a new screen, we keep the old one around so we can render a nicer transition
     | ScreenSearch (List UserOverviewInfo)
-    | ScreenImpression Impression (List UserOverviewInfo)
+    | ScreenLikesAndSuperLikes (List UserOverviewInfo)
+    | ScreenDislikes (List UserOverviewInfo)
+    | ScreenDecideLater (List UserOverviewInfo)
+    | ScreenMatches (List UserOverviewInfo)
+    | ScreenAdmirers (List UserOverviewInfo)
     | ScreenMyProfile
     | ScreenOtherUser UserOverviewInfo UserExtendedInfo
     | ScreenError (List String)
@@ -46,8 +48,20 @@ isSameScreen a b =
         ( ScreenSearch _, ScreenSearch _ ) ->
             True
 
-        ( ScreenImpression imprA _, ScreenImpression imprB _ ) ->
-            imprA == imprB
+        ( ScreenLikesAndSuperLikes _, ScreenLikesAndSuperLikes _ ) ->
+            True
+
+        ( ScreenDislikes _, ScreenDislikes _ ) ->
+            True
+
+        ( ScreenDecideLater _, ScreenDecideLater _ ) ->
+            True
+
+        ( ScreenMatches _, ScreenMatches _ ) ->
+            True
+
+        ( ScreenAdmirers _, ScreenAdmirers _ ) ->
+            True
 
         ( ScreenMyProfile, ScreenMyProfile ) ->
             True
@@ -68,7 +82,19 @@ isSameScreen a b =
         ( ScreenSearch _, _ ) ->
             False
 
-        ( ScreenImpression _ _, _ ) ->
+        ( ScreenLikesAndSuperLikes _, _ ) ->
+            False
+
+        ( ScreenDislikes _, _ ) ->
+            False
+
+        ( ScreenDecideLater _, _ ) ->
+            False
+
+        ( ScreenMatches _, _ ) ->
+            False
+
+        ( ScreenAdmirers _, _ ) ->
             False
 
         ( ScreenMyProfile, _ ) ->
@@ -87,10 +113,20 @@ routeToScreen settings route =
         RouteSearch ->
             Backend.getUserSearch settings.backendUrl (Result.map ScreenSearch)
 
-        RouteImpression impression ->
-            Backend.getUserImpressionsByImpression settings.backendUrl
-                impression
-                (Result.map <| ScreenImpression impression)
+        RouteLikesAndSuperLikes ->
+            Backend.postUserImpressions settings.backendUrl [ ImpressionLike, ImpressionSuperLike ] (Result.map ScreenLikesAndSuperLikes)
+
+        RouteDislikes ->
+            Backend.postUserImpressions settings.backendUrl [ ImpressionDislike ] (Result.map ScreenDislikes)
+
+        RouteDecideLater ->
+            Backend.postUserImpressions settings.backendUrl [ ImpressionDecideLater ] (Result.map ScreenDecideLater)
+
+        RouteMatches ->
+            Backend.getUserMatches settings.backendUrl (Result.map ScreenMatches)
+
+        RouteAdmirers ->
+            Backend.getUserAdmirers settings.backendUrl (Result.map ScreenAdmirers)
 
         RouteMyProfile ->
             perform Ok (succeed ScreenMyProfile)
@@ -177,8 +213,20 @@ updateImpression userID impression model =
                 ScreenSearch users ->
                     ScreenSearch <| List.map updateUser users
 
-                ScreenImpression impr users ->
-                    ScreenImpression impr <| List.map updateUser users
+                ScreenLikesAndSuperLikes users ->
+                    ScreenLikesAndSuperLikes <| List.map updateUser users
+
+                ScreenDislikes users ->
+                    ScreenDislikes <| List.map updateUser users
+
+                ScreenDecideLater users ->
+                    ScreenDecideLater <| List.map updateUser users
+
+                ScreenMatches users ->
+                    ScreenMatches <| List.map updateUser users
+
+                ScreenAdmirers users ->
+                    ScreenAdmirers <| List.map updateUser users
 
                 ScreenOtherUser info extInfo ->
                     ScreenOtherUser (updateUser info) extInfo
@@ -262,16 +310,28 @@ update message model =
                     "Failed navigating to "
                         ++ (case route of
                                 RouteSearch ->
-                                    "search page"
+                                    "the search page"
 
-                                RouteImpression impression ->
-                                    impressionToUrlSegement impression ++ " page"
+                                RouteLikesAndSuperLikes ->
+                                    "the likes page"
+
+                                RouteDislikes ->
+                                    "the dislikes page"
+
+                                RouteDecideLater ->
+                                    "the decide later page"
+
+                                RouteMatches ->
+                                    "the matches page"
+
+                                RouteAdmirers ->
+                                    "the admirers page"
 
                                 RouteMyProfile ->
                                     "my profile"
 
                                 RouteOtherUser _ ->
-                                    "other user's page"
+                                    "an other user's page"
                            )
             in
             handlHttpError prefix error
@@ -279,7 +339,7 @@ update message model =
         SetUserImpression userID impression ->
             ( updateImpression userID (Just impression) model
             , Cmd.batch
-                [ Backend.postUserByImpressionByOtherUserID model.settings.backendUrl impression userID (GotSetUserImpressionResult userID)
+                [ Backend.postUserImpressionByOtherUserID model.settings.backendUrl userID impression (GotSetUserImpressionResult userID)
                 , swiperSlideNext <| Just "search-swiper"
                 ]
             )
@@ -330,19 +390,20 @@ view model =
                 ScreenSearch _ ->
                     "Search"
 
-                ScreenImpression impression _ ->
-                    case impression of
-                        ImpressionLike ->
-                            "Likes"
+                ScreenLikesAndSuperLikes _ ->
+                    "Likes"
 
-                        ImpressionDislike ->
-                            "Dislikes"
+                ScreenDislikes _ ->
+                    "Dislikes"
 
-                        ImpressionDecideLater ->
-                            "Decide Later"
+                ScreenDecideLater _ ->
+                    "Decide Later"
 
-                        ImpressionSuperLike ->
-                            "Super-Likes"
+                ScreenMatches _ ->
+                    "Matches"
+
+                ScreenAdmirers _ ->
+                    "Admirers"
 
                 ScreenMyProfile ->
                     "My profile"
@@ -383,8 +444,20 @@ viewBody model =
                 ScreenSearch foundUsers ->
                     viewSearch foundUsers
 
-                ScreenImpression _ users ->
-                    viewScreenImpression users
+                ScreenLikesAndSuperLikes users ->
+                    viewScreenUserOverview users
+
+                ScreenDislikes users ->
+                    viewScreenUserOverview users
+
+                ScreenDecideLater users ->
+                    viewScreenUserOverview users
+
+                ScreenMatches users ->
+                    viewScreenUserOverview users
+
+                ScreenAdmirers users ->
+                    viewScreenUserOverview users
 
                 ScreenMyProfile ->
                     div [ class "center-content" ] <|
@@ -400,73 +473,138 @@ viewBody model =
 
         viewNavBar =
             let
-                imprIcon impr =
-                    case impr of
-                        ImpressionLike ->
-                            "fa-solid fa-heart"
+                routeIcon route =
+                    case route of
+                        RouteSearch ->
+                            "fa-solid fa-magnifying-glass"
 
-                        ImpressionDislike ->
+                        RouteLikesAndSuperLikes ->
+                            "fa-regular fa-heart"
+
+                        RouteDislikes ->
                             "fa-solid fa-heart-broken"
 
-                        ImpressionDecideLater ->
+                        RouteDecideLater ->
                             "fa-solid fa-clock"
 
-                        ImpressionSuperLike ->
+                        RouteMatches ->
+                            "fa-solid fa-heart"
+
+                        RouteAdmirers ->
                             "fa-solid fa-hand-holding-heart"
 
-                searchButton =
-                    { icon = "fa-solid fa-magnifying-glass"
-                    , onSelect = NavigateTo RouteSearch
-                    , isSelected =
-                        case model.currentScreen of
-                            ScreenSearch _ ->
-                                True
+                        RouteMyProfile ->
+                            "fa-solid fa-user"
 
-                            _ ->
-                                False
-                    , isVisible = True
-                    }
+                        -- Not actually used, but we need to cover all cases
+                        RouteOtherUser _ ->
+                            "fa-regular fa-user"
 
-                impressionsButtons =
-                    let
-                        currentImpression =
-                            case model.currentScreen of
-                                ScreenImpression impr _ ->
-                                    Just impr
+                screenRoute screen =
+                    case screen of
+                        ScreenInitialLoading ->
+                            RouteSearch
 
-                                ScreenLoading (ScreenImpression impr _) ->
-                                    Just impr
+                        ScreenSearch _ ->
+                            RouteSearch
 
-                                _ ->
-                                    Nothing
-                    in
-                    let
-                        mkImpressionButton impr =
-                            { icon = imprIcon impr
-                            , onSelect = NavigateTo <| RouteImpression impr
-                            , isSelected = Just impr == currentImpression
-                            , isVisible = isJust currentImpression || impr == ImpressionLike
-                            }
-                    in
-                    List.map mkImpressionButton allImpressions
+                        ScreenLikesAndSuperLikes _ ->
+                            RouteLikesAndSuperLikes
 
-                myProfileButton =
-                    { icon = "fa-solid fa-user"
-                    , onSelect = NavigateTo RouteMyProfile
-                    , isSelected =
-                        case model.currentScreen of
-                            ScreenMyProfile ->
-                                True
+                        ScreenDislikes _ ->
+                            RouteDislikes
 
-                            _ ->
-                                False
-                    , isVisible = True
+                        ScreenDecideLater _ ->
+                            RouteDecideLater
+
+                        ScreenMatches _ ->
+                            RouteMatches
+
+                        ScreenAdmirers _ ->
+                            RouteAdmirers
+
+                        ScreenMyProfile ->
+                            RouteMyProfile
+
+                        ScreenOtherUser info _ ->
+                            RouteOtherUser info.userId
+
+                        ScreenLoading prev ->
+                            screenRoute prev
+
+                        ScreenError _ ->
+                            RouteSearch
+
+                alwaysVisible route =
+                    case route of
+                        RouteSearch ->
+                            True
+
+                        RouteLikesAndSuperLikes ->
+                            False
+
+                        RouteDislikes ->
+                            False
+
+                        RouteDecideLater ->
+                            False
+
+                        RouteMatches ->
+                            True
+
+                        RouteAdmirers ->
+                            False
+
+                        RouteMyProfile ->
+                            True
+
+                        RouteOtherUser _ ->
+                            False
+
+                isLoveRoute route =
+                    case route of
+                        RouteSearch ->
+                            False
+
+                        RouteLikesAndSuperLikes ->
+                            True
+
+                        RouteDislikes ->
+                            True
+
+                        RouteDecideLater ->
+                            True
+
+                        RouteMatches ->
+                            True
+
+                        RouteAdmirers ->
+                            True
+
+                        RouteMyProfile ->
+                            False
+
+                        RouteOtherUser _ ->
+                            False
+
+                mkButton route =
+                    { icon = routeIcon route
+                    , onSelect = NavigateTo route
+                    , isSelected = route == screenRoute model.currentScreen
+                    , isVisible =
+                        alwaysVisible route
+                            || (isLoveRoute route && isLoveRoute (screenRoute model.currentScreen))
                     }
             in
-            navbar <|
-                searchButton
-                    :: impressionsButtons
-                    ++ [ myProfileButton ]
+            navbar
+                [ mkButton RouteSearch
+                , mkButton RouteDislikes
+                , mkButton RouteLikesAndSuperLikes
+                , mkButton RouteMatches
+                , mkButton RouteAdmirers
+                , mkButton RouteDecideLater
+                , mkButton RouteMyProfile
+                ]
     in
     Keyed.node "div"
         [ class "root" ]
@@ -508,8 +646,8 @@ viewSearch users =
         ]
 
 
-viewScreenImpression : List UserOverviewInfo -> Html Msg
-viewScreenImpression users =
+viewScreenUserOverview : List UserOverviewInfo -> Html Msg
+viewScreenUserOverview users =
     div
         [ class "user-overview" ]
         (List.map

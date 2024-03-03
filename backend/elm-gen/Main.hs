@@ -4,7 +4,7 @@
 
 module Main where
 
-import Data.Text (Text, pack)
+import Data.Text (Text)
 import Data.Text qualified as T
 import Elm.Module (recAlterType)
 import Elm.TyRep (ETCon (..))
@@ -18,7 +18,7 @@ import Web qualified
 
 -- Taken from https://hackage.haskell.org/package/servant-foreign-0.16/docs/src/Servant.Foreign.Internal.html#line-518
 -- But that is only available on servant-foreign 0.16, which I'm not using yet
-instance HasForeign lang ftype (ToServantApi r) => HasForeign lang ftype (NamedRoutes r) where
+instance (HasForeign lang ftype (ToServantApi r)) => HasForeign lang ftype (NamedRoutes r) where
   type Foreign ftype (NamedRoutes r) = Foreign ftype (ToServantApi r)
 
   foreignFor lang ftype Proxy =
@@ -74,29 +74,5 @@ elmImports =
       -- "import Set",
       "import Http",
       -- "import String",
-      "import Url.Builder",
-      "",
-      mkUrlPieceFromEnum "Impression" (Proxy :: Proxy Impression)
+      "import Url.Builder"
     ]
-
-mkUrlPieceFromEnum ::
-  forall a.
-  (Enum a, Bounded a, Show a, ToHttpApiData a) =>
-  Text ->
-  Proxy a ->
-  Text
-mkUrlPieceFromEnum elmTypeName _ =
-  T.unlines $
-    [ funcName <> " : " <> elmTypeName <> " -> String",
-      funcName <> " enumVal =",
-      "  case enumVal of"
-    ]
-      ++ map renderCase [minBound .. maxBound]
-  where
-    funcName = "urlPieceFrom" <> elmTypeName
-    renderCase :: a -> Text
-    renderCase x =
-      T.unlines
-        [ "    " <> pack (show x) <> " -> ",
-          "      \"" <> toUrlPiece x <> "\""
-        ]

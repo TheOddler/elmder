@@ -184,15 +184,15 @@ searchFor userID maxResults = do
       |]
   pure $ userOverviewInfoDecoder <$> toList rows
 
-getUsersWithImpressionBy :: UserID -> Impression -> Transaction [UserOverviewInfo]
-getUsersWithImpressionBy userID impression = do
+getUsersWithImpressionBy :: UserID -> [Impression] -> Transaction [UserOverviewInfo]
+getUsersWithImpressionBy userID impressions = do
   rows <-
     statement
-      (unUserID userID, impressionToSQL impression)
+      (unUserID userID, V.fromList $ impressionToSQL <$> impressions)
       [usersOverviewInfoStatement|
         WHERE me.id = $1 :: int
         AND other.id <> me.id
-        AND my_imp.impression = $2 :: text :: impression
+        AND my_imp.impression = ANY ($2 :: text[] :: impression[])
         ORDER BY my_imp.timestamp DESC
       |]
   pure $ userOverviewInfoDecoder <$> toList rows
@@ -203,7 +203,7 @@ getMatchesFor userID = do
     statement
       (unUserID userID)
       [usersOverviewInfoStatement|
-        JOIN impressions other_imp ON other_imp.user_id = me.id AND other_imp.other_user_id = other.id
+        JOIN impressions other_imp ON other_imp.user_id = other.id AND other_imp.other_user_id = me.id
         WHERE me.id = $1 :: int
         AND other.id <> me.id
         AND my_imp.impression IN ('like', 'super_like')
@@ -218,7 +218,7 @@ getUsersThatLike userID = do
     statement
       (unUserID userID)
       [usersOverviewInfoStatement|
-        JOIN impressions other_imp ON other_imp.user_id = me.id AND other_imp.other_user_id = other.id
+        JOIN impressions other_imp ON other_imp.user_id = other.id AND other_imp.other_user_id = me.id
         WHERE me.id = $1 :: int
         AND other.id <> me.id
         AND other_imp.impression IN ('like', 'super_like')

@@ -10,6 +10,7 @@ import Servant
     Get,
     JSON,
     Post,
+    ReqBody,
     (:>),
   )
 import Servant.Server.Generic (AsServerT)
@@ -22,8 +23,8 @@ import User.Queries qualified as User
 data UserRoutes mode = UserRoutes
   { getSearch :: mode :- "search" :> Get '[JSON] [UserOverviewInfo],
     getUserInfo :: mode :- Capture "userID" UserID :> "info" :> Get '[JSON] UserAllInfo,
-    getImpressions :: mode :- "impressions" :> Capture "impression" Impression :> Get '[JSON] [UserOverviewInfo],
-    postSetImpression :: mode :- Capture "impression" Impression :> Capture "otherUserID" UserID :> Post '[JSON] (),
+    postImpressions :: mode :- "impressions" :> ReqBody '[JSON] [Impression] :> Post '[JSON] [UserOverviewInfo],
+    postSetImpression :: mode :- "impression" :> ReqBody '[JSON] Impression :> Capture "otherUserID" UserID :> Post '[JSON] (),
     getMatches :: mode :- "matches" :> Get '[JSON] [UserOverviewInfo],
     getAdmirers :: mode :- "admirers" :> Get '[JSON] [UserOverviewInfo]
   }
@@ -44,7 +45,7 @@ userRoutes =
           info <- User.getUserInfo pretendMyID otherUserID
           extInfo <- User.getUserExtendedInfo pretendMyID otherUserID
           pure $ UserAllInfo info extInfo,
-      getImpressions = runHasql . User.getUsersWithImpressionBy pretendMyID,
+      postImpressions = runHasql . User.getUsersWithImpressionBy pretendMyID,
       postSetImpression = \u -> runHasql . User.setImpressionBy pretendMyID u,
       getMatches = runHasql $ User.getMatchesFor pretendMyID,
       getAdmirers = runHasql $ User.getUsersThatLike pretendMyID

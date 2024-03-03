@@ -1,15 +1,18 @@
 module Routing exposing (..)
 
-import Enums exposing (allImpressions, reverseEnumToString)
 import Generated.Backend exposing (Impression(..), UserID)
 import Url exposing (Url)
 import Url.Builder exposing (absolute)
-import Url.Parser exposing ((</>), Parser, custom, int, map, oneOf, parse, s, top)
+import Url.Parser exposing ((</>), Parser, int, map, oneOf, parse, s, top)
 
 
 type Route
     = RouteSearch
-    | RouteImpression Impression
+    | RouteLikesAndSuperLikes
+    | RouteDislikes
+    | RouteDecideLater
+    | RouteMatches
+    | RouteAdmirers
     | RouteMyProfile
     | RouteOtherUser UserID
 
@@ -18,9 +21,11 @@ routeUrlParser : Parser (Route -> a) a
 routeUrlParser =
     oneOf
         [ map RouteSearch top
-        , map RouteImpression <|
-            custom "IMPRESSION" <|
-                reverseEnumToString allImpressions impressionToUrlSegement
+        , map RouteLikesAndSuperLikes (s "likes")
+        , map RouteDislikes (s "dislikes")
+        , map RouteDecideLater (s "decide-later")
+        , map RouteMatches (s "matches")
+        , map RouteAdmirers (s "admirers")
         , map RouteMyProfile (s "settings")
         , map RouteOtherUser (s "user" </> int)
         ]
@@ -37,27 +42,23 @@ routeToUrl route =
         RouteSearch ->
             absolute [] []
 
-        RouteImpression impression ->
-            absolute [ impressionToUrlSegement impression ] []
+        RouteLikesAndSuperLikes ->
+            absolute [ "likes" ] []
+
+        RouteDislikes ->
+            absolute [ "dislikes" ] []
+
+        RouteDecideLater ->
+            absolute [ "decide-later" ] []
+
+        RouteMatches ->
+            absolute [ "matches" ] []
+
+        RouteAdmirers ->
+            absolute [ "admirers" ] []
 
         RouteMyProfile ->
             absolute [ "settings" ] []
 
         RouteOtherUser userID ->
             absolute [ "user", String.fromInt userID ] []
-
-
-impressionToUrlSegement : Impression -> String
-impressionToUrlSegement impression =
-    case impression of
-        ImpressionLike ->
-            "likes"
-
-        ImpressionDislike ->
-            "dislikes"
-
-        ImpressionDecideLater ->
-            "decide-later"
-
-        ImpressionSuperLike ->
-            "super-likes"
