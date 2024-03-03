@@ -82,6 +82,7 @@
             pkgs.haskell.lib.addBuildTools drv (with pkgs; [
               zlib # required for servant
               postgresql # required for tmp-postgres
+              haskellPackages.sydtest-discover
             ]);
         };
 

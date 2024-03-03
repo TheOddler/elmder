@@ -101,8 +101,12 @@ test-suite backend-test
       test
   other-modules:
       DistanceSpec
+      PingPongSpec
       SafeMathsSpec
       TestUtil
+      UserSpec
+  build-tool-depends:
+      sydtest-discover:sydtest-discover
   build-depends:
       QuickCheck
     , backend
